@@ -1,4 +1,5 @@
 import ContentTable from '@/components/ContentTable'
+import SortSelector from '@/components/SortSelector'
 import { getAllContents } from '@/lib/api'
 import Link from 'next/link'
 
@@ -36,20 +37,7 @@ export default async function Home({
           <h2 className="text-xl font-semibold text-gray-900">内容列表</h2>
           
           {/* 排序选择 */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">排序：</span>
-            <select
-              value={orderBy}
-              onChange={(e) => {
-                window.location.href = `/?orderBy=${e.target.value}`
-              }}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="score">评分（高到低）</option>
-              <option value="createdAt">创建时间（新到旧）</option>
-              <option value="analyzedAt">分析时间（新到旧）</option>
-            </select>
-          </div>
+          <SortSelector value={orderBy} />
         </div>
         
         <ContentTable contents={contents} />
