@@ -1,21 +1,30 @@
 import Link from 'next/link'
-import { ArrowLeft, Code, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Code, AlertCircle, Zap } from 'lucide-react'
 
 export default function ApiDocsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md text-gray-700 font-medium rounded-xl hover:bg-white transition-all duration-300 shadow-md hover:shadow-lg border border-gray-200/50"
+        >
           <ArrowLeft className="w-4 h-4" />
           返回首页
         </Link>
-        <div className="flex items-center gap-3 mt-4">
-          <Code className="w-8 h-8 text-gray-700" />
-          <h1 className="text-3xl font-bold text-gray-900">API 文档</h1>
+        <div className="flex items-center gap-4 mt-6">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+            <Code className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              API 文档
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Content Analyzer API 接口说明
+            </p>
+          </div>
         </div>
-        <p className="text-gray-600 mt-2">
-          Content Analyzer API 接口说明
-        </p>
       </div>
 
       {/* 创建内容 */}
@@ -24,9 +33,13 @@ export default function ApiDocsPage() {
         endpoint="/api/content"
         title="创建内容"
         description="上传新内容到系统"
+        gradient="from-blue-500 to-cyan-500"
       >
-        <h4 className="font-semibold text-gray-900 mb-2">请求体</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-blue-500" />
+          请求体
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`{
   "source": "twitter",           // 必填：来源（twitter, xiaohongshu, linuxdo 等）
   "url": "https://...",          // 必填：原文链接（唯一）
@@ -38,8 +51,11 @@ export default function ApiDocsPage() {
 }`}
         </pre>
 
-        <h4 className="font-semibold text-gray-900 mb-2 mt-4">响应</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-green-500" />
+          响应
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`{
   "id": "clxxx...",
   "source": "twitter",
@@ -55,8 +71,11 @@ export default function ApiDocsPage() {
 }`}
         </pre>
 
-        <h4 className="font-semibold text-gray-900 mb-2 mt-4">示例（curl）</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6 flex items-center gap-2">
+          <Code className="w-4 h-4 text-purple-500" />
+          示例（curl）
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`curl -X POST https://your-domain.vercel.app/api/content \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -77,14 +96,18 @@ export default function ApiDocsPage() {
         endpoint="/api/content"
         title="获取内容列表"
         description="获取所有内容，支持排序"
+        gradient="from-green-500 to-emerald-500"
       >
-        <h4 className="font-semibold text-gray-900 mb-2">查询参数</h4>
-        <ul className="list-disc list-inside text-gray-700 space-y-1">
-          <li><code className="bg-gray-100 px-2 py-0.5 rounded">orderBy</code> - 排序字段（score, createdAt, analyzedAt），默认 score</li>
+        <h4 className="font-semibold text-gray-900 mb-3">查询参数</h4>
+        <ul className="list-none space-y-2 text-gray-700">
+          <li className="flex items-start gap-2 bg-gray-50 p-3 rounded-lg">
+            <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-semibold">orderBy</code>
+            <span className="text-sm">排序字段（score, createdAt, analyzedAt），默认 score</span>
+          </li>
         </ul>
 
-        <h4 className="font-semibold text-gray-900 mb-2 mt-4">示例</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6">示例</h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`curl https://your-domain.vercel.app/api/content?orderBy=score`}
         </pre>
       </ApiSection>
@@ -95,9 +118,10 @@ export default function ApiDocsPage() {
         endpoint="/api/content/[id]"
         title="获取内容详情"
         description="根据 ID 获取单个内容的完整信息"
+        gradient="from-purple-500 to-pink-500"
       >
-        <h4 className="font-semibold text-gray-900 mb-2">示例</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3">示例</h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`curl https://your-domain.vercel.app/api/content/clxxx...`}
         </pre>
       </ApiSection>
@@ -108,16 +132,17 @@ export default function ApiDocsPage() {
         endpoint="/api/content/[id]"
         title="删除内容"
         description="根据 ID 删除内容"
+        gradient="from-red-500 to-pink-500"
       >
-        <h4 className="font-semibold text-gray-900 mb-2">响应</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3">响应</h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`{
   "success": true
 }`}
         </pre>
 
-        <h4 className="font-semibold text-gray-900 mb-2 mt-4">示例</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6">示例</h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`curl -X DELETE https://your-domain.vercel.app/api/content/clxxx...`}
         </pre>
       </ApiSection>
@@ -128,9 +153,10 @@ export default function ApiDocsPage() {
         endpoint="/api/stats"
         title="获取统计信息"
         description="获取内容统计数据"
+        gradient="from-orange-500 to-amber-500"
       >
-        <h4 className="font-semibold text-gray-900 mb-2">响应</h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+        <h4 className="font-semibold text-gray-900 mb-3">响应</h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
 {`{
   "total": 30,
   "bySource": {
@@ -143,31 +169,33 @@ export default function ApiDocsPage() {
       </ApiSection>
 
       {/* 错误响应 */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle className="w-5 h-5 text-red-700" />
-          <h2 className="text-xl font-semibold text-red-900">错误响应</h2>
+      <div className="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200/50 rounded-2xl shadow-lg p-8 hover-lift">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-red-500 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-red-900">错误响应</h2>
         </div>
-        <div className="space-y-4 text-sm">
-          <div>
-            <h4 className="font-semibold text-red-800">400 Bad Request</h4>
-            <pre className="bg-white p-3 rounded border border-red-200 mt-2 text-xs">
+        <div className="space-y-4">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-red-200/50">
+            <h4 className="font-semibold text-red-800 mb-2">400 Bad Request</h4>
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
 {`{
   "error": "Missing required fields: source, url, summary, content, score"
 }`}
             </pre>
           </div>
-          <div>
-            <h4 className="font-semibold text-red-800">404 Not Found</h4>
-            <pre className="bg-white p-3 rounded border border-red-200 mt-2 text-xs">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-red-200/50">
+            <h4 className="font-semibold text-red-800 mb-2">404 Not Found</h4>
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
 {`{
   "error": "Content not found"
 }`}
             </pre>
           </div>
-          <div>
-            <h4 className="font-semibold text-red-800">500 Internal Server Error</h4>
-            <pre className="bg-white p-3 rounded border border-red-200 mt-2 text-xs">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-red-200/50">
+            <h4 className="font-semibold text-red-800 mb-2">500 Internal Server Error</h4>
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
 {`{
   "error": "Failed to create content"
 }`}
@@ -184,31 +212,33 @@ function ApiSection({
   endpoint,
   title,
   description,
+  gradient,
   children
 }: {
   method: string
   endpoint: string
   title: string
   description: string
+  gradient: string
   children: React.ReactNode
 }) {
   const methodColors: Record<string, string> = {
-    GET: 'bg-green-100 text-green-800',
-    POST: 'bg-blue-100 text-blue-800',
-    DELETE: 'bg-red-100 text-red-800'
+    GET: 'from-green-500 to-emerald-500',
+    POST: 'from-blue-500 to-cyan-500',
+    DELETE: 'from-red-500 to-pink-500'
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <span className={`px-3 py-1 text-xs font-bold rounded ${methodColors[method]}`}>
+    <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200/50 p-8 hover-lift">
+      <div className="flex items-center gap-4 mb-6">
+        <span className={`px-4 py-2 text-sm font-bold rounded-xl bg-gradient-to-r ${methodColors[method]} text-white shadow-lg`}>
           {method}
         </span>
-        <code className="text-sm font-mono text-gray-700">{endpoint}</code>
+        <code className="text-base font-mono text-gray-700 bg-gray-100 px-4 py-2 rounded-lg">{endpoint}</code>
       </div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
-      <p className="text-gray-600 mb-4">{description}</p>
-      <div className="space-y-4">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
+      <p className="text-gray-600 mb-6">{description}</p>
+      <div className="space-y-6">
         {children}
       </div>
     </div>
