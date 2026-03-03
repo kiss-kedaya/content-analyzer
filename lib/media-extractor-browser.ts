@@ -36,7 +36,7 @@ export async function extractTwitterMediaBrowser(twitterUrl: string): Promise<Me
     // 2. 提取图片链接
     const imagesScript = `
       JSON.stringify(
-        Array.from(document.querySelectorAll('img[src*="pbs.twimg.com"]'))
+        Array.from(document.querySelectorAll('img[src*=pbs.twimg.com]'))
           .map(img => ({
             type: 'image',
             url: img.src.replace(/&name=\\w+/, '&name=large'),

@@ -97,17 +97,13 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const mediaList: MediaInfo[] = []
   
   // 匹配视频下载链接
-  // 格式: <a href="https://dl.snapcdn.app/get?token=...">下载 MP4 (1080p)</a>
-  const videoRegex = /<a[^>]*href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>([^<]*)<\/a>/g
+  // 格式: <a href="https://dl.snapcdn.app/get?token=...">...<i>...</i> 下载 MP4 (1080p)</a>
+  const videoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
   
   let match
   while ((match = videoRegex.exec(html)) !== null) {
     const url = match[1]
-    const text = match[2]
-    
-    // 提取质量信息
-    const qualityMatch = text.match(/(\d+p)/i)
-    const quality = qualityMatch ? qualityMatch[1] : 'unknown'
+    const quality = match[2] + 'p'
     
     mediaList.push({
       type: 'video',
@@ -118,20 +114,15 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   }
   
   // 匹配图片链接
-  // 格式: <img src="https://pbs.twimg.com/media/...">
-  const imageRegex = /<img[^>]*src="(https:\/\/pbs\.twimg\.com\/media\/[^"]+)"[^>]*>/g
+  // 格式: <a href="https://dl.snapcdn.app/get?token=...">...<i>...</i> 下载图片</a>
+  const imageRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/gs
   
   while ((match = imageRegex.exec(html)) !== null) {
     const url = match[1]
     
-    // 确保使用最高质量
-    const highQualityUrl = url.includes('?') 
-      ? url.replace(/name=\w+/, 'name=large')
-      : url + '?format=jpg&name=large'
-    
     mediaList.push({
       type: 'image',
-      url: highQualityUrl
+      url: url
     })
   }
   
