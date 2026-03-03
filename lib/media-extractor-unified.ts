@@ -1,14 +1,16 @@
 /**
  * 统一的 Twitter 媒体提取接口
- * 支持两种方案：
+ * 支持三种方案：
  * 1. yt-dlp（优先，稳定可靠）
- * 2. agent-browser（备用，本地专用）
+ * 2. snapvid（备用，第三方 API）
+ * 3. agent-browser（最后备用，本地专用）
  * 
  * 支持 twitter.com 和 x.com 两种 URL 格式
  */
 
 import YTDlpWrap from 'yt-dlp-wrap'
 import { extractTwitterMediaUrlsBrowser } from './media-extractor-browser'
+import { extractWithSnapvid } from './media-extractor-snapvid'
 import { isValidTwitterUrl, normalizeToTwitter } from './twitter-url-utils'
 
 export interface MediaInfo {
@@ -20,7 +22,7 @@ export interface MediaInfo {
   format?: string
 }
 
-export type ExtractorMethod = 'auto' | 'ytdlp' | 'browser'
+export type ExtractorMethod = 'auto' | 'ytdlp' | 'snapvid' | 'browser'
 
 // 从环境变量读取配置，默认 auto
 const EXTRACTOR_METHOD = (process.env.MEDIA_EXTRACTOR_METHOD || 'auto') as ExtractorMethod
@@ -89,6 +91,27 @@ async function extractWithYtDlp(twitterUrl: string): Promise<MediaInfo[]> {
 }
 
 /**
+ * 使用 snapvid.net API 提取媒体链接
+ */
+async function extractWithSnapvidAPI(twitterUrl: string): Promise<MediaInfo[]> {
+  console.log('[snapvid] 提取媒体:', twitterUrl)
+  
+  // 验证 URL
+  if (!isValidTwitterUrl(twitterUrl)) {
+    throw new Error('Invalid Twitter/X URL')
+  }
+  
+  try {
+    const mediaList = await extractWithSnapvid(twitterUrl)
+    console.log(`[snapvid] 提取成功: ${mediaList.length} 个媒体`)
+    return mediaList
+  } catch (error) {
+    console.error('[snapvid] 提取失败:', error)
+    throw error
+  }
+}
+
+/**
  * 使用 agent-browser 提取媒体链接
  */
 async function extractWithBrowser(twitterUrl: string): Promise<MediaInfo[]> {
@@ -124,6 +147,10 @@ export async function extractTwitterMedia(
     return await extractWithYtDlp(twitterUrl)
   }
   
+  if (method === 'snapvid') {
+    return await extractWithSnapvidAPI(twitterUrl)
+  }
+  
   if (method === 'browser') {
     return await extractWithBrowser(twitterUrl)
   }
@@ -133,18 +160,26 @@ export async function extractTwitterMedia(
     // 优先使用 yt-dlp
     return await extractWithYtDlp(twitterUrl)
   } catch (ytdlpError) {
-    console.warn('[auto] yt-dlp 失败，回退到 agent-browser')
+    console.warn('[auto] yt-dlp 失败，回退到 snapvid')
     
     try {
-      // 回退到 agent-browser
-      return await extractWithBrowser(twitterUrl)
-    } catch (browserError) {
-      console.error('[auto] 两种方法都失败')
-      console.error('  yt-dlp:', ytdlpError instanceof Error ? ytdlpError.message : ytdlpError)
-      console.error('  browser:', browserError instanceof Error ? browserError.message : browserError)
+      // 回退到 snapvid
+      return await extractWithSnapvidAPI(twitterUrl)
+    } catch (snapvidError) {
+      console.warn('[auto] snapvid 失败，回退到 agent-browser')
       
-      // 返回空数组而不是抛出错误
-      return []
+      try {
+        // 回退到 agent-browser
+        return await extractWithBrowser(twitterUrl)
+      } catch (browserError) {
+        console.error('[auto] 三种方法都失败')
+        console.error('  yt-dlp:', ytdlpError instanceof Error ? ytdlpError.message : ytdlpError)
+        console.error('  snapvid:', snapvidError instanceof Error ? snapvidError.message : snapvidError)
+        console.error('  browser:', browserError instanceof Error ? browserError.message : browserError)
+        
+        // 返回空数组而不是抛出错误
+        return []
+      }
     }
   }
 }
@@ -186,12 +221,14 @@ export async function extractBatchTwitterMedia(
  */
 export async function testExtractors(): Promise<{
   ytdlp: boolean
+  snapvid: boolean
   browser: boolean
 }> {
   const testUrl = 'https://twitter.com/test/status/1'
   
   const result = {
     ytdlp: false,
+    snapvid: false,
     browser: false
   }
   
@@ -201,6 +238,14 @@ export async function testExtractors(): Promise<{
     result.ytdlp = true
   } catch (error) {
     console.log('[test] yt-dlp 不可用')
+  }
+  
+  // 测试 snapvid
+  try {
+    await extractWithSnapvidAPI(testUrl)
+    result.snapvid = true
+  } catch (error) {
+    console.log('[test] snapvid 不可用')
   }
   
   // 测试 agent-browser

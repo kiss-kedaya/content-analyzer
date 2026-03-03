@@ -1,24 +1,25 @@
-# Twitter 媒体提取 - 双方案兼容
+# Twitter 媒体提取 - 三方案兼容
 
-支持两种媒体提取方案，自动回退机制确保稳定性。
+支持三种媒体提取方案，智能回退机制确保稳定性。
 
 **支持 URL 格式**:
 - ✅ `https://twitter.com/user/status/123456789`
 - ✅ `https://x.com/user/status/123456789`
 
-两种格式都完全支持，自动转换和处理。
+三种方案都完全支持，自动转换和处理。
 
 ## 方案对比
 
-| 特性 | yt-dlp（方案 1） | agent-browser（方案 2） |
-|------|-----------------|----------------------|
-| 稳定性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| 速度 | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| 质量 | 自动最高质量 | 手动选择 |
-| 依赖 | yt-dlp 二进制 | agent-browser |
-| Vercel | ❌ 不支持 | ❌ 不支持 |
-| 本地 | ✅ 支持 | ✅ 支持 |
-| 代理 | ✅ 支持 | ✅ 支持 |
+| 特性 | yt-dlp（方案 1） | snapvid（方案 2） | agent-browser（方案 3） |
+|------|-----------------|------------------|----------------------|
+| 稳定性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| 速度 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| 质量 | 自动最高质量 | 高质量 | 手动选择 |
+| 依赖 | yt-dlp 二进制 | 第三方 API | agent-browser |
+| Vercel | ❌ 不支持 | ✅ 支持 | ❌ 不支持 |
+| 本地 | ✅ 支持 | ✅ 支持 | ✅ 支持 |
+| 代理 | ✅ 支持 | ✅ 支持 | ✅ 支持 |
+| 限制 | 需要安装 | 速率限制 | 需要浏览器 |
 
 ## 安装
 
@@ -45,7 +46,20 @@ sudo apt install yt-dlp
 pip install yt-dlp
 ```
 
-### 方案 2: agent-browser
+### 方案 2: snapvid.net API
+
+**优势**:
+- ✅ 第三方 API，无需本地安装
+- ✅ 速度快
+- ✅ 可在 Vercel 上运行
+- ✅ 支持图片和视频
+
+**限制**:
+- ⚠️ 第三方服务，可能不稳定
+- ⚠️ 可能有速率限制
+- ⚠️ 依赖外部服务
+
+### 方案 3: agent-browser
 
 ```bash
 npm install -g agent-browser
@@ -57,8 +71,9 @@ npm install -g agent-browser
 
 ```env
 # 媒体提取方法
-# auto: 自动回退（优先 yt-dlp）
+# auto: 自动回退（优先 yt-dlp → snapvid → agent-browser）
 # ytdlp: 仅使用 yt-dlp
+# snapvid: 仅使用 snapvid.net API
 # browser: 仅使用 agent-browser
 MEDIA_EXTRACTOR_METHOD=auto
 ```
@@ -81,6 +96,9 @@ import { extractTwitterMediaUrls } from '@/lib/media-extractor-unified'
 
 // 仅使用 yt-dlp
 const mediaUrls = await extractTwitterMediaUrls(twitterUrl, 'ytdlp')
+
+// 仅使用 snapvid
+const mediaUrls = await extractTwitterMediaUrls(twitterUrl, 'snapvid')
 
 // 仅使用 agent-browser
 const mediaUrls = await extractTwitterMediaUrls(twitterUrl, 'browser')
@@ -108,6 +126,7 @@ URL: https://x.com/user/status/123456789
 📋 检查提取器可用性...
 
 yt-dlp: ✅ 可用
+snapvid: ✅ 可用
 agent-browser: ✅ 可用
 
 📋 方案 1: yt-dlp
@@ -127,7 +146,21 @@ agent-browser: ✅ 可用
   URL: https://pbs.twimg.com/media/...
   尺寸: 1200x675
 
-📋 方案 2: agent-browser
+📋 方案 2: snapvid.net API
+
+✅ snapvid 提取成功
+媒体数量: 2
+
+媒体 1:
+  类型: video
+  URL: https://video.twimg.com/...
+  质量: 720p
+
+媒体 2:
+  类型: image
+  URL: https://pbs.twimg.com/media/...
+
+📋 方案 3: agent-browser
 
 ✅ agent-browser 提取成功
 媒体数量: 2
