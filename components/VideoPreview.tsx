@@ -57,21 +57,21 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   }
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4">
+      <div className="relative w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-black">媒体预览</h2>
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+          <h2 className="text-lg md:text-xl font-semibold text-black">媒体预览</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
           </button>
         </div>
         
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(100vh-60px)] md:max-h-[calc(90vh-80px)]">
           {loading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
@@ -103,14 +103,14 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                   
                   {/* 质量选择 */}
                   {videos.length > 1 && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600">质量：</span>
-                      <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                      <span className="text-xs md:text-sm text-gray-600">质量：</span>
+                      <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
                         {videos.map((video, index) => (
                           <button
                             key={index}
                             onClick={() => setSelectedVideo(video)}
-                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                            className={`flex-shrink-0 px-4 py-2.5 md:py-2 text-xs md:text-sm font-medium rounded-md transition-colors touch-manipulation ${
                               selectedVideo.url === video.url
                                 ? 'bg-black text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -128,8 +128,8 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               {/* 图片 */}
               {images.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-black">图片</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h3 className="text-base md:text-lg font-semibold text-black">图片</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     {images.map((image, index) => (
                       <img
                         key={index}

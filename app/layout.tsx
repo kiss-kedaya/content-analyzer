@@ -17,29 +17,29 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="bg-white min-h-screen">
         <header className="border-b border-gray-200 sticky top-0 z-50 bg-white/80 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-14 md:h-16">
               <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <BarChart3 className="w-5 h-5 text-black" />
-                <span className="text-lg font-semibold text-black">Content Analyzer</span>
+                <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-black" />
+                <span className="text-base md:text-lg font-semibold text-black">Content Analyzer</span>
               </Link>
-              <nav className="flex items-center gap-6">
-                <Link href="/" className="text-sm text-gray-600 hover:text-black transition-colors">
+              <nav className="flex items-center gap-4 md:gap-6">
+                <Link href="/" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   首页
                 </Link>
-                <Link href="/api-docs" className="text-sm text-gray-600 hover:text-black transition-colors">
+                <Link href="/api-docs" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   API 文档
                 </Link>
               </nav>
             </div>
           </div>
         </header>
-        <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12">
           {children}
         </main>
-        <footer className="border-t border-gray-200 mt-24">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-            <div className="flex items-center justify-between text-sm text-gray-500">
+        <footer className="border-t border-gray-200 mt-12 md:mt-24">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-500">
               <p>Powered by Next.js + Vercel + Neon + OpenClaw</p>
               <p>© 2026 Content Analyzer</p>
             </div>
