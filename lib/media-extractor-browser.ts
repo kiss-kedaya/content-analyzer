@@ -1,5 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { isValidTwitterUrl } from './twitter-url-utils'
 
 const execAsync = promisify(exec)
 
@@ -15,8 +16,14 @@ export interface MediaInfo {
 /**
  * 使用 agent-browser 从 Twitter URL 提取媒体链接
  * 本地专用（agent-browser 无法在 Vercel 上运行）
+ * 支持 twitter.com 和 x.com 两种 URL 格式
  */
 export async function extractTwitterMediaBrowser(twitterUrl: string): Promise<MediaInfo[]> {
+  // 验证 URL
+  if (!isValidTwitterUrl(twitterUrl)) {
+    throw new Error('Invalid Twitter/X URL')
+  }
+  
   try {
     console.log(`[Browser] 打开 Twitter 页面: ${twitterUrl}`)
     

@@ -2,6 +2,12 @@
 
 支持两种媒体提取方案，自动回退机制确保稳定性。
 
+**支持 URL 格式**:
+- ✅ `https://twitter.com/user/status/123456789`
+- ✅ `https://x.com/user/status/123456789`
+
+两种格式都完全支持，自动转换和处理。
+
 ## 方案对比
 
 | 特性 | yt-dlp（方案 1） | agent-browser（方案 2） |
@@ -88,6 +94,8 @@ const mediaUrls = await extractTwitterMediaUrls(twitterUrl, 'auto')
 ### 测试两种方案
 
 ```bash
+npm run test-extractors -- --url "https://x.com/user/status/123456789"
+# 或
 npm run test-extractors -- --url "https://twitter.com/user/status/123456789"
 ```
 
@@ -95,7 +103,7 @@ npm run test-extractors -- --url "https://twitter.com/user/status/123456789"
 ```
 🧪 测试两种媒体提取方案
 
-URL: https://twitter.com/user/status/123456789
+URL: https://x.com/user/status/123456789
 
 📋 检查提取器可用性...
 
@@ -148,12 +156,12 @@ agent-browser: ✅ 可用
 
 **yt-dlp**:
 ```bash
-npm run test-media -- --url "https://twitter.com/user/status/123"
+npm run test-media -- --url "https://x.com/user/status/123"
 ```
 
 **agent-browser**:
 ```bash
-npm run test-media-browser -- --url "https://twitter.com/user/status/123"
+npm run test-media-browser -- --url "https://x.com/user/status/123"
 ```
 
 ## 批量抓取

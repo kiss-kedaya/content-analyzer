@@ -3,10 +3,13 @@
  * 支持两种方案：
  * 1. yt-dlp（优先，稳定可靠）
  * 2. agent-browser（备用，本地专用）
+ * 
+ * 支持 twitter.com 和 x.com 两种 URL 格式
  */
 
 import YTDlpWrap from 'yt-dlp-wrap'
 import { extractTwitterMediaUrlsBrowser } from './media-extractor-browser'
+import { isValidTwitterUrl, normalizeToTwitter } from './twitter-url-utils'
 
 export interface MediaInfo {
   type: 'image' | 'video'
@@ -28,11 +31,20 @@ const EXTRACTOR_METHOD = (process.env.MEDIA_EXTRACTOR_METHOD || 'auto') as Extra
 async function extractWithYtDlp(twitterUrl: string): Promise<MediaInfo[]> {
   console.log('[yt-dlp] 提取媒体:', twitterUrl)
   
+  // 验证 URL
+  if (!isValidTwitterUrl(twitterUrl)) {
+    throw new Error('Invalid Twitter/X URL')
+  }
+  
+  // yt-dlp 可能需要 twitter.com 格式，尝试转换
+  const normalizedUrl = normalizeToTwitter(twitterUrl)
+  console.log('[yt-dlp] 标准化 URL:', normalizedUrl)
+  
   try {
     const ytDlp = new YTDlpWrap()
     
     // 获取视频信息
-    const info = await ytDlp.getVideoInfo(twitterUrl)
+    const info = await ytDlp.getVideoInfo(normalizedUrl)
     
     const mediaList: MediaInfo[] = []
     
@@ -81,6 +93,11 @@ async function extractWithYtDlp(twitterUrl: string): Promise<MediaInfo[]> {
  */
 async function extractWithBrowser(twitterUrl: string): Promise<MediaInfo[]> {
   console.log('[agent-browser] 提取媒体:', twitterUrl)
+  
+  // 验证 URL
+  if (!isValidTwitterUrl(twitterUrl)) {
+    throw new Error('Invalid Twitter/X URL')
+  }
   
   try {
     const { extractTwitterMediaBrowser } = await import('./media-extractor-browser')
