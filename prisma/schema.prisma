@@ -1,0 +1,30 @@
+// Prisma schema for content analyzer
+// Database: Neon PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Content {
+  id         String   @id @default(cuid())
+  source     String   // twitter, xiaohongshu, linuxdo, etc.
+  url        String   @unique
+  title      String?
+  summary    String   @db.Text
+  content    String   @db.Text  // 完整内容
+  score      Float
+  analyzedBy String?  // 分析者（Agent 名称）
+  analyzedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([source])
+  @@index([score])
+  @@index([analyzedAt])
+  @@index([createdAt])
+}
