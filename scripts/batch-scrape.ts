@@ -5,21 +5,14 @@
  * npm run batch-scrape
  */
 
+import { extractTwitterMediaUrlsBrowser } from '../lib/media-extractor-browser'
+
 const API_URL = process.env.API_URL || 'https://ca.kedaya.xyz'
 
 interface Tweet {
   url: string
   type: 'adult' | 'tech'
   description?: string
-}
-
-interface MediaInfo {
-  type: 'image' | 'video'
-  url: string
-  thumbnail?: string
-  width?: number
-  height?: number
-  format?: string
 }
 
 interface ContentData {
@@ -52,22 +45,8 @@ async function extractMedia(url: string): Promise<string[]> {
   console.log(`  🔍 提取媒体: ${url}`)
   
   try {
-    const response = await fetch(`${API_URL}/api/extract-media`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    })
-    
-    if (!response.ok) {
-      const error = await response.json()
-      console.log(`  ⚠️  提取失败: ${error.message || error.error}`)
-      return []
-    }
-    
-    const result = await response.json()
-    const mediaUrls = result.media.map((m: MediaInfo) => m.url)
+    const mediaUrls = await extractTwitterMediaUrlsBrowser(url)
     console.log(`  ✅ 提取成功: ${mediaUrls.length} 个媒体`)
-    
     return mediaUrls
   } catch (error) {
     console.log(`  ❌ 提取错误: ${error instanceof Error ? error.message : error}`)
