@@ -5,9 +5,10 @@ import { notFound } from 'next/navigation'
 export default async function ContentDetailPage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const content = await getContentById(params.id)
+  const { id } = await params
+  const content = await getContentById(id)
   
   if (!content) {
     notFound()

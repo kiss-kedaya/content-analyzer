@@ -7,9 +7,10 @@ export const revalidate = 0 // 禁用缓存，实时更新
 export default async function Home({
   searchParams
 }: {
-  searchParams: { orderBy?: string }
+  searchParams: Promise<{ orderBy?: string }>
 }) {
-  const orderBy = (searchParams.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
+  const params = await searchParams
+  const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
   const contents = await getAllContents(orderBy)
 
   const stats = {

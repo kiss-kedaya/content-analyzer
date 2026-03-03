@@ -4,10 +4,11 @@ import { getContentById, deleteContent } from '@/lib/api'
 // GET /api/content/[id] - 获取内容详情
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const content = await getContentById(params.id)
+    const { id } = await params
+    const content = await getContentById(id)
     
     if (!content) {
       return NextResponse.json(
@@ -29,10 +30,11 @@ export async function GET(
 // DELETE /api/content/[id] - 删除内容
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await deleteContent(params.id)
+    const { id } = await params
+    await deleteContent(id)
     
     return NextResponse.json({ success: true })
   } catch (error) {
