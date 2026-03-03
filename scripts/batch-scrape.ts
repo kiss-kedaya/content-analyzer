@@ -5,7 +5,7 @@
  * npm run batch-scrape
  */
 
-import { extractTwitterMediaUrlsBrowser } from '../lib/media-extractor-browser'
+import { extractTwitterMediaUrls } from '../lib/media-extractor-unified'
 
 const API_URL = process.env.API_URL || 'https://ca.kedaya.xyz'
 
@@ -45,7 +45,7 @@ async function extractMedia(url: string): Promise<string[]> {
   console.log(`  🔍 提取媒体: ${url}`)
   
   try {
-    const mediaUrls = await extractTwitterMediaUrlsBrowser(url)
+    const mediaUrls = await extractTwitterMediaUrls(url)
     console.log(`  ✅ 提取成功: ${mediaUrls.length} 个媒体`)
     return mediaUrls
   } catch (error) {
