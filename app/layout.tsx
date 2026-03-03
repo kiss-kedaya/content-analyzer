@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { BarChart3 } from '@/components/Icon'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: '内容分析系统 - Content Analyzer',
@@ -14,30 +15,34 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 min-h-screen">
-        <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  内容分析系统
-                </h1>
-                <p className="text-sm text-gray-600">
-                  OpenClaw Agent 驱动的内容分析和管理系统
-                </p>
-              </div>
+      <body className="bg-white min-h-screen">
+        <header className="border-b border-gray-200 sticky top-0 z-50 bg-white/80 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <BarChart3 className="w-5 h-5 text-black" />
+                <span className="text-lg font-semibold text-black">Content Analyzer</span>
+              </Link>
+              <nav className="flex items-center gap-6">
+                <Link href="/" className="text-sm text-gray-600 hover:text-black transition-colors">
+                  首页
+                </Link>
+                <Link href="/api-docs" className="text-sm text-gray-600 hover:text-black transition-colors">
+                  API 文档
+                </Link>
+              </nav>
             </div>
           </div>
         </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
           {children}
         </main>
-        <footer className="bg-white/60 backdrop-blur-md border-t border-gray-200/50 mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-600">
-            <p>Powered by Next.js + Vercel + Neon + OpenClaw</p>
+        <footer className="border-t border-gray-200 mt-24">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <p>Powered by Next.js + Vercel + Neon + OpenClaw</p>
+              <p>© 2026 Content Analyzer</p>
+            </div>
           </div>
         </footer>
       </body>

@@ -7,17 +7,17 @@ export default function ApiDocsPage() {
       <div>
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md text-gray-700 font-medium rounded-xl hover:bg-white transition-all duration-300 shadow-md hover:shadow-lg border border-gray-200/50"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           返回首页
         </Link>
         <div className="flex items-center gap-4 mt-6">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+          <div className="p-3 bg-black rounded-lg">
             <Code className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold text-black">
               API 文档
             </h1>
             <p className="text-gray-600 mt-1">
