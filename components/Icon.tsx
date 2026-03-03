@@ -24,5 +24,7 @@ export {
   Loader2,
   ArrowUpDown,
   Download,
-  Image
+  Image,
+  X,
+  Play
 } from 'lucide-react'

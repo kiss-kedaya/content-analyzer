@@ -1,6 +1,6 @@
 /**
  * Snapvid.net API 媒体提取器
- * 第三方 Twitter 视频下载服务
+ * 真实 API 实现（两步调用）
  */
 
 import { isValidTwitterUrl } from './twitter-url-utils'
@@ -18,7 +18,10 @@ export interface MediaInfo {
 /**
  * 使用 snapvid.net API 提取媒体链接
  * 
- * 注意：这是第三方服务，可能有速率限制或不稳定
+ * 流程：
+ * 1. POST /api/userverify 获取 token
+ * 2. POST /api/ajaxSearch 获取视频链接（HTML）
+ * 3. 解析 HTML 提取视频直链
  */
 export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[]> {
   console.log('[snapvid] 提取媒体:', twitterUrl)
@@ -29,44 +32,58 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
   }
   
   try {
-    // 尝试多个可能的 API 端点
-    const endpoints = [
-      'https://snapvid.net/api/download',
-      'https://snapvid.net/api/twitter',
-      'https://snapvid.net/api/extract'
-    ]
+    // 步骤 1: 获取 token
+    console.log('[snapvid] 步骤 1: 获取 token')
+    const tokenRes = await fetch('https://snapvid.net/api/userverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: `url=${encodeURIComponent(twitterUrl)}`
+    })
     
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: JSON.stringify({
-            url: twitterUrl,
-            link: twitterUrl,
-            video_url: twitterUrl
-          })
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          const mediaList = parseSnapvidResponse(data)
-          
-          if (mediaList.length > 0) {
-            console.log(`[snapvid] 提取成功: ${mediaList.length} 个媒体`)
-            return mediaList
-          }
-        }
-      } catch (error) {
-        // 尝试下一个端点
-        continue
-      }
+    if (!tokenRes.ok) {
+      throw new Error(`Token request failed: ${tokenRes.status}`)
     }
     
-    throw new Error('All snapvid API endpoints failed')
+    const tokenData = await tokenRes.json()
+    
+    if (!tokenData.success || !tokenData.token) {
+      throw new Error('Failed to get token')
+    }
+    
+    const token = tokenData.token
+    console.log('[snapvid] Token 获取成功')
+    
+    // 步骤 2: 获取视频链接
+    console.log('[snapvid] 步骤 2: 获取视频链接')
+    const videoRes = await fetch('https://snapvid.net/api/ajaxSearch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: `q=${encodeURIComponent(twitterUrl)}&w=&v=v2&lang=zh-cn&cftoken=${token}`
+    })
+    
+    if (!videoRes.ok) {
+      throw new Error(`Video request failed: ${videoRes.status}`)
+    }
+    
+    const videoData = await videoRes.json()
+    
+    if (videoData.status !== 'ok' || !videoData.data) {
+      throw new Error('Failed to get video data')
+    }
+    
+    // 步骤 3: 解析 HTML 提取链接
+    console.log('[snapvid] 步骤 3: 解析 HTML')
+    const mediaList = extractVideoUrlsFromHtml(videoData.data)
+    
+    console.log(`[snapvid] 提取成功: ${mediaList.length} 个媒体`)
+    
+    return mediaList
   } catch (error) {
     console.error('[snapvid] 提取失败:', error)
     throw error
@@ -74,69 +91,66 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
 }
 
 /**
- * 解析 snapvid API 响应
+ * 从 HTML 中提取视频链接
  */
-function parseSnapvidResponse(data: any): MediaInfo[] {
+function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const mediaList: MediaInfo[] = []
   
-  // 尝试多种可能的响应格式
+  // 匹配视频下载链接
+  // 格式: <a href="https://dl.snapcdn.app/get?token=...">下载 MP4 (1080p)</a>
+  const videoRegex = /<a[^>]*href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>([^<]*)<\/a>/g
   
-  // 格式 1: { videos: [...], images: [...] }
-  if (data.videos && Array.isArray(data.videos)) {
-    data.videos.forEach((video: any) => {
-      mediaList.push({
-        type: 'video',
-        url: video.url || video.download_url || video.link,
-        thumbnail: video.thumbnail || video.thumb,
-        quality: video.quality || video.resolution,
-        format: 'mp4'
-      })
-    })
-  }
-  
-  if (data.images && Array.isArray(data.images)) {
-    data.images.forEach((image: any) => {
-      mediaList.push({
-        type: 'image',
-        url: image.url || image.download_url || image.link
-      })
-    })
-  }
-  
-  // 格式 2: { media: [...] }
-  if (data.media && Array.isArray(data.media)) {
-    data.media.forEach((item: any) => {
-      mediaList.push({
-        type: item.type === 'video' ? 'video' : 'image',
-        url: item.url || item.download_url,
-        thumbnail: item.thumbnail,
-        quality: item.quality,
-        format: item.format || 'mp4'
-      })
-    })
-  }
-  
-  // 格式 3: { download_url: "...", type: "video" }
-  if (data.download_url) {
+  let match
+  while ((match = videoRegex.exec(html)) !== null) {
+    const url = match[1]
+    const text = match[2]
+    
+    // 提取质量信息
+    const qualityMatch = text.match(/(\d+p)/i)
+    const quality = qualityMatch ? qualityMatch[1] : 'unknown'
+    
     mediaList.push({
-      type: data.type === 'video' ? 'video' : 'image',
-      url: data.download_url,
-      thumbnail: data.thumbnail,
-      quality: data.quality,
-      format: data.format || 'mp4'
+      type: 'video',
+      url: url,
+      quality: quality,
+      format: 'mp4'
     })
   }
   
-  // 格式 4: { url: "...", ... }
-  if (data.url && !data.download_url) {
+  // 匹配图片链接
+  // 格式: <img src="https://pbs.twimg.com/media/...">
+  const imageRegex = /<img[^>]*src="(https:\/\/pbs\.twimg\.com\/media\/[^"]+)"[^>]*>/g
+  
+  while ((match = imageRegex.exec(html)) !== null) {
+    const url = match[1]
+    
+    // 确保使用最高质量
+    const highQualityUrl = url.includes('?') 
+      ? url.replace(/name=\w+/, 'name=large')
+      : url + '?format=jpg&name=large'
+    
     mediaList.push({
-      type: data.type === 'video' ? 'video' : 'image',
-      url: data.url,
-      thumbnail: data.thumbnail,
-      quality: data.quality,
-      format: data.format || 'mp4'
+      type: 'image',
+      url: highQualityUrl
     })
   }
+  
+  // 按质量排序（1080p > 720p > 360p）
+  mediaList.sort((a, b) => {
+    if (a.type !== 'video' || b.type !== 'video') return 0
+    
+    const qualityOrder: Record<string, number> = {
+      '1080p': 3,
+      '720p': 2,
+      '360p': 1,
+      'unknown': 0
+    }
+    
+    const aQuality = qualityOrder[a.quality || 'unknown'] || 0
+    const bQuality = qualityOrder[b.quality || 'unknown'] || 0
+    
+    return bQuality - aQuality
+  })
   
   return mediaList
 }
@@ -147,4 +161,15 @@ function parseSnapvidResponse(data: any): MediaInfo[] {
 export async function extractSnapvidMediaUrls(twitterUrl: string): Promise<string[]> {
   const mediaList = await extractWithSnapvid(twitterUrl)
   return mediaList.map(media => media.url)
+}
+
+/**
+ * 获取最高质量的视频链接
+ */
+export async function getHighestQualityVideo(twitterUrl: string): Promise<string | null> {
+  const mediaList = await extractWithSnapvid(twitterUrl)
+  const videos = mediaList.filter(m => m.type === 'video')
+  
+  // 已经按质量排序，返回第一个
+  return videos.length > 0 ? videos[0].url : null
 }

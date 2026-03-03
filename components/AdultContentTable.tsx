@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Loader2, Download, Image as ImageIcon } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Loader2, Download, Image as ImageIcon, Play } from '@/components/Icon'
+import VideoPreview from './VideoPreview'
 
 interface AdultContent {
   id: string
@@ -23,6 +24,7 @@ interface AdultContentTableProps {
 
 export default function AdultContentTable({ contents, onDelete }: AdultContentTableProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const getSourceBadge = (source: string) => {
     const badges: Record<string, string> = {
@@ -68,7 +70,8 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
@@ -149,6 +152,13 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                 <span className="text-xs text-gray-400 ml-1">/ 10</span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                <button
+                  onClick={() => setPreviewUrl(content.url)}
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <Play className="w-4 h-4" />
+                  预览
+                </button>
                 <Link
                   href={`/adult-content/${content.id}`}
                   className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition-colors"
@@ -186,5 +196,14 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
         </div>
       )}
     </div>
+    
+    {/* 视频预览模态框 */}
+    {previewUrl && (
+      <VideoPreview
+        url={previewUrl}
+        onClose={() => setPreviewUrl(null)}
+      />
+    )}
+  </>
   )
 }
