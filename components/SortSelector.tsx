@@ -5,9 +5,10 @@ import { ArrowUpDown } from '@/components/Icon'
 
 interface SortSelectorProps {
   value: string
+  currentTab?: string
 }
 
-export default function SortSelector({ value }: SortSelectorProps) {
+export default function SortSelector({ value, currentTab = 'tech' }: SortSelectorProps) {
   const router = useRouter()
 
   return (
@@ -18,7 +19,7 @@ export default function SortSelector({ value }: SortSelectorProps) {
       </div>
       <select
         value={value}
-        onChange={(e) => router.push(`/?orderBy=${e.target.value}`)}
+        onChange={(e) => router.push(`/?tab=${currentTab}&orderBy=${e.target.value}`)}
         className="text-sm bg-white border border-gray-300 rounded-md px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all cursor-pointer hover:border-gray-400"
       >
         <option value="score">评分（高到低）</option>

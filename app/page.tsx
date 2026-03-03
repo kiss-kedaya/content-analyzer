@@ -1,6 +1,9 @@
 import ContentTable from '@/components/ContentTable'
+import AdultContentTable from '@/components/AdultContentTable'
 import SortSelector from '@/components/SortSelector'
+import TabSelector from '@/components/TabSelector'
 import { getAllContents } from '@/lib/api'
+import { getAllAdultContents } from '@/lib/adult-api'
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
@@ -9,11 +12,15 @@ export const revalidate = 0 // 禁用缓存，实时更新
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ orderBy?: string }>
+  searchParams: Promise<{ orderBy?: string; tab?: string }>
 }) {
   const params = await searchParams
   const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
-  const contents = await getAllContents(orderBy)
+  const tab = params.tab || 'tech'  // 'tech' or 'adult'
+  
+  const contents = tab === 'tech' 
+    ? await getAllContents(orderBy)
+    : await getAllAdultContents(orderBy)
 
   const stats = {
     total: contents.length,
@@ -61,11 +68,18 @@ export default async function Home({
       {/* 内容表格 */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-black">内容列表</h2>
-          <SortSelector value={orderBy} />
+          <div className="flex items-center gap-6">
+            <h2 className="text-2xl font-semibold text-black">内容列表</h2>
+            <TabSelector currentTab={tab} />
+          </div>
+          <SortSelector value={orderBy} currentTab={tab} />
         </div>
         
-        <ContentTable contents={contents} />
+        {tab === 'tech' ? (
+          <ContentTable contents={contents} />
+        ) : (
+          <AdultContentTable contents={contents as any} />
+        )}
       </div>
 
       {/* API 使用说明 */}
@@ -75,7 +89,10 @@ export default async function Home({
         </h3>
         <div className="space-y-4 text-sm text-gray-600">
           <p>
-            <strong className="text-black">创建内容：</strong> POST /api/content
+            <strong className="text-black">技术内容：</strong> POST /api/content
+          </p>
+          <p>
+            <strong className="text-black">成人内容：</strong> POST /api/adult-content
           </p>
           <pre className="bg-white border border-gray-200 p-4 rounded-lg overflow-x-auto text-xs font-mono">
 {`{
@@ -85,6 +102,7 @@ export default async function Home({
   "summary": "摘要",
   "content": "完整内容",
   "score": 8.5,
+  "mediaUrls": ["https://pbs.twimg.com/media/..."],  // 成人内容专用
   "analyzedBy": "OpenClaw Agent"
 }`}
           </pre>

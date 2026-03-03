@@ -22,5 +22,7 @@ export {
   Eye,
   Trash2,
   Loader2,
-  ArrowUpDown
+  ArrowUpDown,
+  Download,
+  Image
 } from 'lucide-react'
