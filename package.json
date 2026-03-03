@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "scrape": "tsx scripts/scrape.ts",
+    "upload": "tsx scripts/upload.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },

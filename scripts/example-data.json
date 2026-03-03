@@ -1,0 +1,36 @@
+[
+  {
+    "source": "twitter",
+    "url": "https://twitter.com/example/status/123456789",
+    "title": "示例推文 1",
+    "summary": "这是第一条示例推文的摘要，展示了如何使用批量上传功能。",
+    "content": "这是完整的推文内容。可以包含多行文本，详细描述推文的完整信息。\n\n支持换行和格式化。",
+    "score": 8.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "xiaohongshu",
+    "url": "https://xiaohongshu.com/explore/123456",
+    "title": "小红书笔记示例",
+    "summary": "这是一篇小红书笔记的摘要，介绍了某个产品或经验分享。",
+    "content": "完整的小红书笔记内容...\n\n包含详细的使用体验、图片描述等信息。",
+    "score": 7.8,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "linuxdo",
+    "url": "https://linux.do/t/topic/123456",
+    "title": "LinuxDo 讨论帖",
+    "summary": "关于 Linux 系统配置的技术讨论帖摘要。",
+    "content": "详细的技术讨论内容...\n\n包含命令示例、配置文件等。",
+    "score": 9.2
+  },
+  {
+    "source": "twitter",
+    "url": "https://twitter.com/example/status/987654321",
+    "summary": "另一条推文的摘要，没有标题也是可以的。",
+    "content": "推文的完整内容...",
+    "score": 6.5,
+    "analyzedBy": "Manual Review"
+  }
+]

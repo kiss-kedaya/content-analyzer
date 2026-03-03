@@ -90,6 +90,90 @@ export default function ApiDocsPage() {
         </pre>
       </ApiSection>
 
+      {/* 批量创建内容 */}
+      <ApiSection
+        method="POST"
+        endpoint="/api/content/batch"
+        title="批量创建内容"
+        description="一次上传多条内容（最多 100 条）"
+        gradient="from-purple-500 to-pink-500"
+      >
+        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-purple-500" />
+          请求体（数组）
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
+{`[
+  {
+    "source": "twitter",
+    "url": "https://twitter.com/user/status/123",
+    "title": "标题",
+    "summary": "摘要",
+    "content": "完整内容",
+    "score": 8.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "xiaohongshu",
+    "url": "https://xiaohongshu.com/...",
+    "summary": "摘要",
+    "content": "完整内容",
+    "score": 7.0
+  }
+]`}
+        </pre>
+
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-green-500" />
+          响应
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
+{`{
+  "success": 2,
+  "failed": 0,
+  "total": 2,
+  "errors": [],
+  "created": [
+    {
+      "index": 0,
+      "id": "clxxx...",
+      "url": "https://twitter.com/user/status/123"
+    },
+    {
+      "index": 1,
+      "id": "clyyy...",
+      "url": "https://xiaohongshu.com/..."
+    }
+  ]
+}`}
+        </pre>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+          <h4 className="font-semibold text-blue-900 mb-2">💡 使用提示</h4>
+          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+            <li>最大批量大小：100 条</li>
+            <li>部分失败不影响其他内容创建</li>
+            <li>返回详细的成功/失败统计</li>
+            <li>适合 OpenClaw Agent 批量上传</li>
+          </ul>
+        </div>
+
+        <h4 className="font-semibold text-gray-900 mb-3 mt-6 flex items-center gap-2">
+          <Code className="w-4 h-4 text-purple-500" />
+          CLI 工具
+        </h4>
+        <pre className="bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto text-sm shadow-lg">
+{`# 本地上传
+npm run upload -- --file data.json
+
+# 生产环境上传
+npm run upload -- --file data.json --url https://your-domain.vercel.app
+
+# 查看帮助
+npm run upload -- --help`}
+        </pre>
+      </ApiSection>
+
       {/* 获取内容列表 */}
       <ApiSection
         method="GET"
