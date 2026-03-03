@@ -1,0 +1,92 @@
+[
+  {
+    "source": "twitter",
+    "url": "https://x.com/heynavtoor/status/2028719589241307635",
+    "title": "Shannon - 完全自主的 AI 黑客工具开源",
+    "summary": "有人开源了一个完全自主的 AI 黑客工具 Shannon，它不仅扫描漏洞，还会实际利用它们进行真实的注入、认证绕过和数据库渗透。",
+    "content": "🚨 Someone just open sourced a fully autonomous AI hacker and it's terrifying. It's called Shannon. Point it at your web app, and it doesn't just scan for vulnerabilities. It actually exploits them. Real injections. Real auth bypasses. Real database exfiltrations. Not alerts.",
+    "score": 9.0,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/Tz_2022/status/2028611067387974021",
+    "title": "Qwen 3.5 Small - 纯血开源小模型",
+    "summary": "Qwen 3.5 Small 系列发布，9B 模型性能媲美 120B 的 GPT OSS，部分测试超越 Gemini 3 Flash 和 Claude Sonnet 4.5，轻薄本和手机都能运行，完全免费开源。",
+    "content": "Qwen 3.5 Small - 纯血开源 - 降维打击: 越级单挑 4 倍体量选手 - 13 倍浓缩: 区区 9B 硬刚 120B 的 GPT OSS - 跑分越界: 部分测试直接掀翻 Gemini 3 Flash 和 Claude Sonnet 4.5 - 不挑设备: 轻薄本随便跑 手机也能带得动 - 最绝的是: 一分不收 完全免费",
+    "score": 9.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/durov/status/2028455440862830970",
+    "title": "Telegram 聊天机器人支持实时流式响应",
+    "summary": "Telegram 所有聊天机器人现在都可以实时流式传输响应给用户，非常适合 AI 助手应用。",
+    "content": "All Telegram chatbots can now stream responses to users in real time — great for AI assistants.",
+    "score": 8.0,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/abskoop/status/2028833670707261624",
+    "title": "X 官方独立聊天 App xChat Beta 发布",
+    "summary": "X 推出官方独立聊天应用 xChat Beta，纯黑底 + 白 XC 图标设计，将聊天与刷 X、看新闻分离，iOS TestFlight 已开放（限前 1000 名）。",
+    "content": "X 官方独立聊天 App 来了：xChat Beta 纯黑底 + 白 XC 图标，超简洁 聊天终于和刷 X、看新闻彻底分开，更专注、更私密 iOS TestFlight 已开（限前 1000 名用户） 目前已满 🈵",
+    "score": 7.0,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/adrgrondin/status/2028568689709084919",
+    "title": "Qwen 3.5 在 iPhone 17 Pro 上运行",
+    "summary": "Qwen 3.5 2B 6-bit 模型在 iPhone 17 Pro 上运行，使用 MLX 优化 Apple Silicon，性能超越 4 倍体量的模型，支持视觉理解和推理开关。",
+    "content": "The new Qwen 3.5 by @Alibaba_Qwen running on-device on iPhone 17 Pro. Qwen 3.5 beats models 4 times its size, has strong visual understanding, and can toggle reasoning on or off. The 2B 6-bit model here is running with MLX optimized for Apple Silicon.",
+    "score": 8.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/vercel_dev/status/2028588774804865466",
+    "title": "Vercel 赞助 OpenClaw 开源项目",
+    "summary": "Vercel 宣布赞助 OpenClaw 开源项目，支持 openclaw.ai 和 clawhub.com 的运营。",
+    "content": "Proud to support @openclaw on Vercel. Open source at scale needs friends. @vercel stepped up and sponsors openclaw.ai + clawhub.com. Grateful. 🦞",
+    "score": 7.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/senumy_ipa/status/2028701494070112261",
+    "title": "在 Apple Silicon Mac 上运行 iOS 26 虚拟 iPhone",
+    "summary": "vphone-cli 和 vphone-aio 工具可以在 Apple Silicon Mac 上运行完整的 iOS 26 虚拟 iPhone，支持 SSH 和 VNC 访问，无需高级补丁。",
+    "content": "📱 Run a full iOS 26 virtual iPhone on Apple Silicon Macs! vphone-cli & vphone-aio automate the complex setup process — no advanced patching needed. Boot iOS 26.1 (iPhone17,3) with SSH & VNC access 🔥",
+    "score": 8.0,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/minchoi/status/2028662814902993357",
+    "title": "Qwen 3.5 飞行模式下完全本地运行",
+    "summary": "Qwen 3.5 可以在 iPhone 17 飞行模式下完全本地运行，无需订阅，数据不离开设备，AI 订阅变成可选项。",
+    "content": "This is wild. Qwen 3.5 running fully local on an iPhone 17 in AIRPLANE mode... 🤯 No subscription. Nothing leaves your device. AI subscriptions just became optional.",
+    "score": 9.0,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/xxx111god/status/2028592822916424102",
+    "title": "全自动小红书 workflow 完成",
+    "summary": "开发者完成了全自动小红书 workflow，不再需要在手机上手动操作，使用 social-push SKILL 和 CDP 解决大部分场景。",
+    "content": "总算是把自己的全自动xhs workflow全跑通了 终于不用在手机上来回操作了 😂 自己做了一套social-push SKILL加CDP 基本解决大部分场景",
+    "score": 7.5,
+    "analyzedBy": "OpenClaw Agent"
+  },
+  {
+    "source": "twitter",
+    "url": "https://x.com/sharbel/status/2028852136897916974",
+    "title": "如何在 iPhone 上免费安装 Qwen 3.5",
+    "summary": "教程：如何在 iPhone 上免费安装 Qwen 3.5，支持飞行模式运行，零 API 成本，数据不离开设备，完全控制模型。",
+    "content": "How to install qwen 3.5 on your iPhone for FREE (works in airplane mode): i run 5 AI agents off a $600 Mac mini. Qwen just shipped a 35B model running at 40 t/s on a laptop. that's GPT-5 level performance. on consumer hardware. for free. what this changes: - zero API costs on routine tasks - no data leaving my machine - full model control",
+    "score": 8.5,
+    "analyzedBy": "OpenClaw Agent"
+  }
+]

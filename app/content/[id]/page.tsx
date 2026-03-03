@@ -1,7 +1,7 @@
 import { getContentById } from '@/lib/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar, Sparkles } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar, Sparkles } from '@/components/Icon'
 
 export default async function ContentDetailPage({
   params

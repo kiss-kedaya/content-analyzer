@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3 } from '@/components/Icon'
 
 export const metadata: Metadata = {
   title: '内容分析系统 - Content Analyzer',

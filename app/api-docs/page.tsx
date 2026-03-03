@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, Code, AlertCircle, Zap } from 'lucide-react'
+import { ArrowLeft, Code, AlertCircle, Zap } from '@/components/Icon'
 
 export default function ApiDocsPage() {
   return (

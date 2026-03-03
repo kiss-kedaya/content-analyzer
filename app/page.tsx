@@ -2,7 +2,7 @@ import ContentTable from '@/components/ContentTable'
 import SortSelector from '@/components/SortSelector'
 import { getAllContents } from '@/lib/api'
 import Link from 'next/link'
-import { FileText, Twitter, BookOpen, Terminal, Radio, TrendingUp } from 'lucide-react'
+import { FileText, Twitter, BookOpen, Terminal, Radio, TrendingUp } from '@/components/Icon'
 
 export const revalidate = 0 // 禁用缓存，实时更新
 

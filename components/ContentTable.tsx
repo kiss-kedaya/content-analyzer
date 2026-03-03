@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Loader2, Sparkles } from 'lucide-react'
+import { ExternalLink, Eye, Trash2, Loader2, Sparkles } from '@/components/Icon'
 
 interface Content {
   id: string
