@@ -1,13 +1,18 @@
 import Link from 'next/link'
+import { ArrowLeft, Code, AlertCircle } from 'lucide-react'
 
 export default function ApiDocsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <Link href="/" className="text-blue-600 hover:underline">
-          ← 返回首页
+        <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
+          <ArrowLeft className="w-4 h-4" />
+          返回首页
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900 mt-4">API 文档</h1>
+        <div className="flex items-center gap-3 mt-4">
+          <Code className="w-8 h-8 text-gray-700" />
+          <h1 className="text-3xl font-bold text-gray-900">API 文档</h1>
+        </div>
         <p className="text-gray-600 mt-2">
           Content Analyzer API 接口说明
         </p>
@@ -139,7 +144,10 @@ export default function ApiDocsPage() {
 
       {/* 错误响应 */}
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-red-900 mb-4">错误响应</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-700" />
+          <h2 className="text-xl font-semibold text-red-900">错误响应</h2>
+        </div>
         <div className="space-y-4 text-sm">
           <div>
             <h4 className="font-semibold text-red-800">400 Bad Request</h4>

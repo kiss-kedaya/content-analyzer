@@ -1,6 +1,7 @@
 import { getContentById } from '@/lib/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar } from 'lucide-react'
 
 export default async function ContentDetailPage({
   params
@@ -35,9 +36,10 @@ export default async function ContentDetailPage({
       {/* 返回按钮 */}
       <Link
         href="/"
-        className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline"
       >
-        ← 返回列表
+        <ArrowLeft className="w-4 h-4" />
+        返回列表
       </Link>
 
       {/* 内容卡片 */}
@@ -55,12 +57,14 @@ export default async function ContentDetailPage({
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSourceBadge(content.source)}`}>
                   {content.source}
                 </span>
-                <span>
-                  分析时间：{new Date(content.analyzedAt).toLocaleString('zh-CN')}
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {new Date(content.analyzedAt).toLocaleString('zh-CN')}
                 </span>
                 {content.analyzedBy && (
-                  <span>
-                    分析者：{content.analyzedBy}
+                  <span className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    {content.analyzedBy}
                   </span>
                 )}
               </div>
@@ -76,7 +80,10 @@ export default async function ContentDetailPage({
 
         {/* 摘要 */}
         <div className="px-6 py-4 bg-blue-50 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">📝 内容摘要</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-gray-700" />
+            <h2 className="text-sm font-semibold text-gray-700">内容摘要</h2>
+          </div>
           <p className="text-gray-800 leading-relaxed">
             {content.summary}
           </p>
@@ -84,7 +91,10 @@ export default async function ContentDetailPage({
 
         {/* 完整内容 */}
         <div className="px-6 py-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">📄 完整内容</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="w-4 h-4 text-gray-700" />
+            <h2 className="text-sm font-semibold text-gray-700">完整内容</h2>
+          </div>
           <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap">
             {content.content}
           </div>
@@ -96,33 +106,49 @@ export default async function ContentDetailPage({
             href={content.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline"
           >
-            🔗 查看原文 →
+            <ExternalLink className="w-4 h-4" />
+            查看原文
           </a>
         </div>
       </div>
 
       {/* 元数据 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 元数据</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Hash className="w-5 h-5" />
+          元数据
+        </h2>
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-gray-600">内容 ID</dt>
+            <dt className="text-gray-600 flex items-center gap-1">
+              <Hash className="w-4 h-4" />
+              内容 ID
+            </dt>
             <dd className="font-mono text-gray-900 mt-1">{content.id}</dd>
           </div>
           <div>
-            <dt className="text-gray-600">来源</dt>
+            <dt className="text-gray-600 flex items-center gap-1">
+              <FileText className="w-4 h-4" />
+              来源
+            </dt>
             <dd className="text-gray-900 mt-1">{content.source}</dd>
           </div>
           <div>
-            <dt className="text-gray-600">创建时间</dt>
+            <dt className="text-gray-600 flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              创建时间
+            </dt>
             <dd className="text-gray-900 mt-1">
               {new Date(content.createdAt).toLocaleString('zh-CN')}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-600">更新时间</dt>
+            <dt className="text-gray-600 flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              更新时间
+            </dt>
             <dd className="text-gray-900 mt-1">
               {new Date(content.updatedAt).toLocaleString('zh-CN')}
             </dd>

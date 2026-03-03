@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ExternalLink, Eye, Trash2, Loader2 } from 'lucide-react'
 
 interface Content {
   id: string
@@ -106,9 +107,10 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
                     href={content.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline block"
+                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
                   >
-                    查看原文 →
+                    <ExternalLink className="w-3 h-3" />
+                    查看原文
                   </a>
                 </div>
               </td>
@@ -129,16 +131,27 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
               <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                 <Link
                   href={`/content/${content.id}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
                 >
+                  <Eye className="w-4 h-4" />
                   详情
                 </Link>
                 <button
                   onClick={() => handleDelete(content.id)}
                   disabled={deleting === content.id}
-                  className="text-red-600 hover:text-red-800 hover:underline disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 hover:underline disabled:opacity-50"
                 >
-                  {deleting === content.id ? '删除中...' : '删除'}
+                  {deleting === content.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      删除中...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      删除
+                    </>
+                  )}
                 </button>
               </td>
             </tr>
