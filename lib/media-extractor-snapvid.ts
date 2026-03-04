@@ -160,64 +160,23 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     console.log(`[snapvid] 提取到视频: ${videos[0].quality}`)
   }
   
-  // 提取所有图片下载链接
-  const imageRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/gs
+  // 提取真实图片下载链接（必须包含"下载图片"文本）
+  const imageRegex = /<a[^>]+href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>[^<]*<i[^>]*><\/i>[^<]*下载图片/gs
   const imageUrls: string[] = []
   
   while ((match = imageRegex.exec(html)) !== null) {
     imageUrls.push(match[1])
   }
   
-  // 如果有视频，需要过滤掉视频缩略图
-  if (videos.length > 0 && imageUrls.length > 0) {
-    console.log('[snapvid] 过滤视频缩略图')
-    
-    // 查找视频块，提取缩略图 URL
-    const videoBlockRegex = /<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g
-    const videoBlocks = html.match(videoBlockRegex) || []
-    
-    const thumbnailUrls = new Set<string>()
-    for (const block of videoBlocks) {
-      // 检查是否包含视频下载链接
-      if (block.includes('下载 MP4')) {
-        // 提取这个块中的图片 URL（这些是视频缩略图）
-        const imgMatch = block.match(/<img[^>]+src="([^"]+)"/)
-        if (imgMatch) {
-          const imgUrl = imgMatch[1]
-          // 如果是 video_thumb 或 amplify_video_thumb，标记为缩略图
-          if (imgUrl.includes('video_thumb') || imgUrl.includes('amplify_video_thumb')) {
-            // 查找对应的下载链接
-            const downloadMatch = block.match(/href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/)
-            if (downloadMatch) {
-              thumbnailUrls.add(downloadMatch[1])
-            }
-          }
-        }
-      }
-    }
-    
-    // 过滤掉缩略图，只保留真实图片
-    for (const url of imageUrls) {
-      if (!thumbnailUrls.has(url)) {
-        mediaList.push({
-          type: 'image',
-          url: url
-        })
-      }
-    }
-    
-    console.log(`[snapvid] 过滤后剩余 ${imageUrls.length - thumbnailUrls.size} 张真实图片`)
-  } else {
-    // 没有视频，所有图片都是真实图片
-    for (const url of imageUrls) {
-      mediaList.push({
-        type: 'image',
-        url: url
-      })
-    }
-    
-    console.log(`[snapvid] 提取到 ${imageUrls.length} 张图片`)
+  // 添加所有真实图片
+  for (const url of imageUrls) {
+    mediaList.push({
+      type: 'image',
+      url: url
+    })
   }
+  
+  console.log(`[snapvid] 提取到 ${imageUrls.length} 张真实图片`)
   
   return mediaList
 }
