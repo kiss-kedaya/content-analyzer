@@ -89,13 +89,17 @@ export default async function AdultContentDetailPage({
         {/* 媒体预览 */}
         {content.mediaUrls && content.mediaUrls.length > 0 && (() => {
           // 智能判断媒体类型
-          const mediaItems = content.mediaUrls.map((url: string) => {
+          const mediaItems = content.mediaUrls.map((url: string, index: number) => {
             // 判断是否为视频
-            const isVideo = url.includes('mp4') || 
-                           url.includes('video') || 
-                           url.includes('m3u8') ||
-                           // snapvid 视频链接特征：通常是第一个，且 token 较长
-                           (content.mediaUrls.length === 1 && url.includes('dl.snapcdn.app'))
+            // 1. URL 包含明确的视频关键词
+            const hasVideoKeyword = url.includes('mp4') || 
+                                   url.includes('video') || 
+                                   url.includes('m3u8')
+            
+            // 2. snapvid 链接：第一个通常是视频，后面的是图片
+            const isSnapvidVideo = url.includes('dl.snapcdn.app') && index === 0
+            
+            const isVideo = hasVideoKeyword || isSnapvidVideo
             
             return {
               url,
