@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { generateToken } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,9 +18,12 @@ export async function POST(req: NextRequest) {
     }
     
     if (password === correctPassword) {
+      // 生成 JWT token
+      const token = generateToken()
+      
       // Next.js 15: cookies() 返回 Promise，需要 await
       const cookieStore = await cookies()
-      cookieStore.set('auth-token', 'authenticated', {
+      cookieStore.set('auth-token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest) {
       
       // 创建响应并再次设置 Cookie（双重保险）
       const response = NextResponse.json({ success: true })
-      response.cookies.set('auth-token', 'authenticated', {
+      response.cookies.set('auth-token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
         path: '/'
       })
       
-      console.log('Login successful, cookie set')
+      console.log('Login successful, JWT token generated and set')
       return response
     }
     

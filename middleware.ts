@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { verifyToken } from './lib/auth'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -19,17 +20,18 @@ export function middleware(request: NextRequest) {
   console.log('[Middleware]', {
     pathname,
     hasToken: !!authToken,
-    tokenValue: authToken?.value,
+    tokenLength: authToken?.value.length,
     allCookies: request.cookies.getAll().map(c => c.name)
   })
   
-  if (!authToken || authToken.value !== 'authenticated') {
-    console.log('[Middleware] Redirecting to login:', pathname)
+  // 验证 JWT token
+  if (!authToken || !verifyToken(authToken.value)) {
+    console.log('[Middleware] Invalid or missing token, redirecting to login:', pathname)
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
   
-  console.log('[Middleware] Access granted:', pathname)
+  console.log('[Middleware] Token verified, access granted:', pathname)
   return NextResponse.next()
 }
 
