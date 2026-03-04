@@ -29,5 +29,7 @@ export {
   Play,
   Heart,
   Lock,
-  LogOut
+  LogOut,
+  Copy,
+  Check
 } from 'lucide-react'
