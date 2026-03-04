@@ -94,7 +94,6 @@ export default async function Home({
   "summary": "摘要",
   "content": "完整内容",
   "score": 8.5,
-  "mediaUrls": ["https://pbs.twimg.com/media/..."],  // 成人内容专用
   "analyzedBy": "OpenClaw Agent"
 }`}
           </pre>

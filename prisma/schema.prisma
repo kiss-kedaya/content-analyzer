@@ -40,7 +40,6 @@ model AdultContent {
   summary    String   @db.Text
   content    String   @db.Text  // 完整内容
   score      Float
-  mediaUrls  String   @db.Text  // JSON array of media URLs (images/videos)
   analyzedBy String?  // 分析者（Agent 名称）
   analyzedAt DateTime @default(now())
   createdAt  DateTime @default(now())

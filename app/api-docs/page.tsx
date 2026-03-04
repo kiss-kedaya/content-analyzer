@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Code, AlertCircle, Zap, Copy, Check } from '@/components/Icon'
+import { ArrowLeft, Copy, Check } from '@/components/Icon'
 
 export default function ApiDocsPage() {
   const [copied, setCopied] = useState(false)
@@ -15,99 +15,131 @@ export default function ApiDocsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-12 space-y-8">
-        {/* Header */}
-        <div className="space-y-6">
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           <Link 
             href="/" 
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors group"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors mb-6"
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-4 h-4" />
             返回首页
           </Link>
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
-                <Code className="w-10 h-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
-                  API 文档
-                </h1>
-                <p className="text-gray-600 mt-2 text-lg">
-                  Content Analyzer RESTful API 接口说明
-                </p>
-              </div>
+            <div>
+              <h1 className="text-4xl font-bold text-black tracking-tight">
+                API 文档
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Content Analyzer RESTful API 接口说明
+              </p>
             </div>
 
-            {/* Copy Markdown Button */}
             <button
               onClick={copyMarkdown}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all hover:scale-105 font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
             >
               {copied ? (
                 <>
-                  <Check className="w-5 h-5" />
+                  <Check className="w-4 h-4" />
                   已复制
                 </>
               ) : (
                 <>
-                  <Copy className="w-5 h-5" />
+                  <Copy className="w-4 h-4" />
                   复制 Markdown
                 </>
               )}
             </button>
           </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200/50 rounded-xl p-4">
-              <div className="text-3xl font-bold text-blue-600">8</div>
-              <div className="text-sm text-blue-800 mt-1">API 端点</div>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200/50 rounded-xl p-4">
-              <div className="text-3xl font-bold text-purple-600">2</div>
-              <div className="text-sm text-purple-800 mt-1">内容类型</div>
-            </div>
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 rounded-xl p-4">
-              <div className="text-3xl font-bold text-green-600">100</div>
-              <div className="text-sm text-green-800 mt-1">批量上传限制</div>
-            </div>
-          </div>
         </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 py-12 space-y-12">
+        {/* 认证说明 */}
+        <Section title="认证">
+          <p className="text-gray-600 mb-4">
+            所有 API 请求都需要通过 JWT 认证。请在请求中包含有效的 JWT cookie。
+          </p>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-900">
+              <strong>⚠️ 重要：</strong> 请先登录系统获取 JWT token，然后在所有 API 请求中自动携带 cookie。
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-black mb-3">登录</h4>
+            <CodeBlock>
+{`POST /api/auth/login
+Content-Type: application/json
+
+{
+  "password": "your-password"
+}
+
+响应：
+Set-Cookie: auth-token=<jwt-token>; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`}
+            </CodeBlock>
+          </div>
+
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-black mb-3">使用 JWT Cookie</h4>
+            <CodeBlock>
+{`# 登录后，cookie 会自动携带在后续请求中
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b "auth-token=<your-jwt-token>" \\
+  -d '{ ... }'
+
+# 或者使用 -c 和 -b 参数保存和使用 cookie
+curl -X POST https://ca.kedaya.xyz/api/auth/login \\
+  -H "Content-Type: application/json" \\
+  -c cookies.txt \\
+  -d '{"password":"your-password"}'
+
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b cookies.txt \\
+  -d '{ ... }'`}
+            </CodeBlock>
+          </div>
+        </Section>
 
         {/* Base URL */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-xl">
-          <div className="flex items-center gap-3 mb-3">
-            <Zap className="w-5 h-5 text-yellow-400" />
-            <h3 className="text-lg font-semibold text-white">Base URL</h3>
-          </div>
-          <code className="text-cyan-400 text-lg font-mono">https://ca.kedaya.xyz</code>
-        </div>
+        <Section title="Base URL">
+          <CodeBlock>
+{`https://ca.kedaya.xyz`}
+          </CodeBlock>
+        </Section>
 
-        {/* 创建内容 */}
-        <ApiSection
-          method="POST"
-          endpoint="/api/content"
-          title="创建技术内容"
-          description="上传新的技术内容到系统"
-          gradient="from-blue-500 to-cyan-500"
-        >
-          <CodeBlock title="请求体" icon="zap" color="blue">
+        {/* 端点列表 */}
+        <Section title="端点列表">
+          <div className="space-y-8">
+            {/* 创建技术内容 */}
+            <Endpoint
+              method="POST"
+              path="/api/content"
+              title="创建技术内容"
+              description="上传新的技术内容到系统"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">请求体</h4>
+              <CodeBlock>
 {`{
-  "source": "twitter",           // 必填：来源（twitter, xiaohongshu, linuxdo 等）
+  "source": "twitter",           // 必填：来源
   "url": "https://...",          // 必填：原文链接（唯一）
   "title": "标题",               // 可选：标题
-  "summary": "内容摘要",         // 必填：摘要（50-200字）
+  "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
-  "analyzedBy": "OpenClaw Agent" // 可选：分析者名称
+  "analyzedBy": "OpenClaw Agent" // 可选：分析者
 }`}
-          </CodeBlock>
+              </CodeBlock>
 
-          <CodeBlock title="响应" icon="check" color="green">
+              <h4 className="text-sm font-semibold text-black mb-3 mt-6">响应</h4>
+              <CodeBlock>
 {`{
   "id": "clxxx...",
   "source": "twitter",
@@ -123,11 +155,13 @@ export default function ApiDocsPage() {
   "favorited": false,
   "favoritedAt": null
 }`}
-          </CodeBlock>
+              </CodeBlock>
 
-          <CodeBlock title="示例（curl）" icon="code" color="purple">
+              <h4 className="text-sm font-semibold text-black mb-3 mt-6">示例</h4>
+              <CodeBlock>
 {`curl -X POST https://ca.kedaya.xyz/api/content \\
   -H "Content-Type: application/json" \\
+  -b "auth-token=<your-jwt-token>" \\
   -d '{
     "source": "twitter",
     "url": "https://twitter.com/user/status/123",
@@ -137,18 +171,18 @@ export default function ApiDocsPage() {
     "score": 8.5,
     "analyzedBy": "OpenClaw Agent"
   }'`}
-          </CodeBlock>
-        </ApiSection>
+              </CodeBlock>
+            </Endpoint>
 
-        {/* 创建成人内容 */}
-        <ApiSection
-          method="POST"
-          endpoint="/api/adult-content"
-          title="创建成人内容"
-          description="上传新的成人内容到系统（支持媒体 URL）"
-          gradient="from-pink-500 to-rose-500"
-        >
-          <CodeBlock title="请求体" icon="zap" color="pink">
+            {/* 创建成人内容 */}
+            <Endpoint
+              method="POST"
+              path="/api/adult-content"
+              title="创建成人内容"
+              description="上传新的成人内容到系统"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">请求体</h4>
+              <CodeBlock>
 {`{
   "source": "twitter",
   "url": "https://...",
@@ -156,24 +190,20 @@ export default function ApiDocsPage() {
   "summary": "内容摘要",
   "content": "完整内容",
   "score": 8.5,
-  "mediaUrls": [                 // 可选：媒体 URL 数组
-    "https://video.url/1.mp4",
-    "https://image.url/1.jpg"
-  ],
   "analyzedBy": "OpenClaw Agent"
 }`}
-          </CodeBlock>
-        </ApiSection>
+              </CodeBlock>
+            </Endpoint>
 
-        {/* 批量创建内容 */}
-        <ApiSection
-          method="POST"
-          endpoint="/api/content/batch"
-          title="批量创建技术内容"
-          description="一次上传多条技术内容（最多 100 条）"
-          gradient="from-purple-500 to-indigo-500"
-        >
-          <CodeBlock title="请求体（数组）" icon="zap" color="purple">
+            {/* 批量创建技术内容 */}
+            <Endpoint
+              method="POST"
+              path="/api/content/batch"
+              title="批量创建技术内容"
+              description="一次上传多条技术内容（最多 100 条）"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">请求体（数组）</h4>
+              <CodeBlock>
 {`[
   {
     "source": "twitter",
@@ -192,9 +222,10 @@ export default function ApiDocsPage() {
     "score": 7.0
   }
 ]`}
-          </CodeBlock>
+              </CodeBlock>
 
-          <CodeBlock title="响应" icon="check" color="green">
+              <h4 className="text-sm font-semibold text-black mb-3 mt-6">响应</h4>
+              <CodeBlock>
 {`{
   "success": 2,
   "failed": 0,
@@ -213,125 +244,107 @@ export default function ApiDocsPage() {
     }
   ]
 }`}
-          </CodeBlock>
+              </CodeBlock>
 
-          <InfoBox color="blue" title="💡 使用提示">
-            <ul className="space-y-1 list-disc list-inside">
-              <li>最大批量大小：100 条</li>
-              <li>部分失败不影响其他内容创建</li>
-              <li>返回详细的成功/失败统计</li>
-              <li>适合 OpenClaw Agent 批量上传</li>
-            </ul>
-          </InfoBox>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <p className="text-sm text-blue-900">
+                  <strong>💡 提示：</strong> 最大批量大小为 100 条。部分失败不影响其他内容创建。
+                </p>
+              </div>
+            </Endpoint>
 
-          <CodeBlock title="CLI 工具" icon="code" color="purple">
-{`# 本地上传
-npm run upload -- --file data.json
+            {/* 批量创建成人内容 */}
+            <Endpoint
+              method="POST"
+              path="/api/adult-content/batch"
+              title="批量创建成人内容"
+              description="一次上传多条成人内容（最多 100 条）"
+            >
+              <p className="text-sm text-gray-600">
+                请求格式与批量创建技术内容相同。
+              </p>
+            </Endpoint>
 
-# 生产环境上传
-npm run upload -- --file data.json --url https://ca.kedaya.xyz
+            {/* 获取技术内容列表 */}
+            <Endpoint
+              method="GET"
+              path="/api/content"
+              title="获取技术内容列表"
+              description="获取所有技术内容，支持排序"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">查询参数</h4>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <code className="text-sm">orderBy</code>
+                <span className="text-sm text-gray-600 ml-2">
+                  排序字段（score, createdAt, analyzedAt），默认 score
+                </span>
+              </div>
 
-# 查看帮助
-npm run upload -- --help`}
-          </CodeBlock>
-        </ApiSection>
+              <h4 className="text-sm font-semibold text-black mb-3 mt-6">示例</h4>
+              <CodeBlock>
+{`curl https://ca.kedaya.xyz/api/content?orderBy=score \\
+  -b "auth-token=<your-jwt-token>"`}
+              </CodeBlock>
+            </Endpoint>
 
-        {/* 批量创建成人内容 */}
-        <ApiSection
-          method="POST"
-          endpoint="/api/adult-content/batch"
-          title="批量创建成人内容"
-          description="一次上传多条成人内容（最多 100 条）"
-          gradient="from-rose-500 to-pink-500"
-        >
-          <CodeBlock title="请求体（数组）" icon="zap" color="pink">
-{`[
-  {
-    "source": "twitter",
-    "url": "https://...",
-    "summary": "摘要",
-    "content": "完整内容",
-    "score": 8.5,
-    "mediaUrls": ["https://video.url/1.mp4"]
-  }
-]`}
-          </CodeBlock>
-        </ApiSection>
+            {/* 获取成人内容列表 */}
+            <Endpoint
+              method="GET"
+              path="/api/adult-content"
+              title="获取成人内容列表"
+              description="获取所有成人内容，支持排序"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">示例</h4>
+              <CodeBlock>
+{`curl https://ca.kedaya.xyz/api/adult-content?orderBy=score \\
+  -b "auth-token=<your-jwt-token>"`}
+              </CodeBlock>
+            </Endpoint>
 
-        {/* 获取内容列表 */}
-        <ApiSection
-          method="GET"
-          endpoint="/api/content"
-          title="获取技术内容列表"
-          description="获取所有技术内容，支持排序"
-          gradient="from-green-500 to-emerald-500"
-        >
-          <InfoBox color="green" title="查询参数">
-            <div className="flex items-start gap-2">
-              <code className="bg-green-100 text-green-800 px-3 py-1 rounded-lg text-sm font-semibold">orderBy</code>
-              <span className="text-sm">排序字段（score, createdAt, analyzedAt），默认 score</span>
-            </div>
-          </InfoBox>
+            {/* 获取内容详情 */}
+            <Endpoint
+              method="GET"
+              path="/api/content/[id]"
+              title="获取内容详情"
+              description="根据 ID 获取单个内容的完整信息"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">示例</h4>
+              <CodeBlock>
+{`curl https://ca.kedaya.xyz/api/content/clxxx... \\
+  -b "auth-token=<your-jwt-token>"`}
+              </CodeBlock>
+            </Endpoint>
 
-          <CodeBlock title="示例" icon="code" color="green">
-{`curl https://ca.kedaya.xyz/api/content?orderBy=score`}
-          </CodeBlock>
-        </ApiSection>
-
-        {/* 获取成人内容列表 */}
-        <ApiSection
-          method="GET"
-          endpoint="/api/adult-content"
-          title="获取成人内容列表"
-          description="获取所有成人内容，支持排序"
-          gradient="from-pink-500 to-rose-500"
-        >
-          <CodeBlock title="示例" icon="code" color="pink">
-{`curl https://ca.kedaya.xyz/api/adult-content?orderBy=score`}
-          </CodeBlock>
-        </ApiSection>
-
-        {/* 获取内容详情 */}
-        <ApiSection
-          method="GET"
-          endpoint="/api/content/[id]"
-          title="获取内容详情"
-          description="根据 ID 获取单个内容的完整信息"
-          gradient="from-indigo-500 to-purple-500"
-        >
-          <CodeBlock title="示例" icon="code" color="indigo">
-{`curl https://ca.kedaya.xyz/api/content/clxxx...`}
-          </CodeBlock>
-        </ApiSection>
-
-        {/* 删除内容 */}
-        <ApiSection
-          method="DELETE"
-          endpoint="/api/content/[id]"
-          title="删除内容"
-          description="根据 ID 删除内容"
-          gradient="from-red-500 to-pink-500"
-        >
-          <CodeBlock title="响应" icon="check" color="green">
+            {/* 删除内容 */}
+            <Endpoint
+              method="DELETE"
+              path="/api/content/[id]"
+              title="删除内容"
+              description="根据 ID 删除内容"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">响应</h4>
+              <CodeBlock>
 {`{
   "success": true
 }`}
-          </CodeBlock>
+              </CodeBlock>
 
-          <CodeBlock title="示例" icon="code" color="red">
-{`curl -X DELETE https://ca.kedaya.xyz/api/content/clxxx...`}
-          </CodeBlock>
-        </ApiSection>
+              <h4 className="text-sm font-semibold text-black mb-3 mt-6">示例</h4>
+              <CodeBlock>
+{`curl -X DELETE https://ca.kedaya.xyz/api/content/clxxx... \\
+  -b "auth-token=<your-jwt-token>"`}
+              </CodeBlock>
+            </Endpoint>
 
-        {/* 获取统计信息 */}
-        <ApiSection
-          method="GET"
-          endpoint="/api/stats"
-          title="获取统计信息"
-          description="获取内容统计数据"
-          gradient="from-orange-500 to-amber-500"
-        >
-          <CodeBlock title="响应" icon="check" color="orange">
+            {/* 获取统计信息 */}
+            <Endpoint
+              method="GET"
+              path="/api/stats"
+              title="获取统计信息"
+              description="获取内容统计数据"
+            >
+              <h4 className="text-sm font-semibold text-black mb-3">响应</h4>
+              <CodeBlock>
 {`{
   "total": 30,
   "bySource": {
@@ -340,147 +353,107 @@ npm run upload -- --help`}
     "linuxdo": 10
   }
 }`}
-          </CodeBlock>
-        </ApiSection>
+              </CodeBlock>
+            </Endpoint>
+          </div>
+        </Section>
 
         {/* 错误响应 */}
-        <div className="bg-gradient-to-br from-red-50 via-white to-pink-50 border border-red-200/50 rounded-2xl shadow-xl p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg">
-              <AlertCircle className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-              错误响应
-            </h2>
-          </div>
+        <Section title="错误响应">
           <div className="space-y-4">
-            <ErrorExample code="400" title="Bad Request">
+            <ErrorResponse code="400" title="Bad Request">
 {`{
   "error": "Missing required fields: source, url, summary, content, score"
 }`}
-            </ErrorExample>
-            <ErrorExample code="404" title="Not Found">
+            </ErrorResponse>
+
+            <ErrorResponse code="401" title="Unauthorized">
+{`{
+  "error": "Unauthorized"
+}`}
+            </ErrorResponse>
+
+            <ErrorResponse code="404" title="Not Found">
 {`{
   "error": "Content not found"
 }`}
-            </ErrorExample>
-            <ErrorExample code="500" title="Internal Server Error">
+            </ErrorResponse>
+
+            <ErrorResponse code="500" title="Internal Server Error">
 {`{
   "error": "Failed to create content"
 }`}
-            </ErrorExample>
+            </ErrorResponse>
           </div>
-        </div>
+        </Section>
 
         {/* Footer */}
-        <div className="text-center py-8 text-gray-500 text-sm">
-          <p>Content Analyzer API v1.0 · Powered by Next.js & Neon PostgreSQL</p>
+        <div className="text-center py-8 text-sm text-gray-500 border-t border-gray-200">
+          Content Analyzer API v1.0 · Powered by Next.js & Neon PostgreSQL
         </div>
       </div>
     </div>
   )
 }
 
-function ApiSection({
-  method,
-  endpoint,
-  title,
-  description,
-  gradient,
-  children
-}: {
-  method: string
-  endpoint: string
-  title: string
-  description: string
-  gradient: string
-  children: React.ReactNode
-}) {
-  const methodColors: Record<string, string> = {
-    GET: 'from-green-500 to-emerald-500',
-    POST: 'from-blue-500 to-cyan-500',
-    DELETE: 'from-red-500 to-pink-500'
-  }
-
-  return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 p-8 hover:shadow-2xl transition-all">
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <span className={`px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r ${methodColors[method]} text-white shadow-lg`}>
-          {method}
-        </span>
-        <code className="text-lg font-mono text-gray-700 bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-2.5 rounded-xl border border-gray-200">{endpoint}</code>
-      </div>
-      <h2 className="text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-      <p className="text-gray-600 mb-8 text-lg">{description}</p>
-      <div className="space-y-6">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function CodeBlock({ 
-  title, 
-  icon, 
-  color, 
-  children 
-}: { 
-  title: string
-  icon: string
-  color: string
-  children: string 
-}) {
-  const iconColors: Record<string, string> = {
-    blue: 'text-blue-500',
-    green: 'text-green-500',
-    purple: 'text-purple-500',
-    pink: 'text-pink-500',
-    red: 'text-red-500',
-    orange: 'text-orange-500',
-    indigo: 'text-indigo-500'
-  }
-
-  const Icon = icon === 'zap' ? Zap : icon === 'check' ? Check : Code
-
-  return (
-    <div>
-      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-lg">
-        <Icon className={`w-5 h-5 ${iconColors[color]}`} />
-        {title}
-      </h4>
-      <pre className="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 p-6 rounded-xl overflow-x-auto text-sm shadow-xl border border-gray-700">
-        {children}
-      </pre>
-    </div>
-  )
-}
-
-function InfoBox({ 
-  color, 
+function Section({ 
   title, 
   children 
 }: { 
-  color: string
   title: string
   children: React.ReactNode 
 }) {
-  const colors: Record<string, { bg: string, border: string, text: string }> = {
-    blue: { bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200/50', text: 'text-blue-900' },
-    green: { bg: 'from-green-50 to-emerald-50', border: 'border-green-200/50', text: 'text-green-900' },
-    pink: { bg: 'from-pink-50 to-rose-50', border: 'border-pink-200/50', text: 'text-pink-900' }
-  }
-
   return (
-    <div className={`bg-gradient-to-br ${colors[color].bg} border ${colors[color].border} rounded-xl p-5 shadow-lg`}>
-      <h4 className={`font-semibold ${colors[color].text} mb-3 text-lg`}>{title}</h4>
-      <div className={`text-sm ${colors[color].text}`}>
-        {children}
-      </div>
+    <div>
+      <h2 className="text-2xl font-bold text-black mb-6">{title}</h2>
+      {children}
     </div>
   )
 }
 
-function ErrorExample({ 
+function Endpoint({
+  method,
+  path,
+  title,
+  description,
+  children
+}: {
+  method: string
+  path: string
+  title: string
+  description: string
+  children?: React.ReactNode
+}) {
+  const methodColors: Record<string, string> = {
+    GET: 'bg-blue-100 text-blue-700',
+    POST: 'bg-green-100 text-green-700',
+    DELETE: 'bg-red-100 text-red-700'
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <span className={`px-3 py-1 text-xs font-bold rounded ${methodColors[method]}`}>
+          {method}
+        </span>
+        <code className="text-sm font-mono text-gray-700">{path}</code>
+      </div>
+      <h3 className="text-lg font-semibold text-black mb-2">{title}</h3>
+      <p className="text-gray-600 mb-6">{description}</p>
+      {children}
+    </div>
+  )
+}
+
+function CodeBlock({ children }: { children: string }) {
+  return (
+    <pre className="bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-x-auto text-xs font-mono text-gray-800">
+      {children}
+    </pre>
+  )
+}
+
+function ErrorResponse({ 
   code, 
   title, 
   children 
@@ -490,14 +463,14 @@ function ErrorExample({
   children: string 
 }) {
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-red-200/50 shadow-lg">
+    <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex items-center gap-3 mb-3">
-        <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-lg">{code}</span>
-        <h4 className="font-semibold text-red-800">{title}</h4>
+        <span className="px-3 py-1 text-xs font-bold rounded bg-red-100 text-red-700">
+          {code}
+        </span>
+        <span className="text-sm font-semibold text-black">{title}</span>
       </div>
-      <pre className="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto border border-gray-700">
-        {children}
-      </pre>
+      <CodeBlock>{children}</CodeBlock>
     </div>
   )
 }
@@ -505,7 +478,47 @@ function ErrorExample({
 function generateMarkdown(): string {
   return `# Content Analyzer API 文档
 
+## 认证
+
+所有 API 请求都需要通过 JWT 认证。请在请求中包含有效的 JWT cookie。
+
+### 登录
+
+\`\`\`
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "password": "your-password"
+}
+
+响应：
+Set-Cookie: auth-token=<jwt-token>; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800
+\`\`\`
+
+### 使用 JWT Cookie
+
+\`\`\`bash
+# 登录后，cookie 会自动携带在后续请求中
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b "auth-token=<your-jwt-token>" \\
+  -d '{ ... }'
+
+# 或者使用 -c 和 -b 参数保存和使用 cookie
+curl -X POST https://ca.kedaya.xyz/api/auth/login \\
+  -H "Content-Type: application/json" \\
+  -c cookies.txt \\
+  -d '{"password":"your-password"}'
+
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b cookies.txt \\
+  -d '{ ... }'
+\`\`\`
+
 ## Base URL
+
 \`\`\`
 https://ca.kedaya.xyz
 \`\`\`
@@ -513,6 +526,7 @@ https://ca.kedaya.xyz
 ## 端点列表
 
 ### 1. 创建技术内容
+
 **POST** \`/api/content\`
 
 上传新的技术内容到系统
@@ -520,13 +534,13 @@ https://ca.kedaya.xyz
 **请求体**:
 \`\`\`json
 {
-  "source": "twitter",           // 必填：来源（twitter, xiaohongshu, linuxdo 等）
+  "source": "twitter",           // 必填：来源
   "url": "https://...",          // 必填：原文链接（唯一）
   "title": "标题",               // 可选：标题
-  "summary": "内容摘要",         // 必填：摘要（50-200字）
+  "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
-  "analyzedBy": "OpenClaw Agent" // 可选：分析者名称
+  "analyzedBy": "OpenClaw Agent" // 可选：分析者
 }
 \`\`\`
 
@@ -549,10 +563,11 @@ https://ca.kedaya.xyz
 }
 \`\`\`
 
-**示例（curl）**:
+**示例**:
 \`\`\`bash
 curl -X POST https://ca.kedaya.xyz/api/content \\
   -H "Content-Type: application/json" \\
+  -b "auth-token=<your-jwt-token>" \\
   -d '{
     "source": "twitter",
     "url": "https://twitter.com/user/status/123",
@@ -567,9 +582,10 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
 ---
 
 ### 2. 创建成人内容
+
 **POST** \`/api/adult-content\`
 
-上传新的成人内容到系统（支持媒体 URL）
+上传新的成人内容到系统
 
 **请求体**:
 \`\`\`json
@@ -580,10 +596,6 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
   "summary": "内容摘要",
   "content": "完整内容",
   "score": 8.5,
-  "mediaUrls": [                 // 可选：媒体 URL 数组
-    "https://video.url/1.mp4",
-    "https://image.url/1.jpg"
-  ],
   "analyzedBy": "OpenClaw Agent"
 }
 \`\`\`
@@ -591,6 +603,7 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
 ---
 
 ### 3. 批量创建技术内容
+
 **POST** \`/api/content/batch\`
 
 一次上传多条技术内容（最多 100 条）
@@ -639,34 +652,22 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
 }
 \`\`\`
 
-**使用提示**:
-- 最大批量大小：100 条
-- 部分失败不影响其他内容创建
-- 返回详细的成功/失败统计
-- 适合 OpenClaw Agent 批量上传
-
-**CLI 工具**:
-\`\`\`bash
-# 本地上传
-npm run upload -- --file data.json
-
-# 生产环境上传
-npm run upload -- --file data.json --url https://ca.kedaya.xyz
-
-# 查看帮助
-npm run upload -- --help
-\`\`\`
+**提示**: 最大批量大小为 100 条。部分失败不影响其他内容创建。
 
 ---
 
 ### 4. 批量创建成人内容
+
 **POST** \`/api/adult-content/batch\`
 
 一次上传多条成人内容（最多 100 条）
 
+请求格式与批量创建技术内容相同。
+
 ---
 
 ### 5. 获取技术内容列表
+
 **GET** \`/api/content\`
 
 获取所有技术内容，支持排序
@@ -676,36 +677,42 @@ npm run upload -- --help
 
 **示例**:
 \`\`\`bash
-curl https://ca.kedaya.xyz/api/content?orderBy=score
+curl https://ca.kedaya.xyz/api/content?orderBy=score \\
+  -b "auth-token=<your-jwt-token>"
 \`\`\`
 
 ---
 
 ### 6. 获取成人内容列表
+
 **GET** \`/api/adult-content\`
 
 获取所有成人内容，支持排序
 
 **示例**:
 \`\`\`bash
-curl https://ca.kedaya.xyz/api/adult-content?orderBy=score
+curl https://ca.kedaya.xyz/api/adult-content?orderBy=score \\
+  -b "auth-token=<your-jwt-token>"
 \`\`\`
 
 ---
 
 ### 7. 获取内容详情
+
 **GET** \`/api/content/[id]\`
 
 根据 ID 获取单个内容的完整信息
 
 **示例**:
 \`\`\`bash
-curl https://ca.kedaya.xyz/api/content/clxxx...
+curl https://ca.kedaya.xyz/api/content/clxxx... \\
+  -b "auth-token=<your-jwt-token>"
 \`\`\`
 
 ---
 
 ### 8. 删除内容
+
 **DELETE** \`/api/content/[id]\`
 
 根据 ID 删除内容
@@ -719,12 +726,14 @@ curl https://ca.kedaya.xyz/api/content/clxxx...
 
 **示例**:
 \`\`\`bash
-curl -X DELETE https://ca.kedaya.xyz/api/content/clxxx...
+curl -X DELETE https://ca.kedaya.xyz/api/content/clxxx... \\
+  -b "auth-token=<your-jwt-token>"
 \`\`\`
 
 ---
 
 ### 9. 获取统计信息
+
 **GET** \`/api/stats\`
 
 获取内容统计数据
@@ -749,6 +758,13 @@ curl -X DELETE https://ca.kedaya.xyz/api/content/clxxx...
 \`\`\`json
 {
   "error": "Missing required fields: source, url, summary, content, score"
+}
+\`\`\`
+
+### 401 Unauthorized
+\`\`\`json
+{
+  "error": "Unauthorized"
 }
 \`\`\`
 
