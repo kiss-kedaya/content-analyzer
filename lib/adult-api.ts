@@ -7,7 +7,6 @@ export interface AdultContentInput {
   summary: string
   content: string
   score: number
-  mediaUrls: string[]  // Array of media URLs
   analyzedBy?: string
 }
 
@@ -21,7 +20,6 @@ export async function createAdultContent(data: AdultContentInput) {
       summary: data.summary,
       content: data.content,
       score: data.score,
-      mediaUrls: JSON.stringify(data.mediaUrls),  // Store as JSON string
       analyzedBy: data.analyzedBy,
       analyzedAt: new Date()
     }
@@ -30,31 +28,18 @@ export async function createAdultContent(data: AdultContentInput) {
 
 // 获取所有成人内容
 export async function getAllAdultContents(orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score') {
-  const contents = await prisma.adultContent.findMany({
+  return await prisma.adultContent.findMany({
     orderBy: {
       [orderBy]: 'desc'
     }
   })
-  
-  // Parse mediaUrls JSON string back to array
-  return contents.map(content => ({
-    ...content,
-    mediaUrls: JSON.parse(content.mediaUrls) as string[]
-  }))
 }
 
 // 根据 ID 获取成人内容
 export async function getAdultContentById(id: string) {
-  const content = await prisma.adultContent.findUnique({
+  return await prisma.adultContent.findUnique({
     where: { id }
   })
-  
-  if (!content) return null
-  
-  return {
-    ...content,
-    mediaUrls: JSON.parse(content.mediaUrls) as string[]
-  }
 }
 
 // 删除成人内容

@@ -8,7 +8,6 @@ interface AdultContentInput {
   summary: string
   content: string
   score: number
-  mediaUrls?: string[]
   analyzedBy?: string
 }
 
@@ -81,9 +80,6 @@ export async function POST(request: NextRequest) {
           throw new Error('Score must be between 0 and 10')
         }
 
-        // 确保 mediaUrls 是数组
-        const mediaUrls = Array.isArray(item.mediaUrls) ? item.mediaUrls : []
-
         // 创建内容
         const created = await createAdultContent({
           source: item.source,
@@ -92,7 +88,6 @@ export async function POST(request: NextRequest) {
           summary: item.summary,
           content: item.content,
           score: item.score,
-          mediaUrls: mediaUrls,
           analyzedBy: item.analyzedBy
         })
 

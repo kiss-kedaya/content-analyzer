@@ -40,9 +40,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 确保 mediaUrls 是数组
-    const mediaUrls = Array.isArray(body.mediaUrls) ? body.mediaUrls : []
-    
     const content = await createAdultContent({
       source: body.source,
       url: body.url,
@@ -50,7 +47,6 @@ export async function POST(request: NextRequest) {
       summary: body.summary,
       content: body.content,
       score: body.score,
-      mediaUrls: mediaUrls,
       analyzedBy: body.analyzedBy
     })
     
