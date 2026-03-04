@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     }
     
     if (password === correctPassword) {
-      // 生成 JWT token
-      const token = generateToken()
+      // 生成 JWT token（异步，Edge Runtime 兼容）
+      const token = await generateToken()
       
       // Next.js 15: cookies() 返回 Promise，需要 await
       const cookieStore = await cookies()
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         path: '/'
       })
       
-      console.log('Login successful, JWT token generated and set')
+      console.log('Login successful, JWT token generated and set (jose)')
       return response
     }
     

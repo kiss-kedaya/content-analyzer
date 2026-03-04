@@ -1,29 +1,32 @@
-import jwt from 'jsonwebtoken'
+import { SignJWT, jwtVerify } from 'jose'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
 
+// 将字符串转换为 Uint8Array（Edge Runtime 兼容）
+const secret = new TextEncoder().encode(JWT_SECRET)
+
 /**
- * 生成 JWT Token
+ * 生成 JWT Token（Edge Runtime 兼容）
  */
-export function generateToken(): string {
-  return jwt.sign(
-    {
-      authenticated: true,
-      timestamp: Date.now()
-    },
-    JWT_SECRET,
-    {
-      expiresIn: '7d'
-    }
-  )
+export async function generateToken(): Promise<string> {
+  const token = await new SignJWT({
+    authenticated: true,
+    timestamp: Date.now()
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(secret)
+  
+  return token
 }
 
 /**
- * 验证 JWT Token
+ * 验证 JWT Token（Edge Runtime 兼容）
  */
-export function verifyToken(token: string): boolean {
+export async function verifyToken(token: string): Promise<boolean> {
   try {
-    jwt.verify(token, JWT_SECRET)
+    await jwtVerify(token, secret)
     return true
   } catch (error) {
     console.error('Token verification failed:', error instanceof Error ? error.message : error)
@@ -32,11 +35,12 @@ export function verifyToken(token: string): boolean {
 }
 
 /**
- * 解码 JWT Token（不验证签名）
+ * 解码 JWT Token（Edge Runtime 兼容）
  */
-export function decodeToken(token: string): any {
+export async function decodeToken(token: string) {
   try {
-    return jwt.decode(token)
+    const { payload } = await jwtVerify(token, secret)
+    return payload
   } catch (error) {
     return null
   }

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from './lib/auth'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // 允许访问登录页面和登录 API
@@ -24,14 +24,20 @@ export function middleware(request: NextRequest) {
     allCookies: request.cookies.getAll().map(c => c.name)
   })
   
-  // 验证 JWT token
-  if (!authToken || !verifyToken(authToken.value)) {
-    console.log('[Middleware] Invalid or missing token, redirecting to login:', pathname)
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+  if (!authToken) {
+    console.log('[Middleware] No token, redirecting to login')
+    return NextResponse.redirect(new URL('/login', request.url))
   }
   
-  console.log('[Middleware] Token verified, access granted:', pathname)
+  // 验证 JWT token（异步，Edge Runtime 兼容）
+  const isValid = await verifyToken(authToken.value)
+  
+  if (!isValid) {
+    console.log('[Middleware] Token verification failed, redirecting to login')
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+  
+  console.log('[Middleware] Token verified, access granted')
   return NextResponse.next()
 }
 
