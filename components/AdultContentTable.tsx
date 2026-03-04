@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Loader2, Download, Image as ImageIcon, Play } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Loader2, Play } from '@/components/Icon'
 import VideoPreview from './VideoPreview'
 import FavoriteButton from './FavoriteButton'
 
@@ -13,7 +13,6 @@ interface AdultContent {
   title?: string | null
   summary: string
   score: number
-  mediaUrls: string[]
   analyzedAt: Date
   analyzedBy?: string | null
   favorited: boolean
@@ -96,9 +95,6 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                 标题/链接
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                媒体
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 内容摘要
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -137,15 +133,6 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                       查看原文
                     </a>
                   </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {content.mediaUrls && content.mediaUrls.length > 0 ? (
-                    <span className="text-sm font-medium text-gray-900">
-                      {content.mediaUrls.length}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">0</span>
-                  )}
                 </td>
                 <td className="px-6 py-4 max-w-md">
                   <p className="text-sm text-gray-600 line-clamp-3">
@@ -239,14 +226,6 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
             <p className="text-gray-600 text-sm mb-3 line-clamp-4">
               {content.summary}
             </p>
-
-            {/* 媒体信息 */}
-            {content.mediaUrls && content.mediaUrls.length > 0 && (
-              <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
-                <ImageIcon className="w-4 h-4" />
-                <span>{content.mediaUrls.length} 个媒体</span>
-              </div>
-            )}
 
             {/* 操作按钮 */}
             <div className="grid grid-cols-2 gap-2">
