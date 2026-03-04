@@ -87,47 +87,72 @@ export default async function AdultContentDetailPage({
         </div>
 
         {/* 媒体预览 */}
-        {content.mediaUrls && content.mediaUrls.length > 0 && (
-          <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <Play className="w-4 h-4 text-gray-600" />
-              <h2 className="text-sm md:text-base font-semibold text-gray-900">媒体内容</h2>
-            </div>
+        {content.mediaUrls && content.mediaUrls.length > 0 && (() => {
+          // 智能判断媒体类型
+          const mediaItems = content.mediaUrls.map((url: string) => {
+            // 判断是否为视频
+            const isVideo = url.includes('mp4') || 
+                           url.includes('video') || 
+                           url.includes('m3u8') ||
+                           // snapvid 视频链接特征：通常是第一个，且 token 较长
+                           (content.mediaUrls.length === 1 && url.includes('dl.snapcdn.app'))
             
-            {/* 视频播放器 */}
-            {content.mediaUrls.some(url => url.includes('video') || url.includes('mp4')) && (
-              <video
-                controls
-                className="w-full rounded-lg bg-black mb-4"
-                style={{ maxHeight: '60vh' }}
-              >
-                <source src={content.mediaUrls[0]} type="video/mp4" />
-                您的浏览器不支持视频播放
-              </video>
-            )}
-            
-            {/* 图片 */}
-            {content.mediaUrls.some(url => url.includes('image') || url.includes('jpg') || url.includes('png')) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                {content.mediaUrls
-                  .filter(url => url.includes('image') || url.includes('jpg') || url.includes('png'))
-                  .map((url, index) => (
+            return {
+              url,
+              type: isVideo ? 'video' : 'image'
+            }
+          })
+          
+          const videos = mediaItems.filter(item => item.type === 'video')
+          const images = mediaItems.filter(item => item.type === 'image')
+          
+          return (
+            <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-b border-gray-200">
+              <div className="flex items-center gap-2 mb-3 md:mb-4">
+                <Play className="w-4 h-4 text-gray-600" />
+                <h2 className="text-sm md:text-base font-semibold text-gray-900">媒体内容</h2>
+              </div>
+              
+              {/* 视频播放器 */}
+              {videos.length > 0 && (
+                <div className="mb-4">
+                  {videos.map((video, index) => (
+                    <video
+                      key={index}
+                      controls
+                      className="w-full rounded-lg bg-black"
+                      style={{ maxHeight: '60vh' }}
+                    >
+                      <source src={video.url} type="video/mp4" />
+                      您的浏览器不支持视频播放
+                    </video>
+                  ))}
+                </div>
+              )}
+              
+              {/* 图片 */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                  {images.map((image, index) => (
                     <img
                       key={index}
-                      src={url}
+                      src={image.url}
                       alt={`Image ${index + 1}`}
                       className="w-full rounded-lg border border-gray-200"
                     />
                   ))}
-              </div>
-            )}
-            
-            {/* 媒体数量 */}
-            <p className="text-xs md:text-sm text-gray-500 mt-3">
-              共 {content.mediaUrls.length} 个媒体文件
-            </p>
-          </div>
-        )}
+                </div>
+              )}
+              
+              {/* 媒体数量 */}
+              <p className="text-xs md:text-sm text-gray-500 mt-3">
+                共 {content.mediaUrls.length} 个媒体文件
+                {videos.length > 0 && ` (${videos.length} 个视频)`}
+                {images.length > 0 && ` (${images.length} 张图片)`}
+              </p>
+            </div>
+          )
+        })()}
 
         {/* 摘要 */}
         <div className="px-4 md:px-8 py-4 md:py-6 bg-blue-50 border-b border-gray-200">
