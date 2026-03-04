@@ -2,6 +2,7 @@ import { getAdultContentById } from '@/lib/adult-api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar, Play } from '@/components/Icon'
+import FavoriteButton from '@/components/FavoriteButton'
 
 export default async function AdultContentDetailPage({
   params
@@ -48,11 +49,18 @@ export default async function AdultContentDetailPage({
         <div className="bg-gray-50 px-4 md:px-8 py-4 md:py-6 border-b border-gray-200">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
             <div className="flex-1">
-              {content.title && (
-                <h1 className="text-2xl md:text-3xl font-bold text-black mb-3 md:mb-4">
-                  {content.title}
-                </h1>
-              )}
+              <div className="flex items-start gap-3 mb-3 md:mb-4">
+                {content.title && (
+                  <h1 className="flex-1 text-2xl md:text-3xl font-bold text-black">
+                    {content.title}
+                  </h1>
+                )}
+                <FavoriteButton
+                  id={content.id}
+                  initialFavorited={content.favorited}
+                  type="adult-content"
+                />
+              </div>
               <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-gray-600">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getSourceBadge(content.source)}`}>
                   {content.source}

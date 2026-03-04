@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Loader2, Download, Image as ImageIcon, Play } from '@/components/Icon'
 import VideoPreview from './VideoPreview'
+import FavoriteButton from './FavoriteButton'
 
 interface AdultContent {
   id: string
@@ -15,6 +16,7 @@ interface AdultContent {
   mediaUrls: string[]
   analyzedAt: Date
   analyzedBy?: string | null
+  favorited: boolean
 }
 
 interface AdultContentTableProps {
@@ -91,6 +93,9 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
               评分
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              收藏
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               操作
             </th>
           </tr>
@@ -150,6 +155,13 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                   {content.score.toFixed(1)}
                 </span>
                 <span className="text-xs text-gray-400 ml-1">/ 10</span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <FavoriteButton
+                  id={content.id}
+                  initialFavorited={content.favorited}
+                  type="adult-content"
+                />
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                 <button

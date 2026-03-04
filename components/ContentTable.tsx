@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Loader2 } from '@/components/Icon'
+import FavoriteButton from './FavoriteButton'
 
 interface Content {
   id: string
@@ -13,6 +14,7 @@ interface Content {
   score: number
   analyzedAt: Date
   analyzedBy?: string | null
+  favorited: boolean
 }
 
 interface ContentTableProps {
@@ -83,6 +85,9 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
               分析者
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              收藏
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               操作
             </th>
           </tr>
@@ -126,6 +131,13 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {content.analyzedBy || '-'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <FavoriteButton
+                  id={content.id}
+                  initialFavorited={content.favorited}
+                  type="content"
+                />
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                 <Link
