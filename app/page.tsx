@@ -1,7 +1,4 @@
-import ContentTable from '@/components/ContentTable'
-import AdultContentTable from '@/components/AdultContentTable'
-import SortSelector from '@/components/SortSelector'
-import TabSelector from '@/components/TabSelector'
+import ContentList from '@/components/ContentList'
 import { getAllContents } from '@/lib/api'
 import { getAllAdultContents } from '@/lib/adult-api'
 import Link from 'next/link'
@@ -18,15 +15,19 @@ export default async function Home({
   const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
   const tab = params.tab || 'tech'  // 'tech' or 'adult'
   
-  const contents = tab === 'tech' 
-    ? await getAllContents(orderBy)
-    : await getAllAdultContents(orderBy)
+  // 一次性获取所有数据
+  const [techContents, adultContents] = await Promise.all([
+    getAllContents(orderBy),
+    getAllAdultContents(orderBy)
+  ])
 
+  const allContents = tab === 'tech' ? techContents : adultContents
+  
   const stats = {
-    total: contents.length,
-    twitter: contents.filter(c => c.source === 'twitter').length,
-    xiaohongshu: contents.filter(c => c.source === 'xiaohongshu').length,
-    linuxdo: contents.filter(c => c.source === 'linuxdo').length
+    total: allContents.length,
+    twitter: allContents.filter(c => c.source === 'twitter').length,
+    xiaohongshu: allContents.filter(c => c.source === 'xiaohongshu').length,
+    linuxdo: allContents.filter(c => c.source === 'linuxdo').length
   }
 
   return (
@@ -65,22 +66,13 @@ export default async function Home({
         />
       </div>
 
-      {/* 内容表格 */}
-      <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
-            <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
-            <TabSelector currentTab={tab} />
-          </div>
-          <SortSelector value={orderBy} currentTab={tab} />
-        </div>
-        
-        {tab === 'tech' ? (
-          <ContentTable contents={contents} />
-        ) : (
-          <AdultContentTable contents={contents as any} />
-        )}
-      </div>
+      {/* 内容列表（客户端切换，无刷新） */}
+      <ContentList
+        techContents={techContents}
+        adultContents={adultContents as any}
+        initialTab={tab}
+        initialOrderBy={orderBy}
+      />
 
       {/* API 使用说明 */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 md:p-8">
