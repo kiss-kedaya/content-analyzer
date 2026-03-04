@@ -165,7 +165,35 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const imageUrls: string[] = []
   
   while ((match = imageRegex.exec(html)) !== null) {
-    imageUrls.push(match[1])
+    const url = match[1]
+    
+    // 解码 token 中的 URL，检查是否是视频缩略图
+    try {
+      // 提取 token 参数
+      const tokenMatch = url.match(/token=([^&]+)/)
+      if (tokenMatch) {
+        const token = tokenMatch[1]
+        // JWT token 格式：header.payload.signature
+        const parts = token.split('.')
+        if (parts.length === 3) {
+          // 解码 payload（Base64）
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
+          const actualUrl = payload.url || ''
+          
+          // 如果是视频缩略图，跳过
+          if (actualUrl.includes('video_thumb') || actualUrl.includes('amplify_video_thumb')) {
+            console.log('[snapvid] 跳过视频缩略图:', actualUrl)
+            continue
+          }
+        }
+      }
+    } catch (e) {
+      // 解码失败，保守起见跳过
+      console.log('[snapvid] 无法解码 token，跳过')
+      continue
+    }
+    
+    imageUrls.push(url)
   }
   
   // 添加所有真实图片
