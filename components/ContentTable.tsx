@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Loader2 } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Loader2, Play } from '@/components/Icon'
 import FavoriteButton from './FavoriteButton'
+import HoverVideoPreview from './HoverVideoPreview'
+import MediaThumbnail from './MediaThumbnail'
 
 interface Content {
   id: string
@@ -24,6 +26,7 @@ interface ContentTableProps {
 
 export default function ContentTable({ contents, onDelete }: ContentTableProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [hoverPreviewUrl, setHoverPreviewUrl] = useState<string | null>(null)
 
   const getSourceBadge = (source: string) => {
     const badges: Record<string, string> = {
@@ -156,6 +159,23 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                  <div className="relative inline-block">
+                    <button
+                      onMouseEnter={() => setHoverPreviewUrl(content.url)}
+                      onMouseLeave={() => setHoverPreviewUrl(null)}
+                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <Play className="w-4 h-4" />
+                      预览
+                    </button>
+                    {hoverPreviewUrl === content.url && (
+                      <HoverVideoPreview
+                        url={content.url}
+                        onMouseEnter={() => setHoverPreviewUrl(content.url)}
+                        onMouseLeave={() => setHoverPreviewUrl(null)}
+                      />
+                    )}
+                  </div>
                   <Link
                     href={`/content/${content.id}`}
                     className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition-colors"
@@ -192,41 +212,48 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
         {contents.map((content) => (
           <div
             key={content.id}
-            className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+            className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm"
           >
-            {/* 标题和评分 */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1 pr-2">
-                {content.title && (
-                  <h3 className="font-medium text-base text-gray-900 mb-1">
-                    {content.title}
-                  </h3>
-                )}
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSourceBadge(content.source)}`}>
-                  {content.source}
-                </span>
+            {/* 缩略图 */}
+            <MediaThumbnail
+              url={content.url}
+              className="w-full h-48"
+            />
+            
+            <div className="p-4">
+              {/* 标题和评分 */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 pr-2">
+                  {content.title && (
+                    <h3 className="font-medium text-base text-gray-900 mb-1">
+                      {content.title}
+                    </h3>
+                  )}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSourceBadge(content.source)}`}>
+                    {content.source}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
+                    {content.score.toFixed(1)}
+                  </span>
+                  <FavoriteButton
+                    id={content.id}
+                    initialFavorited={content.favorited}
+                    type="content"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
-                  {content.score.toFixed(1)}
-                </span>
-                <FavoriteButton
-                  id={content.id}
-                  initialFavorited={content.favorited}
-                  type="content"
-                />
-              </div>
-            </div>
 
-            {/* 摘要 */}
-            <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-              {content.summary}
-            </p>
+              {/* 摘要 */}
+              <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                {content.summary}
+              </p>
 
-            {/* 元信息 */}
-            {content.analyzedBy && (
-              <div className="text-xs text-gray-500 mb-3">
-                分析者: {content.analyzedBy}
+              {/* 元信息 */}
+              {content.analyzedBy && (
+                <div className="text-xs text-gray-500 mb-3">
+                  分析者: {content.analyzedBy}
               </div>
             )}
 
@@ -257,6 +284,7 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
                   <Trash2 className="w-4 h-4" />
                 )}
               </button>
+            </div>
             </div>
           </div>
         ))}

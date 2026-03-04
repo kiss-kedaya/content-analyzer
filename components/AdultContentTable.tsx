@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Loader2, Play } from '@/components/Icon'
 import VideoPreview from './VideoPreview'
 import FavoriteButton from './FavoriteButton'
+import HoverVideoPreview from './HoverVideoPreview'
+import MediaThumbnail from './MediaThumbnail'
 
 interface AdultContent {
   id: string
@@ -26,6 +28,7 @@ interface AdultContentTableProps {
 export default function AdultContentTable({ contents, onDelete }: AdultContentTableProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [hoverPreviewUrl, setHoverPreviewUrl] = useState<string | null>(null)
 
   const getSourceBadge = (source: string) => {
     const badges: Record<string, string> = {
@@ -156,13 +159,24 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
-                  <button
-                    onClick={() => setPreviewUrl(content.url)}
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    <Play className="w-4 h-4" />
-                    预览
-                  </button>
+                  <div className="relative inline-block">
+                    <button
+                      onClick={() => setPreviewUrl(content.url)}
+                      onMouseEnter={() => setHoverPreviewUrl(content.url)}
+                      onMouseLeave={() => setHoverPreviewUrl(null)}
+                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <Play className="w-4 h-4" />
+                      预览
+                    </button>
+                    {hoverPreviewUrl === content.url && (
+                      <HoverVideoPreview
+                        url={content.url}
+                        onMouseEnter={() => setHoverPreviewUrl(content.url)}
+                        onMouseLeave={() => setHoverPreviewUrl(null)}
+                      />
+                    )}
+                  </div>
                   <Link
                     href={`/adult-content/${content.id}`}
                     className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition-colors"
@@ -199,39 +213,46 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
         {contents.map((content) => (
           <div
             key={content.id}
-            className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+            className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm"
           >
-            {/* 评分和收藏 */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
-                  {content.score.toFixed(1)}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSourceBadge(content.source)}`}>
-                  {content.source}
-                </span>
+            {/* 缩略图 */}
+            <MediaThumbnail
+              url={content.url}
+              className="w-full h-48"
+            />
+            
+            <div className="p-4">
+              {/* 评分和收藏 */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
+                    {content.score.toFixed(1)}
+                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSourceBadge(content.source)}`}>
+                    {content.source}
+                  </span>
+                </div>
+                <FavoriteButton
+                  id={content.id}
+                  initialFavorited={content.favorited}
+                  type="adult-content"
+                />
               </div>
-              <FavoriteButton
-                id={content.id}
-                initialFavorited={content.favorited}
-                type="adult-content"
-              />
-            </div>
 
-            {/* 标题 */}
-            {content.title && (
-              <h3 className="font-medium text-base text-gray-900 mb-2">
-                {content.title}
-              </h3>
-            )}
+              {/* 标题 */}
+              {content.title && (
+                <h3 className="font-medium text-base text-gray-900 mb-2">
+                  {content.title}
+                </h3>
+              )}
 
-            {/* 摘要 */}
-            <p className="text-gray-600 text-sm mb-3 line-clamp-4">
-              {content.summary}
-            </p>
+              {/* 摘要 */}
+              <p className="text-gray-600 text-sm mb-3 line-clamp-4">
+                {content.summary}
+              </p>
 
-            {/* 操作按钮 */}
-            <div className="grid grid-cols-2 gap-2">
+              {/* 操作按钮 */}
+              <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setPreviewUrl(content.url)}
                 className="flex items-center justify-center gap-1 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
@@ -269,6 +290,7 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                   </>
                 )}
               </button>
+            </div>
             </div>
           </div>
         ))}
