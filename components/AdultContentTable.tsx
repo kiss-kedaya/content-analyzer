@@ -53,8 +53,8 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
       })
       
       if (response.ok) {
+        // 调用父组件的删除回调，更新状态
         onDelete?.(id)
-        window.location.reload()
       } else {
         alert('删除失败')
       }

@@ -30,13 +30,15 @@ interface ContentListProps {
 }
 
 export default function ContentList({
-  techContents,
-  adultContents,
+  techContents: initialTechContents,
+  adultContents: initialAdultContents,
   initialTab,
   initialOrderBy
 }: ContentListProps) {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [orderBy, setOrderBy] = useState(initialOrderBy)
+  const [techContents, setTechContents] = useState(initialTechContents)
+  const [adultContents, setAdultContents] = useState(initialAdultContents)
 
   // 排序函数
   const sortContents = <T extends Content>(contents: T[], sortBy: string): T[] => {
@@ -52,6 +54,15 @@ export default function ContentList({
       default:
         return sorted
     }
+  }
+
+  // 删除处理函数
+  const handleDeleteTech = (id: string) => {
+    setTechContents(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleDeleteAdult = (id: string) => {
+    setAdultContents(prev => prev.filter(item => item.id !== id))
   }
 
   const sortedTechContents = sortContents(techContents, orderBy)
@@ -76,11 +87,11 @@ export default function ContentList({
       
       {/* 使用 CSS 隐藏/显示，避免重新渲染 */}
       <div className={activeTab === 'tech' ? 'block' : 'hidden'}>
-        <ContentTable contents={sortedTechContents} />
+        <ContentTable contents={sortedTechContents} onDelete={handleDeleteTech} />
       </div>
       
       <div className={activeTab === 'adult' ? 'block' : 'hidden'}>
-        <AdultContentTable contents={sortedAdultContents} />
+        <AdultContentTable contents={sortedAdultContents} onDelete={handleDeleteAdult} />
       </div>
     </div>
   )
