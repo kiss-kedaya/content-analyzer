@@ -49,29 +49,50 @@ async function extractMedia(url: string): Promise<string[]> {
   }
 }
 
-// 分析成人内容并打分
+// 分析成人内容并打分（更严格的评分标准）
 function analyzeAdultContent(tweet: Tweet, mediaUrls: string[]): ContentData {
   const username = tweet.url.match(/x\.com\/([^/]+)/)?.[1] || 'unknown'
-  const hasVideo = mediaUrls.some(url => url.includes('video.twimg.com'))
-  const hasImage = mediaUrls.some(url => url.includes('pbs.twimg.com'))
+  const hasVideo = mediaUrls.some(url => url.includes('video.twimg.com') || url.includes('snapcdn'))
+  const hasImage = mediaUrls.some(url => url.includes('pbs.twimg.com') || url.includes('image'))
   
-  // 评分标准：画质、内容质量、互动数据
-  let score = 7.0
+  // 新的评分标准：基础分 5.0（更严格）
+  let score = 5.0
   
-  // 有视频 +1分
-  if (hasVideo) score += 1.0
+  // 质量评估
+  if (hasVideo && mediaUrls.length > 0) {
+    score += 2.0  // 有高质量视频
+  } else if (hasImage) {
+    score += 1.0  // 只有图片
+  } else {
+    score -= 1.0  // 无媒体
+  }
   
-  // 有图片 +0.5分
-  if (hasImage) score += 0.5
+  // 内容描述质量
+  if (tweet.description && tweet.description.length > 50) {
+    score += 0.5  // 有详细描述
+  } else if (!tweet.description || tweet.description.length < 10) {
+    score -= 0.5  // 描述太短或无描述
+  }
   
-  // 媒体数量多 +0.5分
-  if (mediaUrls.length > 2) score += 0.5
+  // 媒体数量
+  if (mediaUrls.length > 3) {
+    score += 0.5  // 多媒体内容
+  } else if (mediaUrls.length === 0) {
+    score -= 1.0  // 无媒体
+  }
   
-  // 长视频（27分钟）+1分
-  if (tweet.description?.includes('27分钟')) score += 1.0
+  // 特殊加分项
+  if (tweet.description?.includes('高清') || tweet.description?.includes('1080p')) {
+    score += 0.5
+  }
   
-  // 限制在 0-10 范围
-  score = Math.min(10, Math.max(0, score))
+  // 扣分项
+  if (tweet.description?.includes('广告') || tweet.description?.includes('推广')) {
+    score -= 2.0  // 广告内容
+  }
+  
+  // 限制在 1.0-10.0 范围
+  score = Math.min(10, Math.max(1.0, score))
   
   return {
     source: 'twitter',
@@ -85,26 +106,53 @@ function analyzeAdultContent(tweet: Tweet, mediaUrls: string[]): ContentData {
   }
 }
 
-// 分析技术内容并打分
+// 分析技术内容并打分（更严格的评分标准）
 function analyzeTechContent(tweet: Tweet, mediaUrls: string[]): ContentData {
   const username = tweet.url.match(/x\.com\/([^/]+)/)?.[1] || 'unknown'
   
-  // 评分标准：实用性、技术深度、相关性
-  let score = 8.0
+  // 新的评分标准：基础分 5.0（更严格）
+  let score = 5.0
   
-  // OKX + OpenClaw 教程，实用性高
-  if (tweet.description?.includes('OpenClaw')) score += 1.0
-  if (tweet.description?.includes('教程')) score += 0.5
+  // 内容质量评估
+  if (tweet.description) {
+    const length = tweet.description.length
+    if (length > 200) {
+      score += 2.0  // 详细内容
+    } else if (length > 100) {
+      score += 1.0  // 中等长度
+    } else if (length < 20) {
+      score -= 1.0  // 内容太短
+    }
+  }
   
-  // 限制在 0-10 范围
-  score = Math.min(10, Math.max(0, score))
+  // 技术关键词
+  const techKeywords = ['OpenClaw', '教程', 'API', '开发', '代码', '技术', '工具']
+  const matchedKeywords = techKeywords.filter(kw => tweet.description?.includes(kw))
+  score += matchedKeywords.length * 0.5
+  
+  // 实用性
+  if (tweet.description?.includes('教程') || tweet.description?.includes('指南')) {
+    score += 1.0  // 实用教程
+  }
+  
+  // 扣分项
+  if (tweet.description?.includes('广告') || tweet.description?.includes('推广')) {
+    score -= 2.0  // 广告内容
+  }
+  
+  if (!tweet.description || tweet.description.length < 10) {
+    score -= 1.0  // 无描述或太短
+  }
+  
+  // 限制在 1.0-10.0 范围
+  score = Math.min(10, Math.max(1.0, score))
   
   return {
     source: 'twitter',
     url: tweet.url,
     title: `@${username} 的推文`,
     summary: tweet.description || '技术内容',
-    content: `来自 @${username} 的推文\n\n${tweet.description || '技术内容'}\n\nOKX OnchainOS 接入 OpenClaw 教程\n实用性高，技术深度适中`,
+    content: `来自 @${username} 的推文\n\n${tweet.description || '技术内容'}\n\n技术关键词: ${matchedKeywords.join(', ')}\n实用性评估: 高`,
     score: score,
     analyzedBy: 'OpenClaw Agent'
   }

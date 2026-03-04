@@ -1,7 +1,7 @@
 import { getAllContents } from '@/lib/api'
 import { getAllAdultContents } from '@/lib/adult-api'
 import Link from 'next/link'
-import { ArrowLeft, Heart } from '@/components/Icon'
+import { ArrowLeft, Heart, TrendingUp } from '@/components/Icon'
 import FavoritesContent from '@/components/FavoritesContent'
 
 export const revalidate = 0
@@ -51,6 +51,15 @@ export default async function FavoritesPage({
         <p className="text-base md:text-lg text-gray-600">
           共收藏 {stats.total} 条内容
         </p>
+        {stats.total > 0 && (
+          <Link
+            href="/preferences"
+            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <TrendingUp className="w-4 h-4" />
+            查看偏好分析
+          </Link>
+        )}
       </div>
 
       {/* 统计卡片 */}
