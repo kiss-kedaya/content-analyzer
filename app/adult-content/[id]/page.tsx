@@ -1,7 +1,7 @@
 import { getAdultContentById } from '@/lib/adult-api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar, Play } from '@/components/Icon'
+import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
 import FavoriteButton from '@/components/FavoriteButton'
 
 export default async function AdultContentDetailPage({
@@ -85,78 +85,6 @@ export default async function AdultContentDetailPage({
             </div>
           </div>
         </div>
-
-        {/* 媒体预览 */}
-        {content.mediaUrls && content.mediaUrls.length > 0 && (() => {
-          // 智能判断媒体类型
-          const mediaItems = content.mediaUrls.map((url: string, index: number) => {
-            // 判断是否为视频
-            // 1. URL 包含明确的视频关键词
-            const hasVideoKeyword = url.includes('mp4') || 
-                                   url.includes('video') || 
-                                   url.includes('m3u8')
-            
-            // 2. snapvid 链接：第一个通常是视频，后面的是图片
-            const isSnapvidVideo = url.includes('dl.snapcdn.app') && index === 0
-            
-            const isVideo = hasVideoKeyword || isSnapvidVideo
-            
-            return {
-              url,
-              type: isVideo ? 'video' : 'image'
-            }
-          })
-          
-          const videos = mediaItems.filter(item => item.type === 'video')
-          const images = mediaItems.filter(item => item.type === 'image')
-          
-          return (
-            <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-b border-gray-200">
-              <div className="flex items-center gap-2 mb-3 md:mb-4">
-                <Play className="w-4 h-4 text-gray-600" />
-                <h2 className="text-sm md:text-base font-semibold text-gray-900">媒体内容</h2>
-              </div>
-              
-              {/* 视频播放器 */}
-              {videos.length > 0 && (
-                <div className="mb-4">
-                  {videos.map((video, index) => (
-                    <video
-                      key={index}
-                      controls
-                      className="w-full rounded-lg bg-black"
-                      style={{ maxHeight: '60vh' }}
-                    >
-                      <source src={video.url} type="video/mp4" />
-                      您的浏览器不支持视频播放
-                    </video>
-                  ))}
-                </div>
-              )}
-              
-              {/* 图片 */}
-              {images.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  {images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image.url}
-                      alt={`Image ${index + 1}`}
-                      className="w-full rounded-lg border border-gray-200"
-                    />
-                  ))}
-                </div>
-              )}
-              
-              {/* 媒体数量 */}
-              <p className="text-xs md:text-sm text-gray-500 mt-3">
-                共 {content.mediaUrls.length} 个媒体文件
-                {videos.length > 0 && ` (${videos.length} 个视频)`}
-                {images.length > 0 && ` (${images.length} 张图片)`}
-              </p>
-            </div>
-          )
-        })()}
 
         {/* 摘要 */}
         <div className="px-4 md:px-8 py-4 md:py-6 bg-blue-50 border-b border-gray-200">
