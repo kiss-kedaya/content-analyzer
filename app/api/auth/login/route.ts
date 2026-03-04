@@ -17,8 +17,9 @@ export async function POST(req: NextRequest) {
     }
     
     if (password === correctPassword) {
-      // 设置 Cookie（7 天有效）
-      cookies().set('auth-token', 'authenticated', {
+      // Next.js 15: cookies() 返回 Promise，需要 await
+      const cookieStore = await cookies()
+      cookieStore.set('auth-token', 'authenticated', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

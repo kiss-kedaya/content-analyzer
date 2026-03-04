@@ -3,8 +3,9 @@ import { cookies } from 'next/headers'
 
 export async function POST() {
   try {
-    // 删除 Cookie
-    cookies().delete('auth-token')
+    // Next.js 15: cookies() 返回 Promise，需要 await
+    const cookieStore = await cookies()
+    cookieStore.delete('auth-token')
     
     return NextResponse.json({ success: true })
   } catch (error) {
