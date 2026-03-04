@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { BarChart3 } from '@/components/Icon'
 import Link from 'next/link'
+import LogoutButton from '@/components/LogoutButton'
 
 export const metadata: Metadata = {
   title: '内容分析系统 - Content Analyzer',
@@ -33,6 +34,7 @@ export default function RootLayout({
                 <Link href="/api-docs" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   API 文档
                 </Link>
+                <LogoutButton />
               </nav>
             </div>
           </div>

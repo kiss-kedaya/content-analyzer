@@ -27,5 +27,7 @@ export {
   Image,
   X,
   Play,
-  Heart
+  Heart,
+  Lock,
+  LogOut
 } from 'lucide-react'
