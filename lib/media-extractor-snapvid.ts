@@ -91,13 +91,34 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
 }
 
 /**
- * 从 HTML 中提取媒体链接（优化版：过滤视频缩略图）
+ * 从 HTML 中提取媒体链接（优化版：区分纯图片和视频+图片）
  */
 function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const mediaList: MediaInfo[] = []
   
+  // 情况 1：检查是否是纯图片（photo-list）
+  if (html.includes('photo-list')) {
+    console.log('[snapvid] 检测到纯图片推文（photo-list）')
+    
+    // 提取所有图片下载链接
+    const photoListRegex = /<a href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*title="下载图片"/g
+    let match
+    
+    while ((match = photoListRegex.exec(html)) !== null) {
+      mediaList.push({
+        type: 'image',
+        url: match[1]
+      })
+    }
+    
+    console.log(`[snapvid] 提取到 ${mediaList.length} 张图片`)
+    return mediaList
+  }
+  
+  // 情况 2：视频 + 图片（tw-video）
+  console.log('[snapvid] 检测到视频推文（tw-video）')
+  
   // 匹配视频下载链接
-  // 格式: <a href="https://dl.snapcdn.app/get?token=...">...<i>...</i> 下载 MP4 (1080p)</a>
   const videoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
   
   let match
@@ -115,7 +136,7 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     })
   }
   
-  // 只保留最高质量的视频（按质量排序后取第一个）
+  // 只保留最高质量的视频
   videos.sort((a, b) => {
     const qualityOrder: Record<string, number> = {
       '1280p': 5,
@@ -133,24 +154,25 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     return bQuality - aQuality
   })
   
-  // 只添加最高质量的视频
+  // 添加最高质量的视频
   if (videos.length > 0) {
     mediaList.push(videos[0])
+    console.log(`[snapvid] 提取到视频: ${videos[0].quality}`)
   }
   
-  // 匹配图片链接（优化：过滤视频缩略图）
-  // 格式: <a href="https://dl.snapcdn.app/get?token=...">...<i>...</i> 下载图片</a>
+  // 提取所有图片下载链接
   const imageRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/gs
-  
-  // 提取所有图片 URL
   const imageUrls: string[] = []
+  
   while ((match = imageRegex.exec(html)) !== null) {
     imageUrls.push(match[1])
   }
   
   // 如果有视频，需要过滤掉视频缩略图
   if (videos.length > 0 && imageUrls.length > 0) {
-    // 查找 HTML 中的视频块，提取缩略图 URL
+    console.log('[snapvid] 过滤视频缩略图')
+    
+    // 查找视频块，提取缩略图 URL
     const videoBlockRegex = /<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g
     const videoBlocks = html.match(videoBlockRegex) || []
     
@@ -183,6 +205,8 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
         })
       }
     }
+    
+    console.log(`[snapvid] 过滤后剩余 ${imageUrls.length - thumbnailUrls.size} 张真实图片`)
   } else {
     // 没有视频，所有图片都是真实图片
     for (const url of imageUrls) {
@@ -191,6 +215,8 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
         url: url
       })
     }
+    
+    console.log(`[snapvid] 提取到 ${imageUrls.length} 张图片`)
   }
   
   return mediaList
