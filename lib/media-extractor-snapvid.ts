@@ -91,7 +91,7 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
 }
 
 /**
- * 从 HTML 中提取视频链接
+ * 从 HTML 中提取媒体链接（优化版：过滤视频缩略图）
  */
 function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const mediaList: MediaInfo[] = []
@@ -118,15 +118,17 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   // 只保留最高质量的视频（按质量排序后取第一个）
   videos.sort((a, b) => {
     const qualityOrder: Record<string, number> = {
+      '1280p': 5,
       '1080p': 4,
-      '720p': 3,
-      '360p': 2,
-      '270p': 1,
-      'unknown': 0
+      '852p': 3,
+      '720p': 2,
+      '568p': 1,
+      '360p': 0,
+      'unknown': -1
     }
     
-    const aQuality = qualityOrder[a.quality || 'unknown'] || 0
-    const bQuality = qualityOrder[b.quality || 'unknown'] || 0
+    const aQuality = qualityOrder[a.quality || 'unknown'] || -1
+    const bQuality = qualityOrder[b.quality || 'unknown'] || -1
     
     return bQuality - aQuality
   })
@@ -136,17 +138,59 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     mediaList.push(videos[0])
   }
   
-  // 匹配图片链接
+  // 匹配图片链接（优化：过滤视频缩略图）
   // 格式: <a href="https://dl.snapcdn.app/get?token=...">...<i>...</i> 下载图片</a>
   const imageRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/gs
   
+  // 提取所有图片 URL
+  const imageUrls: string[] = []
   while ((match = imageRegex.exec(html)) !== null) {
-    const url = match[1]
+    imageUrls.push(match[1])
+  }
+  
+  // 如果有视频，需要过滤掉视频缩略图
+  if (videos.length > 0 && imageUrls.length > 0) {
+    // 查找 HTML 中的视频块，提取缩略图 URL
+    const videoBlockRegex = /<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g
+    const videoBlocks = html.match(videoBlockRegex) || []
     
-    mediaList.push({
-      type: 'image',
-      url: url
-    })
+    const thumbnailUrls = new Set<string>()
+    for (const block of videoBlocks) {
+      // 检查是否包含视频下载链接
+      if (block.includes('下载 MP4')) {
+        // 提取这个块中的图片 URL（这些是视频缩略图）
+        const imgMatch = block.match(/<img[^>]+src="([^"]+)"/)
+        if (imgMatch) {
+          const imgUrl = imgMatch[1]
+          // 如果是 video_thumb 或 amplify_video_thumb，标记为缩略图
+          if (imgUrl.includes('video_thumb') || imgUrl.includes('amplify_video_thumb')) {
+            // 查找对应的下载链接
+            const downloadMatch = block.match(/href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载图片/)
+            if (downloadMatch) {
+              thumbnailUrls.add(downloadMatch[1])
+            }
+          }
+        }
+      }
+    }
+    
+    // 过滤掉缩略图，只保留真实图片
+    for (const url of imageUrls) {
+      if (!thumbnailUrls.has(url)) {
+        mediaList.push({
+          type: 'image',
+          url: url
+        })
+      }
+    }
+  } else {
+    // 没有视频，所有图片都是真实图片
+    for (const url of imageUrls) {
+      mediaList.push({
+        type: 'image',
+        url: url
+      })
+    }
   }
   
   return mediaList
