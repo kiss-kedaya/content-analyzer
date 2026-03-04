@@ -118,17 +118,17 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   // 情况 2：视频 + 图片（tw-video）
   console.log('[snapvid] 检测到视频推文（tw-video）')
   
-  // 匹配视频下载链接
+  // 匹配所有视频下载链接
   const videoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
   
   let match
-  const videos: MediaInfo[] = []
+  const allVideos: MediaInfo[] = []
   
   while ((match = videoRegex.exec(html)) !== null) {
     const url = match[1]
     const quality = match[2] + 'p'
     
-    videos.push({
+    allVideos.push({
       type: 'video',
       url: url,
       quality: quality,
@@ -136,29 +136,60 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     })
   }
   
-  // 只保留最高质量的视频
-  videos.sort((a, b) => {
-    const qualityOrder: Record<string, number> = {
-      '1280p': 5,
-      '1080p': 4,
-      '852p': 3,
-      '720p': 2,
-      '568p': 1,
-      '360p': 0,
-      'unknown': -1
+  console.log(`[snapvid] 找到 ${allVideos.length} 个视频链接`)
+  
+  // 按视频块分组（每个 tw-video div 是一个视频）
+  const videoBlocks = html.match(/<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g) || []
+  console.log(`[snapvid] 找到 ${videoBlocks.length} 个视频块`)
+  
+  // 从每个视频块中提取最高质量的视频
+  for (const block of videoBlocks) {
+    const blockVideos: MediaInfo[] = []
+    const blockVideoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
+    
+    let blockMatch
+    while ((blockMatch = blockVideoRegex.exec(block)) !== null) {
+      const url = blockMatch[1]
+      const quality = blockMatch[2] + 'p'
+      
+      blockVideos.push({
+        type: 'video',
+        url: url,
+        quality: quality,
+        format: 'mp4'
+      })
     }
     
-    const aQuality = qualityOrder[a.quality || 'unknown'] || -1
-    const bQuality = qualityOrder[b.quality || 'unknown'] || -1
+    // 排序并选择最高质量
+    blockVideos.sort((a, b) => {
+      const qualityOrder: Record<string, number> = {
+        '1280p': 5,
+        '1080p': 4,
+        '960p': 3.5,
+        '852p': 3,
+        '720p': 2,
+        '640p': 1.5,
+        '568p': 1,
+        '426p': 0.5,
+        '360p': 0,
+        '270p': -0.5,
+        'unknown': -1
+      }
+      
+      const aQuality = qualityOrder[a.quality || 'unknown'] || -1
+      const bQuality = qualityOrder[b.quality || 'unknown'] || -1
+      
+      return bQuality - aQuality
+    })
     
-    return bQuality - aQuality
-  })
-  
-  // 添加最高质量的视频
-  if (videos.length > 0) {
-    mediaList.push(videos[0])
-    console.log(`[snapvid] 提取到视频: ${videos[0].quality}`)
+    // 添加最高质量的视频
+    if (blockVideos.length > 0) {
+      mediaList.push(blockVideos[0])
+      console.log(`[snapvid] 提取视频: ${blockVideos[0].quality}`)
+    }
   }
+  
+  console.log(`[snapvid] 共提取 ${mediaList.length} 个视频`)
   
   // 提取真实图片下载链接（必须包含"下载图片"文本）
   const imageRegex = /<a[^>]+href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>[^<]*<i[^>]*><\/i>[^<]*下载图片/gs
