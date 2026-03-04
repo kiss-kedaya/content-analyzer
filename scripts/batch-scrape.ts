@@ -26,18 +26,13 @@ interface ContentData {
   analyzedBy: string
 }
 
-// 推文列表
+// 推文列表（新批次）
 const tweets: Tweet[] = [
-  { url: 'https://x.com/illqwq1408/status/2028849851010854931', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/jingyeshiwo/status/2028750753293320211', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/bb_xiaokeaii/status/2028849078612951502', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/w0612ang/status/2028068573651087697', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/xiaollei404/status/2028158364073791766', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/Killian_4real/status/2028840999427203268', type: 'adult', description: '成人内容（视频，27分钟）' },
-  { url: 'https://x.com/DDjkrd2848/status/2028741105899188626', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/sxiaoliya/status/2028862849918148612', type: 'adult', description: '成人内容（图片）' },
-  { url: 'https://x.com/xiaoyy99/status/2027971688651239782', type: 'adult', description: '成人内容（视频）' },
-  { url: 'https://x.com/okxchinese/status/2028806839773839683', type: 'tech', description: '技术内容（OKX OnchainOS 接入 OpenClaw 教程）' }
+  { url: 'https://x.com/0xKingsKuan/status/2028998232530137170', type: 'tech', description: '技术内容（OpenClaw 安全警告）' },
+  { url: 'https://x.com/Vw6WcQk/status/2028522850907513063', type: 'adult', description: '成人内容（视频）' },
+  { url: 'https://x.com/DoorAnal/status/2027966513786065011', type: 'adult', description: '成人内容（视频）' },
+  { url: 'https://x.com/bb__xiaokeai/status/2028848809888104621', type: 'adult', description: '成人内容（视频）' },
+  { url: 'https://x.com/LGDYM777/status/2029044163606618460', type: 'adult', description: '成人内容（视频）' }
 ]
 
 // 提取媒体链接

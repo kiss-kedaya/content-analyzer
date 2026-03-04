@@ -101,16 +101,39 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   const videoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
   
   let match
+  const videos: MediaInfo[] = []
+  
   while ((match = videoRegex.exec(html)) !== null) {
     const url = match[1]
     const quality = match[2] + 'p'
     
-    mediaList.push({
+    videos.push({
       type: 'video',
       url: url,
       quality: quality,
       format: 'mp4'
     })
+  }
+  
+  // 只保留最高质量的视频（按质量排序后取第一个）
+  videos.sort((a, b) => {
+    const qualityOrder: Record<string, number> = {
+      '1080p': 4,
+      '720p': 3,
+      '360p': 2,
+      '270p': 1,
+      'unknown': 0
+    }
+    
+    const aQuality = qualityOrder[a.quality || 'unknown'] || 0
+    const bQuality = qualityOrder[b.quality || 'unknown'] || 0
+    
+    return bQuality - aQuality
+  })
+  
+  // 只添加最高质量的视频
+  if (videos.length > 0) {
+    mediaList.push(videos[0])
   }
   
   // 匹配图片链接
@@ -125,23 +148,6 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
       url: url
     })
   }
-  
-  // 按质量排序（1080p > 720p > 360p）
-  mediaList.sort((a, b) => {
-    if (a.type !== 'video' || b.type !== 'video') return 0
-    
-    const qualityOrder: Record<string, number> = {
-      '1080p': 3,
-      '720p': 2,
-      '360p': 1,
-      'unknown': 0
-    }
-    
-    const aQuality = qualityOrder[a.quality || 'unknown'] || 0
-    const bQuality = qualityOrder[b.quality || 'unknown'] || 0
-    
-    return bQuality - aQuality
-  })
   
   return mediaList
 }
