@@ -1,36 +1,46 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
 import { Lock } from '@/components/Icon'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     
+    console.log('[Login] Attempting login...')
+    
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ password }),
+        credentials: 'include' // 确保包含 Cookie
       })
       
-      if (res.ok) {
-        router.push('/')
-        router.refresh()
+      console.log('[Login] Response status:', res.status)
+      
+      const data = await res.json()
+      console.log('[Login] Response data:', data)
+      
+      if (res.ok && data.success) {
+        console.log('[Login] Login successful, redirecting to /')
+        
+        // 使用 window.location.href 强制跳转（最可靠）
+        window.location.href = '/'
       } else {
-        setError('密码错误，请重试')
+        console.log('[Login] Login failed:', data.error)
+        setError(data.error || '密码错误，请重试')
+        setLoading(false)
       }
     } catch (error) {
-      setError('登录失败，请重试')
-    } finally {
+      console.error('[Login] Error:', error)
+      setError('网络错误，请重试')
       setLoading(false)
     }
   }
@@ -67,6 +77,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="请输入密码"
                 className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                disabled={loading}
                 required
                 autoFocus
               />
