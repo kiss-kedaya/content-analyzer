@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
 import TabSelector from './TabSelector'
 import SortSelector from './SortSelector'
+import { Loader2 } from './Icon'
 
 interface Content {
   id: string
@@ -29,6 +30,8 @@ interface ContentListProps {
   initialOrderBy: string
 }
 
+const ITEMS_PER_PAGE = 20
+
 export default function ContentList({
   techContents: initialTechContents,
   adultContents: initialAdultContents,
@@ -39,6 +42,13 @@ export default function ContentList({
   const [orderBy, setOrderBy] = useState(initialOrderBy)
   const [techContents, setTechContents] = useState(initialTechContents)
   const [adultContents, setAdultContents] = useState(initialAdultContents)
+  
+  // 分页状态
+  const [techPage, setTechPage] = useState(1)
+  const [adultPage, setAdultPage] = useState(1)
+  const [loading, setLoading] = useState(false)
+  
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // 排序函数
   const sortContents = <T extends Content>(contents: T[], sortBy: string): T[] => {
@@ -67,6 +77,69 @@ export default function ContentList({
 
   const sortedTechContents = sortContents(techContents, orderBy)
   const sortedAdultContents = sortContents(adultContents, orderBy)
+  
+  // 分页后的内容
+  const paginatedTechContents = sortedTechContents.slice(0, techPage * ITEMS_PER_PAGE)
+  const paginatedAdultContents = sortedAdultContents.slice(0, adultPage * ITEMS_PER_PAGE)
+  
+  // 是否还有更多内容
+  const hasTechMore = paginatedTechContents.length < sortedTechContents.length
+  const hasAdultMore = paginatedAdultContents.length < sortedAdultContents.length
+  
+  // 加载更多
+  const loadMore = () => {
+    if (loading) return
+    
+    setLoading(true)
+    setTimeout(() => {
+      if (activeTab === 'tech') {
+        setTechPage(prev => prev + 1)
+      } else {
+        setAdultPage(prev => prev + 1)
+      }
+      setLoading(false)
+    }, 300) // 模拟加载延迟
+  }
+  
+  // Intersection Observer 监听滚动到底部
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const hasMore = activeTab === 'tech' ? hasTechMore : hasAdultMore
+          if (hasMore && !loading) {
+            loadMore()
+          }
+        }
+      },
+      { threshold: 0.1 }
+    )
+    
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+    
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current)
+      }
+    }
+  }, [activeTab, hasTechMore, hasAdultMore, loading])
+  
+  // 切换排序时重置分页
+  useEffect(() => {
+    setTechPage(1)
+    setAdultPage(1)
+  }, [orderBy])
+  
+  // 切换标签时重置分页
+  useEffect(() => {
+    if (activeTab === 'tech') {
+      setTechPage(1)
+    } else {
+      setAdultPage(1)
+    }
+  }, [activeTab])
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -87,11 +160,26 @@ export default function ContentList({
       
       {/* 使用 CSS 隐藏/显示，避免重新渲染 */}
       <div className={activeTab === 'tech' ? 'block' : 'hidden'}>
-        <ContentTable contents={sortedTechContents} onDelete={handleDeleteTech} />
+        <ContentTable contents={paginatedTechContents} onDelete={handleDeleteTech} />
       </div>
       
       <div className={activeTab === 'adult' ? 'block' : 'hidden'}>
-        <AdultContentTable contents={sortedAdultContents} onDelete={handleDeleteAdult} />
+        <AdultContentTable contents={paginatedAdultContents} onDelete={handleDeleteAdult} />
+      </div>
+      
+      {/* 加载更多触发器 */}
+      <div ref={loadMoreRef} className="py-8">
+        {loading && (
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+            <span className="ml-2 text-gray-500">加载中...</span>
+          </div>
+        )}
+        {!loading && ((activeTab === 'tech' && !hasTechMore) || (activeTab === 'adult' && !hasAdultMore)) && (
+          <div className="text-center text-gray-400 text-sm">
+            已加载全部内容
+          </div>
+        )}
       </div>
     </div>
   )
