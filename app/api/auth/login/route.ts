@@ -27,7 +27,18 @@ export async function POST(req: NextRequest) {
         path: '/'
       })
       
-      return NextResponse.json({ success: true })
+      // 创建响应并再次设置 Cookie（双重保险）
+      const response = NextResponse.json({ success: true })
+      response.cookies.set('auth-token', 'authenticated', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/'
+      })
+      
+      console.log('Login successful, cookie set')
+      return response
     }
     
     return NextResponse.json(

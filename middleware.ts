@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
   // 允许访问登录页面和登录 API
   if (
-    request.nextUrl.pathname === '/login' ||
-    request.nextUrl.pathname.startsWith('/api/auth/login')
+    pathname === '/login' ||
+    pathname.startsWith('/api/auth/login')
   ) {
     return NextResponse.next()
   }
@@ -13,13 +15,21 @@ export function middleware(request: NextRequest) {
   // 检查 Cookie
   const authToken = request.cookies.get('auth-token')
   
+  // 调试日志
+  console.log('[Middleware]', {
+    pathname,
+    hasToken: !!authToken,
+    tokenValue: authToken?.value,
+    allCookies: request.cookies.getAll().map(c => c.name)
+  })
+  
   if (!authToken || authToken.value !== 'authenticated') {
-    // 未登录，重定向到登录页
+    console.log('[Middleware] Redirecting to login:', pathname)
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
   
-  // 已登录，允许访问
+  console.log('[Middleware] Access granted:', pathname)
   return NextResponse.next()
 }
 
