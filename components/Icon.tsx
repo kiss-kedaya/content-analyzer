@@ -26,5 +26,6 @@ export {
   Download,
   Image,
   X,
-  Play
+  Play,
+  Heart
 } from 'lucide-react'

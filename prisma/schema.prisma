@@ -22,11 +22,14 @@ model Content {
   analyzedAt DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  favorited  Boolean  @default(false)  // 收藏状态
+  favoritedAt DateTime?  // 收藏时间
   
   @@index([source])
   @@index([score])
   @@index([analyzedAt])
   @@index([createdAt])
+  @@index([favorited])
 }
 
 model AdultContent {
@@ -42,9 +45,12 @@ model AdultContent {
   analyzedAt DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  favorited  Boolean  @default(false)  // 收藏状态
+  favoritedAt DateTime?  // 收藏时间
   
   @@index([source])
   @@index([score])
   @@index([analyzedAt])
   @@index([createdAt])
+  @@index([favorited])
 }
