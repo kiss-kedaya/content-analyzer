@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Heart, Loader2 } from '@/components/Icon'
 
 interface FavoriteButtonProps {
@@ -12,14 +12,25 @@ interface FavoriteButtonProps {
 export default function FavoriteButton({ id, initialFavorited, type }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(initialFavorited)
   const [loading, setLoading] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
   
   const toggleFavorite = async () => {
+    // 防止重复点击
+    if (loading) return
+    
+    // 取消之前的请求
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    abortControllerRef.current = new AbortController()
     setLoading(true)
     
     try {
       const method = favorited ? 'DELETE' : 'POST'
       const response = await fetch(`/api/${type}/${id}/favorite`, {
-        method
+        method,
+        signal: abortControllerRef.current.signal
       })
       
       if (response.ok) {
@@ -28,10 +39,15 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
         alert('操作失败')
       }
     } catch (error) {
+      // 忽略取消的请求
+      if (error instanceof Error && error.name === 'AbortError') {
+        return
+      }
       console.error('Favorite error:', error)
       alert('操作失败')
     } finally {
       setLoading(false)
+      abortControllerRef.current = null
     }
   }
   
@@ -43,7 +59,7 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
         favorited
           ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
           : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
-      } disabled:opacity-50`}
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {loading ? (
         <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" />

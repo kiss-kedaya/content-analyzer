@@ -46,6 +46,9 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
   const handleDelete = async (id: string) => {
     if (!confirm('确定要删除这条内容吗？')) return
     
+    // 防止重复点击
+    if (deleting) return
+    
     setDeleting(id)
     try {
       const response = await fetch(`/api/adult-content/${id}`, {
