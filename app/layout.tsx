@@ -27,6 +27,9 @@ export default function RootLayout({
                 <Link href="/" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   首页
                 </Link>
+                <Link href="/favorites" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
+                  收藏夹
+                </Link>
                 <Link href="/api-docs" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   API 文档
                 </Link>

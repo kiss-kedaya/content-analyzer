@@ -126,23 +126,13 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                   </a>
                 </div>
               </td>
-              <td className="px-6 py-4">
+              <td className="px-6 py-4 text-center">
                 {content.mediaUrls && content.mediaUrls.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {content.mediaUrls.length} 个媒体
-                    </span>
-                    <button
-                      onClick={() => content.mediaUrls.forEach(url => downloadMedia(url))}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      <Download className="w-3 h-3" />
-                      下载
-                    </button>
-                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {content.mediaUrls.length}
+                  </span>
                 ) : (
-                  <span className="text-sm text-gray-400">无媒体</span>
+                  <span className="text-sm text-gray-400">0</span>
                 )}
               </td>
               <td className="px-6 py-4 max-w-md">
