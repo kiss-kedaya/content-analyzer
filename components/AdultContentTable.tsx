@@ -71,141 +71,234 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
     window.open(url, '_blank')
   }
 
-  return (
-    <>
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              来源
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              标题/链接
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              媒体
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              内容摘要
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              评分
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              收藏
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              操作
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {contents.map((content) => (
-            <tr key={content.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getSourceBadge(content.source)}`}>
-                  {content.source}
-                </span>
-              </td>
-              <td className="px-6 py-4">
-                <div className="space-y-1">
-                  {content.title && (
-                    <div className="text-sm font-medium text-gray-900">
-                      {content.title}
-                    </div>
-                  )}
-                  <a
-                    href={content.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-black transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    查看原文
-                  </a>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-center">
-                {content.mediaUrls && content.mediaUrls.length > 0 ? (
-                  <span className="text-sm font-medium text-gray-900">
-                    {content.mediaUrls.length}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-400">0</span>
-                )}
-              </td>
-              <td className="px-6 py-4 max-w-md">
-                <p className="text-sm text-gray-600 line-clamp-3">
-                  {content.summary}
-                </p>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`text-lg font-semibold ${getScoreColor(content.score)}`}>
-                  {content.score.toFixed(1)}
-                </span>
-                <span className="text-xs text-gray-400 ml-1">/ 10</span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <FavoriteButton
-                  id={content.id}
-                  initialFavorited={content.favorited}
-                  type="adult-content"
-                />
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
-                <button
-                  onClick={() => setPreviewUrl(content.url)}
-                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <Play className="w-4 h-4" />
-                  预览
-                </button>
-                <Link
-                  href={`/adult-content/${content.id}`}
-                  className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  详情
-                </Link>
-                <button
-                  onClick={() => handleDelete(content.id)}
-                  disabled={deleting === content.id}
-                  className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors disabled:opacity-50"
-                >
-                  {deleting === content.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      删除中...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      删除
-                    </>
-                  )}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {contents.length === 0 && (
+  if (contents.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg">
         <div className="text-center py-16 text-gray-500">
           <p className="text-lg font-medium">暂无内容</p>
           <p className="text-sm mt-2">使用 API 上传内容后即可查看</p>
         </div>
-      )}
-    </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {/* 桌面端：表格布局 */}
+      <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                来源
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                标题/链接
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                媒体
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                内容摘要
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                评分
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                收藏
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {contents.map((content) => (
+              <tr key={content.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getSourceBadge(content.source)}`}>
+                    {content.source}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-1">
+                    {content.title && (
+                      <div className="text-sm font-medium text-gray-900">
+                        {content.title}
+                      </div>
+                    )}
+                    <a
+                      href={content.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-black transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      查看原文
+                    </a>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {content.mediaUrls && content.mediaUrls.length > 0 ? (
+                    <span className="text-sm font-medium text-gray-900">
+                      {content.mediaUrls.length}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">0</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 max-w-md">
+                  <p className="text-sm text-gray-600 line-clamp-3">
+                    {content.summary}
+                  </p>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`text-lg font-semibold ${getScoreColor(content.score)}`}>
+                    {content.score.toFixed(1)}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-1">/ 10</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <FavoriteButton
+                    id={content.id}
+                    initialFavorited={content.favorited}
+                    type="adult-content"
+                  />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                  <button
+                    onClick={() => setPreviewUrl(content.url)}
+                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <Play className="w-4 h-4" />
+                    预览
+                  </button>
+                  <Link
+                    href={`/adult-content/${content.id}`}
+                    className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    详情
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(content.id)}
+                    disabled={deleting === content.id}
+                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {deleting === content.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        删除中...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        删除
+                      </>
+                    )}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 移动端：卡片布局 */}
+      <div className="md:hidden space-y-4">
+        {contents.map((content) => (
+          <div
+            key={content.id}
+            className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+          >
+            {/* 评分和收藏 */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
+                  {content.score.toFixed(1)}
+                </span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSourceBadge(content.source)}`}>
+                  {content.source}
+                </span>
+              </div>
+              <FavoriteButton
+                id={content.id}
+                initialFavorited={content.favorited}
+                type="adult-content"
+              />
+            </div>
+
+            {/* 标题 */}
+            {content.title && (
+              <h3 className="font-medium text-base text-gray-900 mb-2">
+                {content.title}
+              </h3>
+            )}
+
+            {/* 摘要 */}
+            <p className="text-gray-600 text-sm mb-3 line-clamp-4">
+              {content.summary}
+            </p>
+
+            {/* 媒体信息 */}
+            {content.mediaUrls && content.mediaUrls.length > 0 && (
+              <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
+                <ImageIcon className="w-4 h-4" />
+                <span>{content.mediaUrls.length} 个媒体</span>
+              </div>
+            )}
+
+            {/* 操作按钮 */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setPreviewUrl(content.url)}
+                className="flex items-center justify-center gap-1 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                预览
+              </button>
+              <a
+                href={content.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1 px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                原文
+              </a>
+              <Link
+                href={`/adult-content/${content.id}`}
+                className="flex items-center justify-center gap-1 px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                详情
+              </Link>
+              <button
+                onClick={() => handleDelete(content.id)}
+                disabled={deleting === content.id}
+                className="flex items-center justify-center gap-1 px-4 py-2.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {deleting === content.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    删除
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     
-    {/* 视频预览模态框 */}
-    {previewUrl && (
-      <VideoPreview
-        url={previewUrl}
-        onClose={() => setPreviewUrl(null)}
-      />
-    )}
-  </>
+      {/* 视频预览模态框 */}
+      {previewUrl && (
+        <VideoPreview
+          url={previewUrl}
+          onClose={() => setPreviewUrl(null)}
+        />
+      )}
+    </>
   )
 }
