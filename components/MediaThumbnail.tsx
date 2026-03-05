@@ -12,6 +12,7 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
   const [loading, setLoading] = useState(true)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [mediaType, setMediaType] = useState<'video' | 'image' | null>(null)
+  const [error, setError] = useState(false)
   
   useEffect(() => {
     fetchThumbnail()
@@ -19,9 +20,18 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
   
   async function fetchThumbnail() {
     setLoading(true)
+    setError(false)
+    
+    // 设置 10 秒超时
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
     
     try {
-      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`)
+      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
       
       if (!response.ok) {
         throw new Error('Failed to fetch media')
@@ -36,9 +46,13 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
       } else if (data.images && data.images.length > 0) {
         setThumbnailUrl(data.images[0].url)
         setMediaType('image')
+      } else {
+        // 没有媒体，显示占位图
+        setError(true)
       }
     } catch (err) {
       console.error('Failed to fetch thumbnail:', err)
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -52,10 +66,11 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
     )
   }
   
-  if (!thumbnailUrl) {
+  if (error || !thumbnailUrl) {
     return (
-      <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
-        <ImageIcon className="w-8 h-8 text-gray-400" />
+      <div className={`flex flex-col items-center justify-center bg-gray-100 ${className}`}>
+        <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
+        <span className="text-xs text-gray-400">无预览</span>
       </div>
     )
   }
@@ -69,6 +84,7 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
             className="w-full h-full object-cover"
             muted
             playsInline
+            onError={() => setError(true)}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
@@ -81,6 +97,7 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
           src={thumbnailUrl}
           alt="Thumbnail"
           className="w-full h-full object-cover"
+          onError={() => setError(true)}
         />
       )}
     </div>
