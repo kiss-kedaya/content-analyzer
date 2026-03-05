@@ -73,14 +73,11 @@ export const ErrorCodes = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED'
 } as const
 
+import { logApiError } from './logger'
+
 /**
  * 日志记录辅助函数
  */
 export function logError(context: string, error: unknown, metadata?: Record<string, any>) {
-  console.error(`[API Error] ${context}`, {
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-    timestamp: new Date().toISOString(),
-    ...metadata
-  })
+  logApiError(context, error, metadata)
 }

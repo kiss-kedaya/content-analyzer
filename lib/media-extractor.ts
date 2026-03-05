@@ -1,4 +1,7 @@
 import YTDlpWrap from 'yt-dlp-wrap'
+import { createLogger } from './logger'
+
+const logger = createLogger('media-extractor')
 
 export interface MediaInfo {
   type: 'image' | 'video'
@@ -10,11 +13,70 @@ export interface MediaInfo {
 }
 
 /**
+ * 重试配置
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelay: 1000, // 1 秒
+  maxDelay: 5000, // 5 秒
+  backoffMultiplier: 2,
+}
+
+/**
+ * 延迟函数
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * 带重试的媒体提取
+ */
+async function extractWithRetry<T>(
+  fn: () => Promise<T>,
+  context: string,
+  retries = RETRY_CONFIG.maxRetries
+): Promise<T> {
+  let lastError: Error | undefined
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      logger.debug({ attempt, context }, 'Attempting media extraction')
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      
+      if (attempt < retries) {
+        const delayMs = Math.min(
+          RETRY_CONFIG.initialDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt),
+          RETRY_CONFIG.maxDelay
+        )
+        
+        logger.warn(
+          { attempt, delayMs, error: lastError.message, context },
+          `Media extraction failed, retrying in ${delayMs}ms`
+        )
+        
+        await delay(delayMs)
+      }
+    }
+  }
+  
+  logger.error({ error: lastError?.message, context }, 'Media extraction failed after all retries')
+  throw lastError
+}
+
+/**
  * 从 Twitter URL 提取媒体链接（图片和视频）
  * 使用 yt-dlp 提取高质量媒体链接
+ * 
+ * 带重试机制：
+ * - 最多重试 3 次
+ * - 指数退避延迟（1s, 2s, 4s）
+ * - 最大延迟 5 秒
  */
 export async function extractTwitterMedia(twitterUrl: string): Promise<MediaInfo[]> {
-  try {
+  return extractWithRetry(async () => {
     const ytDlp = new YTDlpWrap()
     
     // 获取视频信息（包括图片）
@@ -55,11 +117,9 @@ export async function extractTwitterMedia(twitterUrl: string): Promise<MediaInfo
       new Map(mediaList.map(item => [item.url, item])).values()
     )
     
+    logger.info({ count: uniqueMedia.length, url: twitterUrl }, 'Media extraction successful')
     return uniqueMedia
-  } catch (error) {
-    console.error('Error extracting Twitter media:', error)
-    throw new Error(`Failed to extract media from Twitter URL: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
+  }, `extractTwitterMedia(${twitterUrl})`)
 }
 
 /**

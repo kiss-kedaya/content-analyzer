@@ -1,12 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose'
-
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required')
-}
+import { env } from './env'
 
 // 将字符串转换为 Uint8Array（Edge Runtime 兼容）
-const secret = new TextEncoder().encode(JWT_SECRET)
+const secret = new TextEncoder().encode(env.JWT_SECRET)
 
 /**
  * 生成 JWT Token（Edge Runtime 兼容）

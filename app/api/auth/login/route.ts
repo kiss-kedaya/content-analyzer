@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { generateToken } from '@/lib/auth'
 import { LoginSchema } from '@/lib/validation'
 import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
+import { env } from '@/lib/env'
 import { z } from 'zod'
 
 export async function POST(req: NextRequest) {
@@ -11,19 +12,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { password } = LoginSchema.parse(body)
     
-    // 从环境变量获取密码
-    const correctPassword = process.env.ACCESS_PASSWORD
-    
-    if (!correctPassword) {
-      logError('Login', new Error('ACCESS_PASSWORD not configured'))
-      return NextResponse.json(
-        errorResponse('Server configuration error', ErrorCodes.INTERNAL_ERROR),
-        { status: 500 }
-      )
-    }
-    
     // 验证密码
-    if (password !== correctPassword) {
+    if (password !== env.ACCESS_PASSWORD) {
       return NextResponse.json(
         errorResponse('Invalid password', ErrorCodes.INVALID_CREDENTIALS),
         { status: 401 }
