@@ -1,34 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllContents, getContentsCount } from '@/lib/api'
+import { PaginationQuerySchema } from '@/lib/validation'
+import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
+import { ZodError } from 'zod'
 
 export const runtime = 'edge'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = parseInt(searchParams.get('pageSize') || '20')
-    const orderBy = (searchParams.get('orderBy') || 'score') as 'score' | 'createdAt' | 'analyzedAt'
+    // 解析和验证查询参数
+    const searchParams = Object.fromEntries(request.nextUrl.searchParams)
+    const { page, pageSize, orderBy } = PaginationQuerySchema.parse(searchParams)
     
+    // 获取数据
     const [contents, total] = await Promise.all([
       getAllContents(orderBy, page, pageSize),
       getContentsCount()
     ])
     
-    return NextResponse.json({
-      contents,
-      pagination: {
+    // 返回响应
+    return NextResponse.json(
+      successResponse(contents, {
         page,
         pageSize,
         total,
         totalPages: Math.ceil(total / pageSize),
         hasMore: page * pageSize < total
-      }
-    })
+      })
+    )
   } catch (error) {
-    console.error('Failed to fetch paginated contents:', error)
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        errorResponse(
+          error.errors[0].message,
+          ErrorCodes.VALIDATION_ERROR,
+          error.errors
+        ),
+        { status: 400 }
+      )
+    }
+    
+    logError('GET /api/content/paginated', error, {
+      searchParams: Object.fromEntries(request.nextUrl.searchParams)
+    })
+    
     return NextResponse.json(
-      { error: 'Failed to fetch contents' },
+      errorResponse('Failed to fetch contents', ErrorCodes.DATABASE_ERROR),
       { status: 500 }
     )
   }

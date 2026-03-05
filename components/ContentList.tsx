@@ -82,14 +82,19 @@ export default function ContentList({
       
       const data = await response.json()
       
-      if (isTech) {
-        setTechContents(prev => [...prev, ...data.contents])
-        setTechPage(nextPage)
-        setTechHasMore(data.pagination.hasMore)
+      // 适配新的响应格式
+      if (data.success && data.data) {
+        if (isTech) {
+          setTechContents(prev => [...prev, ...data.data])
+          setTechPage(nextPage)
+          setTechHasMore(data.pagination?.hasMore ?? false)
+        } else {
+          setAdultContents(prev => [...prev, ...data.data])
+          setAdultPage(nextPage)
+          setAdultHasMore(data.pagination?.hasMore ?? false)
+        }
       } else {
-        setAdultContents(prev => [...prev, ...data.contents])
-        setAdultPage(nextPage)
-        setAdultHasMore(data.pagination.hasMore)
+        throw new Error(data.error?.message || 'Failed to fetch more contents')
       }
     } catch (error) {
       console.error('Failed to load more:', error)
