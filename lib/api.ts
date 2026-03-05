@@ -63,7 +63,8 @@ export async function getAllContents(
   
   return await prisma.content.findMany({
     orderBy: [
-      { [validatedOrderBy]: 'desc' }
+      { [validatedOrderBy]: 'desc' },
+      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
     ],
     skip,
     take: pageSize
@@ -84,7 +85,8 @@ export async function getContentsBySource(source: string, orderBy: 'score' | 'cr
   return await prisma.content.findMany({
     where: { source },
     orderBy: [
-      { [orderBy]: 'desc' }
+      { [orderBy]: 'desc' },
+      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
     ]
   })
 }

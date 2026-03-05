@@ -50,9 +50,10 @@ export async function getAllAdultContents(
   const skip = (page - 1) * pageSize
   
   return await prisma.adultContent.findMany({
-    orderBy: {
-      [validatedOrderBy]: 'desc'
-    },
+    orderBy: [
+      { [validatedOrderBy]: 'desc' },
+      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
+    ],
     skip,
     take: pageSize
   })
