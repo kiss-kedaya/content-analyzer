@@ -37,14 +37,29 @@ export async function createContent(data: ContentInput) {
 }
 
 /**
- * 获取所有内容（支持排序）
+ * 获取所有内容（支持排序和分页）
  */
-export async function getAllContents(orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score') {
+export async function getAllContents(
+  orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score',
+  page: number = 1,
+  pageSize: number = 20
+) {
+  const skip = (page - 1) * pageSize
+  
   return await prisma.content.findMany({
     orderBy: [
       { [orderBy]: 'desc' }
-    ]
+    ],
+    skip,
+    take: pageSize
   })
+}
+
+/**
+ * 获取内容总数
+ */
+export async function getContentsCount() {
+  return await prisma.content.count()
 }
 
 /**

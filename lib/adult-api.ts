@@ -26,13 +26,26 @@ export async function createAdultContent(data: AdultContentInput) {
   })
 }
 
-// 获取所有成人内容
-export async function getAllAdultContents(orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score') {
+// 获取所有成人内容（支持分页）
+export async function getAllAdultContents(
+  orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score',
+  page: number = 1,
+  pageSize: number = 20
+) {
+  const skip = (page - 1) * pageSize
+  
   return await prisma.adultContent.findMany({
     orderBy: {
       [orderBy]: 'desc'
-    }
+    },
+    skip,
+    take: pageSize
   })
+}
+
+// 获取成人内容总数
+export async function getAdultContentsCount() {
+  return await prisma.adultContent.count()
 }
 
 // 根据 ID 获取成人内容

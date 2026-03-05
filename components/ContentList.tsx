@@ -47,6 +47,8 @@ export default function ContentList({
   const [techPage, setTechPage] = useState(1)
   const [adultPage, setAdultPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [techHasMore, setTechHasMore] = useState(true)
+  const [adultHasMore, setAdultHasMore] = useState(true)
   
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
@@ -74,31 +76,42 @@ export default function ContentList({
   const handleDeleteAdult = (id: string) => {
     setAdultContents(prev => prev.filter(item => item.id !== id))
   }
-
-  const sortedTechContents = sortContents(techContents, orderBy)
-  const sortedAdultContents = sortContents(adultContents, orderBy)
-  
-  // 分页后的内容
-  const paginatedTechContents = sortedTechContents.slice(0, techPage * ITEMS_PER_PAGE)
-  const paginatedAdultContents = sortedAdultContents.slice(0, adultPage * ITEMS_PER_PAGE)
-  
-  // 是否还有更多内容
-  const hasTechMore = paginatedTechContents.length < sortedTechContents.length
-  const hasAdultMore = paginatedAdultContents.length < sortedAdultContents.length
   
   // 加载更多
-  const loadMore = () => {
+  const loadMore = async () => {
     if (loading) return
     
     setLoading(true)
-    setTimeout(() => {
-      if (activeTab === 'tech') {
-        setTechPage(prev => prev + 1)
-      } else {
-        setAdultPage(prev => prev + 1)
+    
+    try {
+      const isTech = activeTab === 'tech'
+      const nextPage = isTech ? techPage + 1 : adultPage + 1
+      const endpoint = isTech ? '/api/content/paginated' : '/api/adult-content/paginated'
+      
+      const response = await fetch(
+        `${endpoint}?page=${nextPage}&pageSize=${ITEMS_PER_PAGE}&orderBy=${orderBy}`
+      )
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch more contents')
       }
+      
+      const data = await response.json()
+      
+      if (isTech) {
+        setTechContents(prev => [...prev, ...data.contents])
+        setTechPage(nextPage)
+        setTechHasMore(data.pagination.hasMore)
+      } else {
+        setAdultContents(prev => [...prev, ...data.contents])
+        setAdultPage(nextPage)
+        setAdultHasMore(data.pagination.hasMore)
+      }
+    } catch (error) {
+      console.error('Failed to load more:', error)
+    } finally {
       setLoading(false)
-    }, 300) // 模拟加载延迟
+    }
   }
   
   // Intersection Observer 监听滚动到底部
@@ -106,7 +119,7 @@ export default function ContentList({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          const hasMore = activeTab === 'tech' ? hasTechMore : hasAdultMore
+          const hasMore = activeTab === 'tech' ? techHasMore : adultHasMore
           if (hasMore && !loading) {
             loadMore()
           }
@@ -124,22 +137,21 @@ export default function ContentList({
         observer.unobserve(loadMoreRef.current)
       }
     }
-  }, [activeTab, hasTechMore, hasAdultMore, loading])
+  }, [activeTab, techHasMore, adultHasMore, loading, techPage, adultPage, orderBy])
   
-  // 切换排序时重置分页
+  // 切换排序时重置数据
   useEffect(() => {
+    // 重置为初始数据
+    setTechContents(initialTechContents)
+    setAdultContents(initialAdultContents)
     setTechPage(1)
     setAdultPage(1)
-  }, [orderBy])
-  
-  // 切换标签时重置分页
-  useEffect(() => {
-    if (activeTab === 'tech') {
-      setTechPage(1)
-    } else {
-      setAdultPage(1)
-    }
-  }, [activeTab])
+    setTechHasMore(true)
+    setAdultHasMore(true)
+  }, [orderBy, initialTechContents, initialAdultContents])
+
+  const sortedTechContents = sortContents(techContents, orderBy)
+  const sortedAdultContents = sortContents(adultContents, orderBy)
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -160,11 +172,11 @@ export default function ContentList({
       
       {/* 使用 CSS 隐藏/显示，避免重新渲染 */}
       <div className={activeTab === 'tech' ? 'block' : 'hidden'}>
-        <ContentTable contents={paginatedTechContents} onDelete={handleDeleteTech} />
+        <ContentTable contents={sortedTechContents} onDelete={handleDeleteTech} />
       </div>
       
       <div className={activeTab === 'adult' ? 'block' : 'hidden'}>
-        <AdultContentTable contents={paginatedAdultContents} onDelete={handleDeleteAdult} />
+        <AdultContentTable contents={sortedAdultContents} onDelete={handleDeleteAdult} />
       </div>
       
       {/* 加载更多触发器 */}
@@ -175,7 +187,7 @@ export default function ContentList({
             <span className="ml-2 text-gray-500">加载中...</span>
           </div>
         )}
-        {!loading && ((activeTab === 'tech' && !hasTechMore) || (activeTab === 'adult' && !hasAdultMore)) && (
+        {!loading && ((activeTab === 'tech' && !techHasMore) || (activeTab === 'adult' && !adultHasMore)) && (
           <div className="text-center text-gray-400 text-sm">
             已加载全部内容
           </div>

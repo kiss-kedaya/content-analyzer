@@ -1,6 +1,6 @@
 import ContentList from '@/components/ContentList'
-import { getAllContents } from '@/lib/api'
-import { getAllAdultContents } from '@/lib/adult-api'
+import { getAllContents, getContentsCount } from '@/lib/api'
+import { getAllAdultContents, getAdultContentsCount } from '@/lib/adult-api'
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
@@ -15,16 +15,19 @@ export default async function Home({
   const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
   const tab = params.tab || 'tech'  // 'tech' or 'adult'
   
-  // 一次性获取所有数据
-  const [techContents, adultContents] = await Promise.all([
-    getAllContents(orderBy),
-    getAllAdultContents(orderBy)
+  // 只获取第一页数据（20条）
+  const [techContents, adultContents, techTotal, adultTotal] = await Promise.all([
+    getAllContents(orderBy, 1, 20),
+    getAllAdultContents(orderBy, 1, 20),
+    getContentsCount(),
+    getAdultContentsCount()
   ])
 
   const allContents = tab === 'tech' ? techContents : adultContents
+  const total = tab === 'tech' ? techTotal : adultTotal
   
   const stats = {
-    total: allContents.length,
+    total: total,
     twitter: allContents.filter(c => c.source === 'twitter').length,
     xiaohongshu: allContents.filter(c => c.source === 'xiaohongshu').length,
     linuxdo: allContents.filter(c => c.source === 'linuxdo').length
