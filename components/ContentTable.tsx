@@ -6,6 +6,7 @@ import { ExternalLink, Eye, Trash2, Loader2, Play } from '@/components/Icon'
 import FavoriteButton from './FavoriteButton'
 import HoverVideoPreview from './HoverVideoPreview'
 import MediaThumbnail from './MediaThumbnail'
+import VideoPreview from './VideoPreview'
 
 interface Content {
   id: string
@@ -27,6 +28,7 @@ interface ContentTableProps {
 export default function ContentTable({ contents, onDelete }: ContentTableProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [hoverPreviewUrl, setHoverPreviewUrl] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const getSourceBadge = (source: string) => {
     const badges: Record<string, string> = {
@@ -218,6 +220,7 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
             <MediaThumbnail
               url={content.url}
               className="w-full h-48"
+              onClick={() => setPreviewUrl(content.url)}
             />
             
             <div className="p-4">
@@ -289,6 +292,11 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
           </div>
         ))}
       </div>
+      
+      {/* 视频预览模态框 */}
+      {previewUrl && (
+        <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />
+      )}
     </>
   )
 }

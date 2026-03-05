@@ -219,6 +219,7 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
             <MediaThumbnail
               url={content.url}
               className="w-full h-48"
+              onClick={() => setPreviewUrl(content.url)}
             />
             
             <div className="p-4">

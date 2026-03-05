@@ -7,9 +7,10 @@ import { useMediaCache } from '@/hooks/useMediaCache'
 interface MediaThumbnailProps {
   url: string
   className?: string
+  onClick?: () => void
 }
 
-export default function MediaThumbnail({ url, className = '' }: MediaThumbnailProps) {
+export default function MediaThumbnail({ url, className = '', onClick }: MediaThumbnailProps) {
   const [loading, setLoading] = useState(true)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [mediaType, setMediaType] = useState<'video' | 'image' | null>(null)
@@ -69,7 +70,10 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
   }
   
   return (
-    <div className={`relative overflow-hidden bg-black ${className}`}>
+    <div 
+      className={`relative overflow-hidden bg-black ${className} ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
       {mediaType === 'video' ? (
         <>
           <video
