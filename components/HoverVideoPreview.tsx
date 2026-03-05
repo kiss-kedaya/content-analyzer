@@ -13,12 +13,33 @@ interface HoverVideoPreviewProps {
 export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: HoverVideoPreviewProps) {
   const [loading, setLoading] = useState(true)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [position, setPosition] = useState<'right' | 'left'>('right')
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
     fetchVideoUrl()
+    calculatePosition()
   }, [url])
+  
+  function calculatePosition() {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const previewWidth = 400
+      
+      // 检查右侧空间是否足够
+      const spaceOnRight = viewportWidth - rect.right
+      
+      if (spaceOnRight < previewWidth + 20) {
+        // 右侧空间不足，显示在左侧
+        setPosition('left')
+      } else {
+        setPosition('right')
+      }
+    }
+  }
   
   async function fetchVideoUrl() {
     setLoading(true)
@@ -47,7 +68,8 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
   
   return (
     <div 
-      className="absolute left-full top-0 ml-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden"
+      ref={containerRef}
+      className={`absolute ${position === 'right' ? 'left-full ml-2' : 'right-full mr-2'} top-0 z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden`}
       style={{ width: '400px', maxWidth: '90vw' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
