@@ -82,9 +82,9 @@ export default function ContentTableRow({ content, onDelete }: ContentTableRowPr
       <td className="px-4 py-3">
         <div className="flex items-center justify-center gap-2">
           <FavoriteButton
-            contentId={content.id}
+            id={content.id}
             initialFavorited={content.favorited}
-            contentType="tech"
+            type="content"
           />
           <a
             href={content.url}
