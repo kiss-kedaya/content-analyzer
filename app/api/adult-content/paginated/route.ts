@@ -4,7 +4,8 @@ import { PaginationQuerySchema } from '@/lib/validation'
 import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
 import { z } from 'zod'
 
-export const runtime = 'edge'
+// 使用 Node.js runtime（Prisma 需要）
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
