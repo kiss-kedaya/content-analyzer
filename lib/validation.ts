@@ -5,7 +5,7 @@ import { z } from 'zod'
  */
 export const ContentCreateSchema = z.object({
   source: z.enum(['twitter', 'xiaohongshu', 'linuxdo'], {
-    errorMap: () => ({ message: 'Source must be one of: twitter, xiaohongshu, linuxdo' })
+    message: 'Source must be one of: twitter, xiaohongshu, linuxdo'
   }),
   url: z.string().url({ message: 'Invalid URL format' }),
   title: z.string().max(200, 'Title must be less than 200 characters').optional(),
@@ -44,7 +44,7 @@ export const PaginationQuerySchema = z.object({
     .max(100, 'Page size must be at most 100')
     .default(20),
   orderBy: z.enum(['score', 'createdAt', 'analyzedAt'], {
-    errorMap: () => ({ message: 'OrderBy must be one of: score, createdAt, analyzedAt' })
+    message: 'OrderBy must be one of: score, createdAt, analyzedAt'
   }).default('score')
 })
 
