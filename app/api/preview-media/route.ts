@@ -26,30 +26,44 @@ export async function GET(request: NextRequest) {
         timeoutPromise
       ]) as any[]
       
-      // 分类视频和图片
-      const videos = mediaList.filter(m => m.type === 'video')
-      const images = mediaList.filter(m => m.type === 'image')
-      
-      return NextResponse.json({
-        success: true,
-        url: url,
-        videos: videos.map(v => ({
-          url: v.url,
-          quality: v.quality,
-          format: v.format
-        })),
-        images: images.map(i => ({
-          url: i.url
-        })),
-        count: {
-          videos: videos.length,
-          images: images.length,
-          total: mediaList.length
-        }
-      })
+      // 尝试解析数据
+      try {
+        // 分类视频和图片
+        const videos = mediaList.filter(m => m.type === 'video')
+        const images = mediaList.filter(m => m.type === 'image')
+        
+        return NextResponse.json({
+          success: true,
+          url: url,
+          videos: videos.map(v => ({
+            url: v.url,
+            quality: v.quality,
+            format: v.format
+          })),
+          images: images.map(i => ({
+            url: i.url
+          })),
+          count: {
+            videos: videos.length,
+            images: images.length,
+            total: mediaList.length
+          }
+        })
+      } catch (parseError) {
+        // 解析失败，返回原始数据
+        logApiError('preview-media-parse', parseError, { url })
+        
+        return NextResponse.json({
+          success: true,
+          url: url,
+          raw: mediaList, // 返回原始数据
+          parseError: parseError instanceof Error ? parseError.message : 'Parse failed',
+          warning: 'Failed to parse media data, returning raw response'
+        })
+      }
     } catch (extractError) {
-      // 提取失败，返回空结果而不是错误
-      logApiError('preview-media', extractError, { url })
+      // 提取失败，返回空结果
+      logApiError('preview-media-extract', extractError, { url })
       
       return NextResponse.json({
         success: true,
@@ -61,7 +75,8 @@ export async function GET(request: NextRequest) {
           images: 0,
           total: 0
         },
-        warning: 'Media extraction failed, but request succeeded'
+        extractError: extractError instanceof Error ? extractError.message : 'Extract failed',
+        warning: 'Media extraction failed'
       })
     }
   } catch (error) {
