@@ -10,6 +10,20 @@ export interface AdultContentInput {
   analyzedBy?: string
 }
 
+// 允许的排序字段
+const ALLOWED_ORDER_BY = ['score', 'createdAt', 'analyzedAt'] as const
+export type OrderBy = typeof ALLOWED_ORDER_BY[number]
+
+/**
+ * 验证 orderBy 参数
+ */
+export function validateOrderBy(value: string): OrderBy {
+  if (!ALLOWED_ORDER_BY.includes(value as OrderBy)) {
+    throw new Error(`Invalid orderBy parameter: ${value}. Allowed values: ${ALLOWED_ORDER_BY.join(', ')}`)
+  }
+  return value as OrderBy
+}
+
 // 创建成人内容
 export async function createAdultContent(data: AdultContentInput) {
   return await prisma.adultContent.create({
@@ -28,15 +42,16 @@ export async function createAdultContent(data: AdultContentInput) {
 
 // 获取所有成人内容（支持分页）
 export async function getAllAdultContents(
-  orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score',
+  orderBy: string = 'score',
   page: number = 1,
   pageSize: number = 20
 ) {
+  const validatedOrderBy = validateOrderBy(orderBy)
   const skip = (page - 1) * pageSize
   
   return await prisma.adultContent.findMany({
     orderBy: {
-      [orderBy]: 'desc'
+      [validatedOrderBy]: 'desc'
     },
     skip,
     take: pageSize
