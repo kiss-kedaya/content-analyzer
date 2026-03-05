@@ -220,7 +220,6 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
             <MediaThumbnail
               url={content.url}
               className="w-full h-48"
-              onClick={() => setPreviewUrl(content.url)}
             />
             
             <div className="p-4">

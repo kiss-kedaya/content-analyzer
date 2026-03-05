@@ -1,20 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Play, Image as ImageIcon, Loader2 } from '@/components/Icon'
+import { useState, useEffect, useRef } from 'react'
+import { Play, Image as ImageIcon, Loader2, X } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface MediaThumbnailProps {
   url: string
   className?: string
-  onClick?: () => void
 }
 
-export default function MediaThumbnail({ url, className = '', onClick }: MediaThumbnailProps) {
+export default function MediaThumbnail({ url, className = '' }: MediaThumbnailProps) {
   const [loading, setLoading] = useState(true)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [mediaType, setMediaType] = useState<'video' | 'image' | null>(null)
   const [error, setError] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
@@ -52,6 +54,23 @@ export default function MediaThumbnail({ url, className = '', onClick }: MediaTh
     }
   }
   
+  const handleClick = () => {
+    if (mediaType === 'video') {
+      // 视频：切换播放状态
+      setPlaying(!playing)
+      if (videoRef.current) {
+        if (playing) {
+          videoRef.current.pause()
+        } else {
+          videoRef.current.play()
+        }
+      }
+    } else if (mediaType === 'image') {
+      // 图片：显示大图模态框
+      setShowImageModal(true)
+    }
+  }
+  
   if (loading) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
@@ -70,33 +89,60 @@ export default function MediaThumbnail({ url, className = '', onClick }: MediaTh
   }
   
   return (
-    <div 
-      className={`relative overflow-hidden bg-black ${className} ${onClick ? 'cursor-pointer' : ''}`}
-      onClick={onClick}
-    >
-      {mediaType === 'video' ? (
-        <>
-          <video
+    <>
+      <div 
+        className={`relative overflow-hidden bg-black ${className} cursor-pointer`}
+        onClick={handleClick}
+      >
+        {mediaType === 'video' ? (
+          <>
+            <video
+              ref={videoRef}
+              src={thumbnailUrl}
+              className="w-full h-full object-cover"
+              muted
+              playsInline
+              loop
+              onError={() => setError(true)}
+            />
+            {!playing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                  <Play className="w-6 h-6 text-black ml-1" />
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <img
             src={thumbnailUrl}
+            alt="Thumbnail"
             className="w-full h-full object-cover"
-            muted
-            playsInline
             onError={() => setError(true)}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-              <Play className="w-6 h-6 text-black ml-1" />
-            </div>
-          </div>
-        </>
-      ) : (
-        <img
-          src={thumbnailUrl}
-          alt="Thumbnail"
-          className="w-full h-full object-cover"
-          onError={() => setError(true)}
-        />
+        )}
+      </div>
+      
+      {/* 图片大图模态框 */}
+      {showImageModal && mediaType === 'image' && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <button
+            onClick={() => setShowImageModal(false)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <img
+            src={thumbnailUrl}
+            alt="Full size"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
-    </div>
+    </>
   )
 }
