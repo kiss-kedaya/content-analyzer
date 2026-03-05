@@ -1,12 +1,11 @@
 import ContentList from '@/components/ContentList'
 import { getAllContents, getContentsCount } from '@/lib/api'
 import { getAllAdultContents, getAdultContentsCount } from '@/lib/adult-api'
-import { REVALIDATE_TIME } from '@/lib/cache'
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
 // ISR: 每 10 分钟重新生成页面
-export const revalidate = REVALIDATE_TIME
+export const revalidate = 600 // 10 分钟（秒）
 
 export default async function Home({
   searchParams

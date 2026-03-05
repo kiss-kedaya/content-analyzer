@@ -1,4 +1,4 @@
-import { Trash2, ExternalLink, Star } from './Icon'
+import { Trash2, ExternalLink } from './Icon'
 import FavoriteButton from './FavoriteButton'
 
 interface Content {
