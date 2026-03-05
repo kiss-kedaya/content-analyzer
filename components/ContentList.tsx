@@ -134,9 +134,6 @@ export default function ContentList({
     setAdultHasMore(true)
   }, [orderBy, initialTechContents, initialAdultContents])
 
-  const sortedTechContents = sortContents(techContents, orderBy)
-  const sortedAdultContents = sortContents(adultContents, orderBy)
-
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
