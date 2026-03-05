@@ -73,8 +73,11 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
     
     const videoData = await videoRes.json()
     
+    console.log('[snapvid] 视频数据响应:', JSON.stringify(videoData).substring(0, 500))
+    
     if (videoData.status !== 'ok' || !videoData.data) {
-      throw new Error('Failed to get video data')
+      console.error('[snapvid] 视频数据格式错误:', videoData)
+      throw new Error(`Failed to get video data: status=${videoData.status}, hasData=${!!videoData.data}`)
     }
     
     // 步骤 3: 解析 HTML 提取链接
