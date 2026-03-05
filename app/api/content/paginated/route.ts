@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAllContents, getContentsCount } from '@/lib/api'
 import { PaginationQuerySchema } from '@/lib/validation'
 import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
-import { ZodError } from 'zod'
+import { z } from 'zod'
 
 export const runtime = 'edge'
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       })
     )
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
         errorResponse(
           error.errors[0].message,

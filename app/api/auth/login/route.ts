@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { generateToken } from '@/lib/auth'
 import { LoginSchema } from '@/lib/validation'
 import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
-import { ZodError } from 'zod'
+import { z } from 'zod'
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     
     return response
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
         errorResponse(
           error.errors[0].message,
