@@ -75,6 +75,12 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
     
     console.log('[snapvid] 视频数据响应:', JSON.stringify(videoData).substring(0, 500))
     
+    // 检查是否有错误状态码
+    if (videoData.statusCode === 404) {
+      console.log('[snapvid] 视频不可访问（404）:', videoData.msg)
+      return [] // 返回空数组，表示没有媒体
+    }
+    
     if (videoData.status !== 'ok' || !videoData.data) {
       console.error('[snapvid] 视频数据格式错误:', videoData)
       throw new Error(`Failed to get video data: status=${videoData.status}, hasData=${!!videoData.data}`)
