@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Loader2 } from '@/components/Icon'
+import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface HoverVideoPreviewProps {
   url: string
@@ -9,16 +10,11 @@ interface HoverVideoPreviewProps {
   onMouseLeave?: () => void
 }
 
-interface VideoInfo {
-  url: string
-  quality: string
-  format: string
-}
-
 export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: HoverVideoPreviewProps) {
   const [loading, setLoading] = useState(true)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
     fetchVideoUrl()
@@ -28,16 +24,9 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
     setLoading(true)
     
     try {
-      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`)
+      const data = await fetchMedia(url)
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch media')
-      }
-      
-      const data = await response.json()
-      
-      // 获取第一个视频
-      if (data.videos && data.videos.length > 0) {
+      if (data && data.videos && data.videos.length > 0) {
         setVideoUrl(data.videos[0].url)
       }
     } catch (err) {
@@ -58,7 +47,7 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
   
   return (
     <div 
-      className="absolute left-full top-0 ml-2 z-50 bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden"
+      className="absolute left-full top-0 ml-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden"
       style={{ width: '400px', maxWidth: '90vw' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

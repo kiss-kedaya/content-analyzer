@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Play, Image as ImageIcon, Loader2 } from '@/components/Icon'
+import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface MediaThumbnailProps {
   url: string
@@ -13,6 +14,7 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [mediaType, setMediaType] = useState<'video' | 'image' | null>(null)
   const [error, setError] = useState(false)
+  const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
     fetchThumbnail()
@@ -22,22 +24,13 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
     setLoading(true)
     setError(false)
     
-    // 设置 10 秒超时
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-    
     try {
-      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`, {
-        signal: controller.signal
-      })
+      const data = await fetchMedia(url)
       
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch media')
+      if (!data) {
+        setError(true)
+        return
       }
-      
-      const data = await response.json()
       
       // 优先显示视频缩略图
       if (data.videos && data.videos.length > 0) {

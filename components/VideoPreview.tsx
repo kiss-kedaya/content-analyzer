@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Loader2, Play } from '@/components/Icon'
+import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface VideoPreviewProps {
   url: string
@@ -24,6 +25,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [videos, setVideos] = useState<VideoInfo[]>([])
   const [images, setImages] = useState<ImageInfo[]>([])
   const [selectedVideo, setSelectedVideo] = useState<VideoInfo | null>(null)
+  const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
     fetchMediaUrls()
@@ -34,13 +36,11 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     setError(null)
     
     try {
-      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`)
+      const data = await fetchMedia(url)
       
-      if (!response.ok) {
+      if (!data) {
         throw new Error('Failed to fetch media')
       }
-      
-      const data = await response.json()
       
       setVideos(data.videos || [])
       setImages(data.images || [])
