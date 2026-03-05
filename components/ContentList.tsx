@@ -124,13 +124,51 @@ export default function ContentList({
     }
   }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, state.techPage, state.adultPage, state.orderBy])
   
-  // 切换排序时重置数据
+  // 切换排序时重新获取数据
   useEffect(() => {
-    // 重置为初始数据
-    actions.setTechContents(initialTechContents)
-    actions.setAdultContents(initialAdultContents)
-    actions.resetPagination()
-  }, [state.orderBy, initialTechContents, initialAdultContents])
+    const fetchSortedData = async () => {
+      actions.setLoading(true)
+      
+      try {
+        const [techResponse, adultResponse] = await Promise.all([
+          fetch(`/api/content/paginated?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`),
+          fetch(`/api/adult-content/paginated?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`)
+        ])
+        
+        if (!techResponse.ok || !adultResponse.ok) {
+          throw new Error('Failed to fetch sorted data')
+        }
+        
+        const techData = await techResponse.json()
+        const adultData = await adultResponse.json()
+        
+        if (techData.success && techData.data) {
+          actions.setTechContents(techData.data)
+          actions.setTechHasMore(techData.pagination?.hasMore ?? false)
+        }
+        
+        if (adultData.success && adultData.data) {
+          actions.setAdultContents(adultData.data)
+          actions.setAdultHasMore(adultData.pagination?.hasMore ?? false)
+        }
+        
+        actions.resetPagination()
+      } catch (error) {
+        console.error('Failed to fetch sorted data:', error)
+        // 失败时回退到初始数据
+        actions.setTechContents(initialTechContents)
+        actions.setAdultContents(initialAdultContents)
+        actions.resetPagination()
+      } finally {
+        actions.setLoading(false)
+      }
+    }
+    
+    // 只在排序改变时重新获取（不包括初始加载）
+    if (state.orderBy !== initialOrderBy) {
+      fetchSortedData()
+    }
+  }, [state.orderBy])
 
   return (
     <div className="space-y-4 md:space-y-6">
