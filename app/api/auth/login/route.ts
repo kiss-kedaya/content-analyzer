@@ -56,11 +56,12 @@ export async function POST(req: NextRequest) {
     return response
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const zodError = error as z.ZodError
       return NextResponse.json(
         errorResponse(
-          error.errors[0].message,
+          zodError.errors[0].message,
           ErrorCodes.VALIDATION_ERROR,
-          error.errors
+          zodError.errors
         ),
         { status: 400 }
       )
