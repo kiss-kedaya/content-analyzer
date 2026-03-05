@@ -52,22 +52,6 @@ export default function ContentList({
   
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  // 排序函数
-  const sortContents = <T extends Content>(contents: T[], sortBy: string): T[] => {
-    const sorted = [...contents]
-    
-    switch (sortBy) {
-      case 'score':
-        return sorted.sort((a, b) => b.score - a.score)
-      case 'createdAt':
-        return sorted.sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
-      case 'analyzedAt':
-        return sorted.sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
-      default:
-        return sorted
-    }
-  }
-
   // 删除处理函数
   const handleDeleteTech = (id: string) => {
     setTechContents(prev => prev.filter(item => item.id !== id))
@@ -172,11 +156,11 @@ export default function ContentList({
       
       {/* 使用 CSS 隐藏/显示，避免重新渲染 */}
       <div className={activeTab === 'tech' ? 'block' : 'hidden'}>
-        <ContentTable contents={sortedTechContents} onDelete={handleDeleteTech} />
+        <ContentTable contents={techContents} onDelete={handleDeleteTech} />
       </div>
       
       <div className={activeTab === 'adult' ? 'block' : 'hidden'}>
-        <AdultContentTable contents={sortedAdultContents} onDelete={handleDeleteAdult} />
+        <AdultContentTable contents={adultContents} onDelete={handleDeleteAdult} />
       </div>
       
       {/* 加载更多触发器 */}
