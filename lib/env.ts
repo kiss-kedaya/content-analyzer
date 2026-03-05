@@ -40,6 +40,8 @@ export const env = createEnv({
   /**
    * 跳过验证（仅在构建时）
    * 在构建时跳过验证，因为环境变量可能在运行时才设置
+   * 
+   * Vercel 构建时会设置 VERCEL=1
    */
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION || !!process.env.VERCEL,
 })
