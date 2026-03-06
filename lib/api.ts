@@ -61,11 +61,16 @@ export async function getAllContents(
   const validatedOrderBy = validateOrderBy(orderBy)
   const skip = (page - 1) * pageSize
   
+  // 构建排序对象：主排序 + 第二排序（createdAt）
+  const orderByClause = validatedOrderBy === 'createdAt' 
+    ? [{ createdAt: 'desc' as const }]
+    : [
+        { [validatedOrderBy]: 'desc' as const },
+        { createdAt: 'desc' as const }
+      ]
+  
   return await prisma.content.findMany({
-    orderBy: [
-      { [validatedOrderBy]: 'desc' },
-      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
-    ],
+    orderBy: orderByClause,
     skip,
     take: pageSize
   })
@@ -82,12 +87,17 @@ export async function getContentsCount() {
  * 按来源获取内容
  */
 export async function getContentsBySource(source: string, orderBy: 'score' | 'createdAt' | 'analyzedAt' = 'score') {
+  // 构建排序对象：主排序 + 第二排序（createdAt）
+  const orderByClause = orderBy === 'createdAt'
+    ? [{ createdAt: 'desc' as const }]
+    : [
+        { [orderBy]: 'desc' as const },
+        { createdAt: 'desc' as const }
+      ]
+  
   return await prisma.content.findMany({
     where: { source },
-    orderBy: [
-      { [orderBy]: 'desc' },
-      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
-    ]
+    orderBy: orderByClause
   })
 }
 

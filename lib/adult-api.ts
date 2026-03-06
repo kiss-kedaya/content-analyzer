@@ -49,11 +49,16 @@ export async function getAllAdultContents(
   const validatedOrderBy = validateOrderBy(orderBy)
   const skip = (page - 1) * pageSize
   
+  // 构建排序对象：主排序 + 第二排序（createdAt）
+  const orderByClause = validatedOrderBy === 'createdAt'
+    ? [{ createdAt: 'desc' as const }]
+    : [
+        { [validatedOrderBy]: 'desc' as const },
+        { createdAt: 'desc' as const }
+      ]
+  
   return await prisma.adultContent.findMany({
-    orderBy: [
-      { [validatedOrderBy]: 'desc' },
-      { createdAt: 'desc' }  // 第二排序：相同分数时按创建时间降序
-    ],
+    orderBy: orderByClause,
     skip,
     take: pageSize
   })
