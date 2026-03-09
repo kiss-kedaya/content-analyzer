@@ -1,7 +1,8 @@
 import { getContentById } from '@/lib/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
+import { ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
+import BackToListButton from '@/components/BackToListButton'
 
 export default async function ContentDetailPage({
   params
@@ -34,13 +35,7 @@ export default async function ContentDetailPage({
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* 返回按钮 */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        返回列表
-      </Link>
+      <BackToListButton fallbackHref="/" />
 
       {/* 内容卡片 */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

@@ -163,6 +163,7 @@ export default function ContentTable({ contents, onDelete }: ContentTableProps) 
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                   <div className="relative inline-block">
                     <button
+                      onClick={() => setPreviewUrl(content.url)}
                       onMouseEnter={() => setHoverPreviewUrl(content.url)}
                       onMouseLeave={() => setHoverPreviewUrl(null)}
                       className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"

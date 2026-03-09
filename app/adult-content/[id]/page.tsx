@@ -1,8 +1,9 @@
 import { getAdultContentById } from '@/lib/adult-api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
+import { ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
 import FavoriteButton from '@/components/FavoriteButton'
+import BackToListButton from '@/components/BackToListButton'
 
 export default async function AdultContentDetailPage({
   params
@@ -35,13 +36,7 @@ export default async function AdultContentDetailPage({
   return (
     <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
       {/* 返回按钮 */}
-      <Link
-        href="/?tab=adult"
-        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        返回列表
-      </Link>
+      <BackToListButton fallbackHref="/?tab=adult" />
 
       {/* 内容卡片 */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
