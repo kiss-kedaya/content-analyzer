@@ -124,51 +124,46 @@ export default function ContentList({
     }
   }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, state.techPage, state.adultPage, state.orderBy])
   
-  // 切换排序时重新获取数据
+  // 切换排序时只重新获取当前 tab 数据，避免双请求
   useEffect(() => {
     const fetchSortedData = async () => {
       actions.setLoading(true)
-      
+
       try {
-        const [techResponse, adultResponse] = await Promise.all([
-          fetch(`/api/content/paginated?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`),
-          fetch(`/api/adult-content/paginated?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`)
-        ])
-        
-        if (!techResponse.ok || !adultResponse.ok) {
+        const isTech = state.activeTab === 'tech'
+        const endpoint = isTech ? '/api/content/paginated' : '/api/adult-content/paginated'
+        const response = await fetch(`${endpoint}?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`)
+
+        if (!response.ok) {
           throw new Error('Failed to fetch sorted data')
         }
-        
-        const techData = await techResponse.json()
-        const adultData = await adultResponse.json()
-        
-        if (techData.success && techData.data) {
-          actions.setTechContents(techData.data)
-          actions.setTechHasMore(techData.pagination?.hasMore ?? false)
+
+        const data = await response.json()
+        if (!data.success || !data.data) {
+          throw new Error(data.error?.message || 'Failed to fetch sorted data')
         }
-        
-        if (adultData.success && adultData.data) {
-          actions.setAdultContents(adultData.data)
-          actions.setAdultHasMore(adultData.pagination?.hasMore ?? false)
+
+        if (isTech) {
+          actions.setTechContents(data.data)
+          actions.setTechPage(1)
+          actions.setTechHasMore(data.pagination?.hasMore ?? false)
+        } else {
+          actions.setAdultContents(data.data)
+          actions.setAdultPage(1)
+          actions.setAdultHasMore(data.pagination?.hasMore ?? false)
         }
-        
-        actions.resetPagination()
       } catch (error) {
         console.error('Failed to fetch sorted data:', error)
-        // 失败时回退到初始数据
-        actions.setTechContents(initialTechContents)
-        actions.setAdultContents(initialAdultContents)
-        actions.resetPagination()
       } finally {
         actions.setLoading(false)
       }
     }
-    
+
     // 只在排序改变时重新获取（不包括初始加载）
     if (state.orderBy !== initialOrderBy) {
       fetchSortedData()
     }
-  }, [state.orderBy])
+  }, [state.orderBy, state.activeTab])
 
   return (
     <div className="space-y-4 md:space-y-6">

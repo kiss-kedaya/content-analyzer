@@ -135,15 +135,23 @@ export async function extractTwitterMediaUrls(twitterUrl: string): Promise<strin
  */
 export async function extractBatchTwitterMedia(twitterUrls: string[]): Promise<Record<string, string[]>> {
   const results: Record<string, string[]> = {}
-  
-  for (const url of twitterUrls) {
-    try {
-      results[url] = await extractTwitterMediaUrls(url)
-    } catch (error) {
-      console.error(`Failed to extract media from ${url}:`, error)
-      results[url] = []
+  const queue = [...twitterUrls]
+  const concurrency = 4
+
+  async function worker() {
+    while (queue.length > 0) {
+      const url = queue.shift()
+      if (!url) return
+
+      try {
+        results[url] = await extractTwitterMediaUrls(url)
+      } catch (error) {
+        console.error(`Failed to extract media from ${url}:`, error)
+        results[url] = []
+      }
     }
   }
-  
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, twitterUrls.length) }, () => worker()))
   return results
 }

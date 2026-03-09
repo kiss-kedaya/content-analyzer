@@ -19,8 +19,12 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
   const { fetchMedia } = useMediaCache()
   
   useEffect(() => {
-    fetchVideoUrl()
-    calculatePosition()
+    const timer = setTimeout(() => {
+      fetchVideoUrl()
+      calculatePosition()
+    }, 180)
+
+    return () => clearTimeout(timer)
   }, [url])
   
   function calculatePosition() {
