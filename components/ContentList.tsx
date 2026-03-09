@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
 import TabSelector from './TabSelector'
@@ -45,7 +46,10 @@ export default function ContentList({
     initialTab,
     initialOrderBy
   )
-  
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // 删除处理函数
@@ -56,7 +60,66 @@ export default function ContentList({
   const handleDeleteAdult = (id: string) => {
     actions.deleteAdultContent(id)
   }
-  
+
+  // 页面返回后恢复滚动位置
+  useEffect(() => {
+    const raw = sessionStorage.getItem('content-list-state')
+    if (!raw) return
+
+    try {
+      const saved = JSON.parse(raw)
+      if (saved?.scrollY && Date.now() - (saved.timestamp || 0) < 30 * 60 * 1000) {
+        setTimeout(() => {
+          window.scrollTo({ top: Number(saved.scrollY), behavior: 'auto' })
+        }, 50)
+      }
+    } catch {
+      // ignore parse error
+    }
+  }, [])
+
+  // 持久化滚动与列表状态
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      sessionStorage.setItem('content-list-state', JSON.stringify({
+        scrollY: window.scrollY,
+        activeTab: state.activeTab,
+        orderBy: state.orderBy,
+        techPage: state.techPage,
+        adultPage: state.adultPage,
+        timestamp: Date.now()
+      }))
+    }
+
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      onBeforeUnload()
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [state.activeTab, state.orderBy, state.techPage, state.adultPage])
+
+  // URL 同步（不触发整页刷新）
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams?.toString() || '')
+    const targetPage = String(state.activeTab === 'tech' ? state.techPage : state.adultPage)
+
+    const unchanged =
+      params.get('tab') === state.activeTab &&
+      params.get('orderBy') === state.orderBy &&
+      params.get('page') === targetPage
+
+    if (unchanged) {
+      return
+    }
+
+    params.set('tab', state.activeTab)
+    params.set('orderBy', state.orderBy)
+    params.set('page', targetPage)
+
+    const next = `${pathname}?${params.toString()}`
+    router.replace(next, { scroll: false })
+  }, [state.activeTab, state.orderBy, state.techPage, state.adultPage, pathname, router, searchParams])
+
   // 加载更多
   const loadMore = async () => {
     if (state.loading) return

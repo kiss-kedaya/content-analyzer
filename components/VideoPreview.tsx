@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 
@@ -19,11 +19,35 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [error, setError] = useState<string | null>(null)
   const [items, setItems] = useState<MediaItem[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
+  const touchStartX = useRef<number | null>(null)
   const { fetchMedia } = useMediaCache()
+
+  const goPrev = () => {
+    setActiveIndex(prev => (prev === 0 ? items.length - 1 : prev - 1))
+  }
+
+  const goNext = () => {
+    setActiveIndex(prev => (prev === items.length - 1 ? 0 : prev + 1))
+  }
 
   useEffect(() => {
     fetchMediaUrls()
   }, [url])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      } else if (e.key === 'ArrowLeft' && items.length > 1) {
+        goPrev()
+      } else if (e.key === 'ArrowRight' && items.length > 1) {
+        goNext()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [items.length])
 
   async function fetchMediaUrls() {
     setLoading(true)
@@ -97,7 +121,24 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
           {!loading && !error && active && (
             <div className="space-y-4">
-              <div className="flex items-center justify-center">
+              <div
+                className="flex items-center justify-center"
+                onTouchStart={(e) => {
+                  touchStartX.current = e.changedTouches[0]?.clientX ?? null
+                }}
+                onTouchEnd={(e) => {
+                  const start = touchStartX.current
+                  const end = e.changedTouches[0]?.clientX
+                  if (start == null || end == null || items.length < 2) return
+                  const delta = end - start
+                  if (Math.abs(delta) < 40) return
+                  if (delta > 0) {
+                    goPrev()
+                  } else {
+                    goNext()
+                  }
+                }}
+              >
                 {active.type === 'video' ? (
                   <video controls autoPlay className="w-full rounded-lg bg-black" style={{ maxHeight: '70vh' }}>
                     <source src={active.url} type="video/mp4" />
@@ -109,16 +150,22 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               </div>
 
               {items.length > 1 && (
-                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                  {items.map((item, idx) => (
-                    <button
-                      key={item.url + idx}
-                      onClick={() => setActiveIndex(idx)}
-                      className={`border rounded-md p-1 text-xs ${idx === activeIndex ? 'border-black' : 'border-gray-200'}`}
-                    >
-                      {item.type === 'video' ? '视频' : '图片'} {idx + 1}
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button onClick={goPrev} className="px-3 py-1.5 text-sm border border-gray-200 rounded-md hover:bg-gray-50">上一个</button>
+                    <button onClick={goNext} className="px-3 py-1.5 text-sm border border-gray-200 rounded-md hover:bg-gray-50">下一个</button>
+                  </div>
+                  <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    {items.map((item, idx) => (
+                      <button
+                        key={item.url + idx}
+                        onClick={() => setActiveIndex(idx)}
+                        className={`border rounded-md p-1 text-xs ${idx === activeIndex ? 'border-black' : 'border-gray-200'}`}
+                      >
+                        {item.type === 'video' ? '视频' : '图片'} {idx + 1}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
