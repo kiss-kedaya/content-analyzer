@@ -193,9 +193,17 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               <p className="text-sm mt-1">{error}</p>
               <button
                 onClick={fetchMediaUrls}
-                className="mt-3 px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                disabled={loading}
+                className="mt-3 px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
-                重试
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    重试中...
+                  </>
+                ) : (
+                  '重试'
+                )}
               </button>
             </div>
           )}
