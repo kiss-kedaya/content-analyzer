@@ -1,6 +1,7 @@
 'use client'
 
 import { TwitterTweetData } from '@/lib/twitter-parser'
+import { useState } from 'react'
 
 interface Props {
   data: TwitterTweetData
@@ -8,9 +9,11 @@ interface Props {
 
 export default function TwitterTweetViewer({ data }: Props) {
   const { author, content, stats } = data
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   return (
-    <article className="bg-white border border-gray-200 rounded-xl p-4 max-w-2xl">
+    <>
+      <article className="bg-white border border-gray-200 rounded-xl p-4 max-w-2xl">
       {/* Author Header */}
       <div className="flex items-start gap-3 mb-3">
         {/* Avatar */}
@@ -66,9 +69,10 @@ export default function TwitterTweetViewer({ data }: Props) {
           {content.images.map((img, idx) => (
             <div
               key={idx}
-              className={`relative bg-gray-100 ${
+              className={`relative bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity ${
                 content.images.length === 1 ? 'aspect-video' : 'aspect-square'
               }`}
+              onClick={() => setSelectedImage(img)}
             >
               <img
                 src={img}
@@ -148,5 +152,31 @@ export default function TwitterTweetViewer({ data }: Props) {
         )}
       </div>
     </article>
+
+    {/* 图片预览模态框 */}
+    {selectedImage && (
+      <div
+        className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+        onClick={() => setSelectedImage(null)}
+      >
+        <div className="relative max-w-7xl max-h-full">
+          <button
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+            onClick={() => setSelectedImage(null)}
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={selectedImage}
+            alt="预览"
+            className="max-w-full max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
+    )}
+    </>
   )
 }
