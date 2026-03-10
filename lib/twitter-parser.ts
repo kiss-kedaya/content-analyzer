@@ -123,27 +123,32 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   }
 
   // Second pass: extract main tweet text
-  // Strategy: find text between @handle and first image/stats marker
-  let inContent = false
+  // Strategy: skip metadata, then collect all text until we hit images/stats
+  let skipMetadata = true
   let contentLines: string[] = []
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     
-    // Start after author handle
-    if (line === authorHandle) {
-      inContent = true
-      continue
-    }
-    
-    // Skip metadata lines
-    if (line.startsWith('Title:') || line.startsWith('URL Source:') || line.startsWith('Markdown Content:')) {
-      continue
+    // Skip metadata section (Title, URL Source, Markdown Content, etc.)
+    if (skipMetadata) {
+      if (
+        line.startsWith('Title:') ||
+        line.startsWith('URL Source:') ||
+        line.startsWith('Markdown Content:') ||
+        line === authorHandle ||
+        line === authorName ||
+        line.includes('pbs.twimg.com/profile_images')
+      ) {
+        continue
+      }
+      // Once we hit real content (not metadata), start collecting
+      skipMetadata = false
     }
     
     // Stop at various markers
     if (
-      line.includes('pbs.twimg.com') ||
+      line.includes('pbs.twimg.com/media/') ||
       line.match(/\d+\s*(回复|replies|转帖|retweets|喜欢|likes|书签|bookmarks|查看|views)/i) ||
       line.includes('Translate post') ||
       line.includes('翻译推文') ||
@@ -157,8 +162,8 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       break
     }
     
-    // Collect content lines
-    if (inContent && line && !line.startsWith('http://') && !line.startsWith('https://') && !line.includes('Image ')) {
+    // Collect content lines (skip URLs and Image labels)
+    if (!skipMetadata && line && !line.startsWith('http://') && !line.startsWith('https://') && !line.match(/^Image \d+:/)) {
       contentLines.push(line)
     }
   }
