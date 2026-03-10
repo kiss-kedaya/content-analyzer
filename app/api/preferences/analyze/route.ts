@@ -12,13 +12,15 @@ interface Preferences {
 
 export async function GET() {
   try {
-    // 获取所有收藏的内容
+    // 获取所有收藏的内容（限制最多 1000 条）
     const [techContents, adultContents] = await Promise.all([
       prisma.content.findMany({
-        where: { favorited: true }
+        where: { favorited: true },
+        take: 1000
       }),
       prisma.adultContent.findMany({
-        where: { favorited: true }
+        where: { favorited: true },
+        take: 1000
       })
     ])
     

@@ -110,14 +110,25 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     },
 
     /**
-     * 按来源获取内容
+     * 按来源获取内容（支持分页）
      */
-    async getBySource(source: string, orderBy: OrderBy = 'score') {
+    async getBySource(
+      source: string,
+      orderBy: OrderBy = 'score',
+      page: number = 1,
+      pageSize: number = 20
+    ) {
       const orderByClause = buildOrderByClause(orderBy)
+
+      const safePage = Math.max(1, Number(page) || 1)
+      const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
+      const skip = (safePage - 1) * safePageSize
 
       return await (delegate as any).findMany({
         where: { source },
-        orderBy: orderByClause
+        orderBy: orderByClause,
+        skip,
+        take: safePageSize
       })
     },
 
