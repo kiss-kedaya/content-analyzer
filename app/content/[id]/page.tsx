@@ -76,33 +76,34 @@ export default async function ContentDetailPage({
           </div>
         </div>
 
-        {/* 媒体预览 */}
-        <div className="px-8 py-6 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-3">
-            <ImageIcon className="w-4 h-4 text-gray-600" />
-            <h2 className="text-sm font-semibold text-gray-900">媒体预览</h2>
-          </div>
-          <div className="relative w-full max-w-2xl mx-auto">
+        {/* 内容区域 - 三栏布局（桌面端）*/}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 py-6 border-b border-gray-200">
+          {/* 媒体预览 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-gray-600" />
+              <h2 className="text-sm font-semibold text-gray-900">媒体预览</h2>
+            </div>
             <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
               <MediaThumbnail url={content.url} className="w-full h-full" />
             </div>
           </div>
-        </div>
 
-        {/* 摘要 */}
-        <div className="px-8 py-6 bg-blue-50 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-4 h-4 text-gray-600" />
-            <h2 className="text-sm font-semibold text-gray-900">内容摘要</h2>
+          {/* 摘要 */}
+          <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-600" />
+              <h2 className="text-sm font-semibold text-gray-900">内容摘要</h2>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {content.summary}
+            </p>
           </div>
-          <p className="text-gray-700 leading-relaxed">
-            {content.summary}
-          </p>
-        </div>
 
-        {/* 原文内容查看器 */}
-        <div className="px-8 py-6">
-          <SourceContentViewer url={content.url} />
+          {/* 原文内容查看器 */}
+          <div className="space-y-3">
+            <SourceContentViewer url={content.url} />
+          </div>
         </div>
 
         {/* 原文与 Markdown */}
