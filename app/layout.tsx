@@ -1,8 +1,15 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { BarChart3 } from '@/components/Icon'
 import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#000000',
+}
 
 export const metadata: Metadata = {
   title: {
@@ -31,12 +38,6 @@ export const metadata: Metadata = {
     title: '内容分析系统 - Content Analyzer',
     description: 'OpenClaw Agent 驱动的内容分析和管理系统',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
-  themeColor: '#000000',
 }
 
 export default function RootLayout({
