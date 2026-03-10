@@ -15,6 +15,11 @@ export interface MediaInfo {
   quality?: string
 }
 
+export interface SnapvidExtractionResult {
+  media: MediaInfo[]
+  rawResponse: unknown
+}
+
 /**
  * 使用 snapvid.net API 提取媒体链接
  * 
@@ -23,7 +28,7 @@ export interface MediaInfo {
  * 2. POST /api/ajaxSearch 获取视频链接（HTML）
  * 3. 解析 HTML 提取视频直链
  */
-export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[]> {
+export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<SnapvidExtractionResult> {
   console.log('[snapvid] 提取媒体:', twitterUrl)
   
   // 验证 URL
@@ -78,7 +83,7 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
     // 检查是否有错误状态码
     if (videoData.statusCode === 404) {
       console.log('[snapvid] 视频不可访问（404）:', videoData.msg)
-      return [] // 返回空数组，表示没有媒体
+      return { media: [], rawResponse: videoData } // 返回空数组，表示没有媒体
     }
     
     if (videoData.status !== 'ok' || !videoData.data) {
@@ -92,7 +97,10 @@ export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[
     
     console.log(`[snapvid] 提取成功: ${mediaList.length} 个媒体`)
     
-    return mediaList
+    return {
+      media: mediaList,
+      rawResponse: videoData
+    }
   } catch (error) {
     console.error('[snapvid] 提取失败:', error)
     throw error
@@ -126,127 +134,92 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   
   // 情况 2：视频 + 图片（tw-video）
   console.log('[snapvid] 检测到视频推文（tw-video）')
-  
-  // 匹配所有视频下载链接
-  const videoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
-  
-  let match
-  const allVideos: MediaInfo[] = []
-  
-  while ((match = videoRegex.exec(html)) !== null) {
-    const url = match[1]
-    const quality = match[2] + 'p'
-    
-    allVideos.push({
-      type: 'video',
-      url: url,
-      quality: quality,
-      format: 'mp4'
-    })
+
+  const qualityOrder: Record<string, number> = {
+    '1280p': 5,
+    '1080p': 4,
+    '960p': 3.5,
+    '852p': 3,
+    '720p': 2,
+    '640p': 1.5,
+    '568p': 1,
+    '426p': 0.5,
+    '360p': 0,
+    '270p': -0.5,
+    'unknown': -1,
   }
-  
-  console.log(`[snapvid] 找到 ${allVideos.length} 个视频链接`)
-  
-  // 按视频块分组（每个 tw-video div 是一个视频）
-  const videoBlocks = html.match(/<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g) || []
-  console.log(`[snapvid] 找到 ${videoBlocks.length} 个视频块`)
-  
-  // 从每个视频块中提取最高质量的视频
-  for (const block of videoBlocks) {
+
+  const segments: Array<{ index: number; media: MediaInfo }> = []
+  const videoBlockRegex = /<div class="tw-video">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g
+  let blockMatch: RegExpExecArray | null
+  while ((blockMatch = videoBlockRegex.exec(html)) !== null) {
+    const block = blockMatch[0]
     const blockVideos: MediaInfo[] = []
     const blockVideoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
-    
-    let blockMatch
-    while ((blockMatch = blockVideoRegex.exec(block)) !== null) {
-      const url = blockMatch[1]
-      const quality = blockMatch[2] + 'p'
-      
+    let match: RegExpExecArray | null
+    while ((match = blockVideoRegex.exec(block)) !== null) {
       blockVideos.push({
         type: 'video',
-        url: url,
-        quality: quality,
-        format: 'mp4'
+        url: match[1],
+        quality: match[2] + 'p',
+        format: 'mp4',
       })
     }
-    
-    // 排序并选择最高质量
-    blockVideos.sort((a, b) => {
-      const qualityOrder: Record<string, number> = {
-        '1280p': 5,
-        '1080p': 4,
-        '960p': 3.5,
-        '852p': 3,
-        '720p': 2,
-        '640p': 1.5,
-        '568p': 1,
-        '426p': 0.5,
-        '360p': 0,
-        '270p': -0.5,
-        'unknown': -1
-      }
-      
-      const aQuality = qualityOrder[a.quality || 'unknown'] || -1
-      const bQuality = qualityOrder[b.quality || 'unknown'] || -1
-      
-      return bQuality - aQuality
-    })
-    
-    // 添加最高质量的视频
-    if (blockVideos.length > 0) {
-      mediaList.push(blockVideos[0])
-      console.log(`[snapvid] 提取视频: ${blockVideos[0].quality}`)
+
+    blockVideos.sort((a, b) => (qualityOrder[b.quality || 'unknown'] || -1) - (qualityOrder[a.quality || 'unknown'] || -1))
+    if (blockVideos[0]) {
+      segments.push({ index: blockMatch.index, media: blockVideos[0] })
     }
   }
-  
-  console.log(`[snapvid] 共提取 ${mediaList.length} 个视频`)
-  
-  // 提取真实图片下载链接（必须包含"下载图片"文本）
+
   const imageRegex = /<a[^>]+href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>[^<]*<i[^>]*><\/i>[^<]*下载图片/gs
-  const imageUrls: string[] = []
-  
-  while ((match = imageRegex.exec(html)) !== null) {
-    const url = match[1]
-    
-    // 解码 token 中的 URL，检查是否是视频缩略图
+  let imageMatch: RegExpExecArray | null
+  while ((imageMatch = imageRegex.exec(html)) !== null) {
+    const url = imageMatch[1]
+
     try {
-      // 提取 token 参数
       const tokenMatch = url.match(/token=([^&]+)/)
       if (tokenMatch) {
         const token = tokenMatch[1]
-        // JWT token 格式：header.payload.signature
         const parts = token.split('.')
         if (parts.length === 3) {
-          // 解码 payload（Base64）
           const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
           const actualUrl = payload.url || ''
-          
-          // 如果是视频缩略图，跳过
           if (actualUrl.includes('video_thumb') || actualUrl.includes('amplify_video_thumb')) {
-            console.log('[snapvid] 跳过视频缩略图:', actualUrl)
             continue
           }
         }
       }
-    } catch (e) {
-      // 解码失败，保守起见跳过
-      console.log('[snapvid] 无法解码 token，跳过')
+    } catch {
       continue
     }
-    
-    imageUrls.push(url)
-  }
-  
-  // 添加所有真实图片
-  for (const url of imageUrls) {
-    mediaList.push({
-      type: 'image',
-      url: url
+
+    segments.push({
+      index: imageMatch.index,
+      media: {
+        type: 'image',
+        url,
+      }
     })
   }
-  
-  console.log(`[snapvid] 提取到 ${imageUrls.length} 张真实图片`)
-  
-  return mediaList
+
+  segments.sort((a, b) => a.index - b.index)
+
+  const uniqueMedia = segments.reduce<MediaInfo[]>((acc, segment) => {
+    if (acc.some(item => item.url === segment.media.url)) {
+      return acc
+    }
+    acc.push(segment.media)
+    return acc
+  }, [])
+
+  console.log(`[snapvid] 共提取 ${uniqueMedia.length} 个有序媒体`)
+  return uniqueMedia
+}
+
+export async function extractWithSnapvid(twitterUrl: string): Promise<MediaInfo[]> {
+  const result = await extractWithSnapvidDetailed(twitterUrl)
+  return result.media
 }
 
 /**

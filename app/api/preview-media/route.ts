@@ -1,80 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { extractWithSnapvid } from '@/lib/media-extractor-snapvid'
+import { extractWithSnapvidDetailed } from '@/lib/media-extractor-snapvid'
+import { getMediaCache, normalizeCachedMedia, saveMediaCache } from '@/lib/media-cache'
 import { logApiError } from '@/lib/logger'
+
+function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMedia>, raw?: unknown) {
+  return NextResponse.json({
+    success: true,
+    url,
+    media,
+    videos: media.filter(item => item.type === 'video').map(item => ({
+      url: item.url,
+      quality: item.quality,
+      format: item.format,
+    })),
+    images: media.filter(item => item.type === 'image').map(item => ({
+      url: item.url,
+    })),
+    count: {
+      videos: media.filter(item => item.type === 'video').length,
+      images: media.filter(item => item.type === 'image').length,
+      total: media.length,
+    },
+    raw,
+  })
+}
 
 // GET /api/preview-media?url=https://x.com/user/status/123
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const url = searchParams.get('url')
-    
+
     if (!url) {
       return NextResponse.json(
         { error: 'Missing required parameter: url' },
         { status: 400 }
       )
     }
-    
-    try {
-      // 提取媒体链接（带超时）
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 10000) // 10 秒超时
-      })
-      
-      const mediaList = await Promise.race([
-        extractWithSnapvid(url),
-        timeoutPromise
-      ]) as any[]
-      
-      // 尝试解析数据
-      try {
-        // 分类视频和图片
-        const videos = mediaList.filter(m => m.type === 'video')
-        const images = mediaList.filter(m => m.type === 'image')
-        
-        return NextResponse.json({
-          success: true,
-          url: url,
-          videos: videos.map(v => ({
-            url: v.url,
-            quality: v.quality,
-            format: v.format
-          })),
-          images: images.map(i => ({
-            url: i.url
-          })),
-          count: {
-            videos: videos.length,
-            images: images.length,
-            total: mediaList.length
-          }
-        })
-      } catch (parseError) {
-        // 解析失败，返回原始数据
-        logApiError('preview-media-parse', parseError, { url })
-        
-        return NextResponse.json({
-          success: true,
-          url: url,
-          raw: mediaList, // 返回原始数据
-          parseError: parseError instanceof Error ? parseError.message : 'Parse failed',
-          warning: 'Failed to parse media data, returning raw response'
-        })
+
+    const cached = await getMediaCache(url)
+    if (cached?.status === 'success') {
+      const media = normalizeCachedMedia(cached.parsedMedia)
+      if (media.length > 0) {
+        return formatResponse(url, media, cached.rawResponse)
       }
+    }
+
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      })
+
+      const extraction = await Promise.race([
+        extractWithSnapvidDetailed(url),
+        timeoutPromise,
+      ]) as Awaited<ReturnType<typeof extractWithSnapvidDetailed>>
+
+      const media = extraction.media || []
+
+      if (media.length > 0) {
+        await saveMediaCache(url, extraction.rawResponse, media)
+      }
+
+      return formatResponse(url, media, extraction.rawResponse)
     } catch (extractError) {
-      // 提取失败，返回空结果
       logApiError('preview-media-extract', extractError, { url })
-      
+
       return NextResponse.json({
         success: true,
-        url: url,
+        url,
+        media: [],
         videos: [],
         images: [],
-        count: {
-          videos: 0,
-          images: 0,
-          total: 0
-        },
+        count: { videos: 0, images: 0, total: 0 },
         extractError: extractError instanceof Error ? extractError.message : 'Extract failed',
         warning: 'Media extraction failed'
       })
@@ -82,7 +80,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logApiError('preview-media', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to preview media',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

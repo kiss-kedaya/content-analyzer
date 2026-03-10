@@ -21,6 +21,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const previousRectRef = useRef<DOMRect | null>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const touchCurrentRef = useRef<{ x: number; y: number } | null>(null)
   const touchLockRef = useRef<'x' | 'y' | null>(null)
@@ -29,7 +30,15 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const restoreFocus = useCallback(() => {
     const previousFocus = previousFocusRef.current
     if (previousFocus && previousFocus.isConnected) {
+      previousFocus.scrollIntoView({ block: 'center', behavior: 'smooth' })
       previousFocus.focus()
+      return
+    }
+
+    const previousRect = previousRectRef.current
+    if (previousRect) {
+      const targetTop = window.scrollY + previousRect.top - window.innerHeight / 2 + previousRect.height / 2
+      window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' })
     }
   }, [])
 
@@ -50,6 +59,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    previousRectRef.current = previousFocusRef.current?.getBoundingClientRect() || null
     dialogRef.current?.focus()
   }, [])
 
@@ -100,13 +110,13 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         throw new Error('Failed to fetch media')
       }
 
-      const merged = [...data.videos, ...data.images].reduce<MediaItem[]>((acc, item) => {
+      const merged = (data.media || []).reduce<MediaItem[]>((acc, item) => {
         if (!item?.url || acc.some(existing => existing.url === item.url)) {
           return acc
         }
 
         acc.push({
-          type: data.videos.some(video => video.url === item.url) ? 'video' : 'image',
+          type: item.type,
           url: item.url,
         })
 
@@ -117,13 +127,8 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         throw new Error('No media found')
       }
 
-      const initialIndex = Math.max(
-        merged.findIndex(item => item.url === url),
-        0,
-      )
-
       setItems(merged)
-      setActiveIndex(initialIndex)
+      setActiveIndex(0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {

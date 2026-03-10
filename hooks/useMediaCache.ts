@@ -12,9 +12,17 @@ interface ImageInfo {
   url: string
 }
 
+interface MediaItem {
+  type: 'video' | 'image'
+  url: string
+  quality?: string
+  format?: string
+}
+
 interface MediaData {
   videos: VideoInfo[]
   images: ImageInfo[]
+  media: MediaItem[]
 }
 
 interface CacheEntry {
@@ -29,7 +37,7 @@ const inFlightRequests = new Map<string, Promise<MediaData | null>>()
 const DEFAULT_FAILED_TTL_MS = 30 * 1000
 const DEFAULT_SUCCESS_TTL_MS = 5 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 10 * 1000
-const EMPTY_MEDIA_DATA: MediaData = { videos: [], images: [] }
+const EMPTY_MEDIA_DATA: MediaData = { videos: [], images: [], media: [] }
 
 interface FetchOptions {
   force?: boolean
@@ -91,15 +99,23 @@ export function useMediaCache() {
         }
 
         const payload = await response.json()
+        const media: MediaItem[] = Array.isArray(payload.media)
+          ? payload.media.filter((item: MediaItem) => item?.url && item?.type)
+          : [
+              ...(Array.isArray(payload.videos) ? payload.videos.map((item: VideoInfo) => ({ ...item, type: 'video' as const })) : []),
+              ...(Array.isArray(payload.images) ? payload.images.map((item: ImageInfo) => ({ ...item, type: 'image' as const })) : []),
+            ]
+
         const data: MediaData = {
-          videos: Array.isArray(payload.videos) ? payload.videos : [],
-          images: Array.isArray(payload.images) ? payload.images : []
+          videos: Array.isArray(payload.videos) ? payload.videos : media.filter(item => item.type === 'video').map(item => ({ url: item.url, quality: item.quality || '', format: item.format || '' })),
+          images: Array.isArray(payload.images) ? payload.images : media.filter(item => item.type === 'image').map(item => ({ url: item.url })),
+          media,
         }
 
         mediaCache.set(url, {
           data,
           timestamp: Date.now(),
-          isFailed: data.videos.length === 0 && data.images.length === 0
+          isFailed: data.media.length === 0,
         })
 
         return data

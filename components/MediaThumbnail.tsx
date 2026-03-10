@@ -35,16 +35,14 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
         return
       }
 
+      const ordered = data.media || []
       const videoCount = data.videos?.length || 0
       const imageCount = data.images?.length || 0
-      const totalCount = videoCount + imageCount
+      const totalCount = ordered.length || (videoCount + imageCount)
 
-      if (videoCount > 0) {
-        setThumbnailUrl(data.videos[0].url)
-        setPrimaryMediaType('video')
-      } else if (imageCount > 0) {
-        setThumbnailUrl(data.images[0].url)
-        setPrimaryMediaType('image')
+      if (ordered.length > 0) {
+        setThumbnailUrl(ordered[0].url)
+        setPrimaryMediaType(ordered[0].type)
       } else {
         setError(true)
         return
