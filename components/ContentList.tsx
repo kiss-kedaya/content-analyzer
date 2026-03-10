@@ -69,14 +69,42 @@ export default function ContentList({
   const isMobile = useIsMobile()
   const toast = useToastContext()
 
-  const handleDeleteTech = (id: string) => {
-    actions.deleteTechContent(id)
-    toast.success('删除成功')
+  const handleDeleteTech = async (id: string) => {
+    try {
+      const response = await fetch(`/api/content/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        toast.error('删除失败，请重试')
+        return
+      }
+
+      actions.deleteTechContent(id)
+      toast.success('删除成功')
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error('删除失败，请重试')
+    }
   }
 
-  const handleDeleteAdult = (id: string) => {
-    actions.deleteAdultContent(id)
-    toast.success('删除成功')
+  const handleDeleteAdult = async (id: string) => {
+    try {
+      const response = await fetch(`/api/adult-content/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        toast.error('删除失败，请重试')
+        return
+      }
+
+      actions.deleteAdultContent(id)
+      toast.success('删除成功')
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error('删除失败，请重试')
+    }
   }
 
   const handleRefresh = async () => {
