@@ -59,6 +59,20 @@ export default function SourceModal({ url, open, onClose }: Props) {
     }
   }, [open, encoded])
 
+  // ESC 键关闭
+  useEffect(() => {
+    if (!open) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [open, onClose])
+
   if (!open) return null
 
   const copy = async () => {

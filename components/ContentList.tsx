@@ -59,6 +59,7 @@ export default function ContentList({
 
   const [dateFilter, setDateFilter] = useState<string | null>(initialDate ?? null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const handleDeleteTech = (id: string) => {
     actions.deleteTechContent(id)
