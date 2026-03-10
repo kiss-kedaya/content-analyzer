@@ -144,12 +144,29 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   const active = items[activeIndex]
 
+  // 处理视频加载错误（包括 206 状态码）
   useEffect(() => {
     if (active?.type !== 'video') return
 
     const el = videoRef.current
     if (!el) return
 
+    const handleError = () => {
+      // 如果有 sourceUrl，尝试切换到源地址
+      if (active.sourceUrl && active.url !== active.sourceUrl) {
+        console.log('视频加载失败，切换到源地址:', active.sourceUrl)
+        setItems(prevItems => 
+          prevItems.map((item, idx) => 
+            idx === activeIndex 
+              ? { ...item, url: item.sourceUrl || item.url }
+              : item
+          )
+        )
+      }
+    }
+
+    el.addEventListener('error', handleError)
+    
     const tryPlay = async () => {
       try {
         await el.play()
@@ -161,7 +178,28 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     requestAnimationFrame(() => {
       tryPlay()
     })
-  }, [active?.type, active?.url])
+
+    return () => {
+      el.removeEventListener('error', handleError)
+    }
+  }, [active?.type, active?.url, active?.sourceUrl, activeIndex])
+
+  // 处理图片加载错误（包括 206 状态码）
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    
+    // 如果有 sourceUrl 且当前不是 sourceUrl，尝试切换
+    if (active?.sourceUrl && active.url !== active.sourceUrl) {
+      console.log('图片加载失败，切换到源地址:', active.sourceUrl)
+      setItems(prevItems => 
+        prevItems.map((item, idx) => 
+          idx === activeIndex 
+            ? { ...item, url: item.sourceUrl || item.url }
+            : item
+        )
+      )
+    }
+  }, [active?.sourceUrl, active?.url, activeIndex])
 
   const resetTouchState = () => {
     touchStartRef.current = null
@@ -298,6 +336,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     key={active.url}
                     src={active.url}
                     alt={`媒体 ${activeIndex + 1}`}
+                    onError={handleImageError}
                     className="w-full rounded-lg bg-black object-contain"
                     style={{ maxHeight: '70vh' }}
                   />
