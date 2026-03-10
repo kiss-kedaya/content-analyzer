@@ -15,21 +15,21 @@
 ## 立即开始（2026-03-11）
 
 ### 阶段 1: 集成现有组件（30分钟）
-- [ ] 在 layout.tsx 中添加 ErrorBoundary
-- [ ] 在 layout.tsx 中添加 ToastContainer
-- [ ] 在 ContentList 中使用 Toast 通知
-- [ ] 在数据加载时使用 Skeleton
+- [x] 在 layout.tsx 中添加 ErrorBoundary
+- [x] 在 layout.tsx 中添加 ToastContainer
+- [x] 在 ContentList 中使用 Toast 通知
+- [x] 在数据加载时使用 Skeleton
 
 ### 阶段 2: 确认对话框（30分钟）
-- [ ] 创建 ConfirmDialog 组件
-- [ ] 集成到删除操作
-- [ ] 添加动画效果
+- [x] 创建 ConfirmDialog 组件
+- [x] 集成到删除操作
+- [x] 添加动画效果
 
 ### 阶段 3: 图片懒加载（1小时）
-- [ ] 创建 LazyImage 组件
-- [ ] 使用 Intersection Observer
-- [ ] 添加占位符和加载动画
-- [ ] 替换所有图片标签
+- [x] 创建 LazyImage 组件
+- [x] 使用 Intersection Observer
+- [x] 添加占位符和加载动画
+- [x] 替换所有图片标签（MediaThumbnail）
 
 ### 阶段 4: 移动端优化（1小时）
 - [ ] 优化触摸手势
