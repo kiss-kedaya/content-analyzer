@@ -102,15 +102,23 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                img: ({ node, ...props }) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    {...props}
-                    alt={props.alt || ''}
-                    className="max-w-full h-auto rounded-lg shadow-md my-4"
-                    loading="lazy"
-                  />
-                ),
+                img: ({ node, ...props }) => {
+                  // 过滤掉 emoji 图片（通常 alt 是单个 emoji 字符）
+                  const isEmoji = props.alt && props.alt.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(props.alt)
+                  if (isEmoji) {
+                    return <span>{props.alt}</span>
+                  }
+                  
+                  return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      {...props}
+                      alt={props.alt || ''}
+                      className="max-w-full h-auto rounded-lg shadow-md my-4"
+                      loading="lazy"
+                    />
+                  )
+                },
                 a: ({ node, ...props }) => (
                   <a
                     {...props}
