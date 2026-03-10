@@ -255,7 +255,7 @@ export default function ContentList({
     if (state.orderBy !== initialOrderBy || dateFilter !== (initialDate ?? null)) {
       fetchSortedData()
     }
-  }, [state.orderBy, state.activeTab, dateFilter])
+  }, [state.orderBy, state.activeTab, dateFilter, actions, initialDate, initialOrderBy])
 
   return (
     <div className="space-y-4 md:space-y-6">

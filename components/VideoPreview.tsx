@@ -49,49 +49,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     setActiveIndex(prev => (prev === items.length - 1 ? 0 : prev + 1))
   }, [items.length])
 
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    dialogRef.current?.focus()
-  }, [])
-
-  useEffect(() => {
-    dialogRef.current?.focus()
-  }, [activeIndex, loading, error])
-
-  useEffect(() => {
-    fetchMediaUrls()
-  }, [url])
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        handleClose()
-        return
-      }
-
-      if (items.length < 2) return
-
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        goPrev()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        goNext()
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [goNext, goPrev, handleClose, items.length])
-
-  useEffect(() => {
-    return () => {
-      restoreFocus()
-    }
-  }, [restoreFocus])
-
-  async function fetchMediaUrls() {
+  const fetchMediaUrls = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -125,7 +83,49 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [url, fetchMedia])
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialogRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [activeIndex, loading, error])
+
+  useEffect(() => {
+    fetchMediaUrls()
+  }, [fetchMediaUrls])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        handleClose()
+        return
+      }
+
+      if (items.length < 2) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goPrev()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goNext()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [goNext, goPrev, handleClose, items.length])
+
+  useEffect(() => {
+    return () => {
+      restoreFocus()
+    }
+  }, [restoreFocus])
 
   const active = items[activeIndex]
 
