@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Calendar } from '@/components/Icon'
 
 const WEEK_DAYS = ['一', '二', '三', '四', '五', '六', '日']
@@ -39,6 +39,7 @@ export default function DatePicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const [viewYear, setViewYear] = useState(initial.getFullYear())
   const [viewMonth, setViewMonth] = useState(initial.getMonth())
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!value) return
@@ -83,8 +84,33 @@ export default function DatePicker({ value, onChange }: Props) {
     setOpen(false)
   }
 
+  // 点击外部关闭
+  useEffect(() => {
+    if (!open) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
+
   return (
-    <div className="relative inline-block">
+    <div ref={containerRef} className="relative inline-block">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
