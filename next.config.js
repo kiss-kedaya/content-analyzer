@@ -3,6 +3,9 @@ const nextConfig = {
   // Vercel 部署，不需要 output: 'export'
   // 支持 API Routes 和 SSR
   
+  // 设置 workspace root 为当前项目目录，避免 Next.js 推断错误
+  outputFileTracingRoot: __dirname,
+  
   async headers() {
     return [
       {
