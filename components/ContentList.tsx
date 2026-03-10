@@ -135,7 +135,16 @@ export default function ContentList({
 
     try {
       const isTech = state.activeTab === 'tech'
-      const nextPage = isTech ? state.techPage + 1 : state.adultPage + 1
+      const currentPage = isTech ? state.techPage : state.adultPage
+      
+      // Ensure currentPage is a valid number
+      if (!Number.isFinite(currentPage) || currentPage < 1) {
+        console.error('Invalid page number:', currentPage)
+        actions.setLoading(false)
+        return
+      }
+      
+      const nextPage = currentPage + 1
       const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
       const endpoint = dateFilter
         ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')

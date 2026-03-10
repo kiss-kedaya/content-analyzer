@@ -118,13 +118,16 @@ export function useContentListState(
   initialOrderBy: string,
   initialPage: number
 ) {
+  // Ensure initialPage is a valid number
+  const safePage = Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1
+  
   const [state, dispatch] = useReducer(reducer, {
     activeTab: initialTab,
     orderBy: initialOrderBy,
     techContents: initialTechContents,
     adultContents: initialAdultContents,
-    techPage: initialTab === 'tech' ? initialPage : 1,
-    adultPage: initialTab === 'adult' ? initialPage : 1,
+    techPage: initialTab === 'tech' ? safePage : 1,
+    adultPage: initialTab === 'adult' ? safePage : 1,
     loading: false,
     techHasMore: true,
     adultHasMore: true,
