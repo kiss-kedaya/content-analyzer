@@ -9,6 +9,10 @@ const { PrismaClient } = require('@prisma/client');
  * 或者只修复特定字段：
  * node scripts/fix-missing-fields.js --title-only
  * node scripts/fix-missing-fields.js --summary-only
+ * 
+ * 或者只修复特定表：
+ * node scripts/fix-missing-fields.js --tech-only
+ * node scripts/fix-missing-fields.js --adult-only
  */
 
 const prisma = new PrismaClient();
@@ -60,11 +64,15 @@ function extractSummary(text, maxLength = 200) {
   return summary.length < cleanText.length ? summary + '...' : summary;
 }
 
-async function fixMissingTitles() {
-  console.log('\n=== 修复缺失的标题 ===\n');
+async function fixMissingTitles(tableName = 'content') {
+  const isAdult = tableName === 'adultContent';
+  const table = isAdult ? prisma.adultContent : prisma.content;
+  const displayName = isAdult ? '成人内容' : '技术内容';
+  
+  console.log(`\n=== 修复缺失的标题（${displayName}） ===\n`);
   
   // 查找所有没有标题的内容
-  const contentsWithoutTitle = await prisma.content.findMany({
+  const contentsWithoutTitle = await table.findMany({
     where: {
       OR: [
         { title: null },
@@ -80,10 +88,10 @@ async function fixMissingTitles() {
     }
   });
   
-  console.log(`找到 ${contentsWithoutTitle.length} 条没有标题的内容`);
+  console.log(`找到 ${contentsWithoutTitle.length} 条没有标题的${displayName}`);
   
   if (contentsWithoutTitle.length === 0) {
-    console.log('✓ 所有内容都有标题');
+    console.log(`✓ 所有${displayName}都有标题`);
     return 0;
   }
   
@@ -111,7 +119,7 @@ async function fixMissingTitles() {
     }
     
     // 更新数据库
-    await prisma.content.update({
+    await table.update({
       where: { id: item.id },
       data: { title }
     });
@@ -120,15 +128,19 @@ async function fixMissingTitles() {
     console.log(`[${updated}/${contentsWithoutTitle.length}] 已生成标题: ${title.substring(0, 60)}${title.length > 60 ? '...' : ''}`);
   }
   
-  console.log(`\n✓ 成功修复 ${updated} 条内容的标题\n`);
+  console.log(`\n✓ 成功修复 ${updated} 条${displayName}的标题\n`);
   return updated;
 }
 
-async function fixMissingSummaries() {
-  console.log('\n=== 修复缺失的摘要 ===\n');
+async function fixMissingSummaries(tableName = 'content') {
+  const isAdult = tableName === 'adultContent';
+  const table = isAdult ? prisma.adultContent : prisma.content;
+  const displayName = isAdult ? '成人内容' : '技术内容';
+  
+  console.log(`\n=== 修复缺失的摘要（${displayName}） ===\n`);
   
   // 查找所有没有摘要的内容
-  const contentsWithoutSummary = await prisma.content.findMany({
+  const contentsWithoutSummary = await table.findMany({
     where: {
       summary: ''
     },
@@ -141,10 +153,10 @@ async function fixMissingSummaries() {
     }
   });
   
-  console.log(`找到 ${contentsWithoutSummary.length} 条没有摘要的内容`);
+  console.log(`找到 ${contentsWithoutSummary.length} 条没有摘要的${displayName}`);
   
   if (contentsWithoutSummary.length === 0) {
-    console.log('✓ 所有内容都有摘要');
+    console.log(`✓ 所有${displayName}都有摘要`);
     return 0;
   }
   
@@ -169,7 +181,7 @@ async function fixMissingSummaries() {
     }
     
     // 更新数据库
-    await prisma.content.update({
+    await table.update({
       where: { id: item.id },
       data: { summary }
     });
@@ -178,15 +190,16 @@ async function fixMissingSummaries() {
     console.log(`[${updated}/${contentsWithoutSummary.length}] 已生成摘要: ${summary.substring(0, 60)}${summary.length > 60 ? '...' : ''}`);
   }
   
-  console.log(`\n✓ 成功修复 ${updated} 条内容的摘要\n`);
+  console.log(`\n✓ 成功修复 ${updated} 条${displayName}的摘要\n`);
   return updated;
 }
 
 async function showStatistics() {
   console.log('\n=== 数据统计 ===\n');
   
-  const total = await prisma.content.count();
-  const withoutTitle = await prisma.content.count({
+  // 技术内容统计
+  const techTotal = await prisma.content.count();
+  const techWithoutTitle = await prisma.content.count({
     where: {
       OR: [
         { title: null },
@@ -194,15 +207,38 @@ async function showStatistics() {
       ]
     }
   });
-  const withoutSummary = await prisma.content.count({
+  const techWithoutSummary = await prisma.content.count({
     where: {
       summary: ''
     }
   });
   
-  console.log(`总内容数: ${total}`);
-  console.log(`缺少标题: ${withoutTitle} (${((withoutTitle / total) * 100).toFixed(2)}%)`);
-  console.log(`缺少摘要: ${withoutSummary} (${((withoutSummary / total) * 100).toFixed(2)}%)`);
+  // 成人内容统计
+  const adultTotal = await prisma.adultContent.count();
+  const adultWithoutTitle = await prisma.adultContent.count({
+    where: {
+      OR: [
+        { title: null },
+        { title: '' }
+      ]
+    }
+  });
+  const adultWithoutSummary = await prisma.adultContent.count({
+    where: {
+      summary: ''
+    }
+  });
+  
+  console.log('技术内容:');
+  console.log(`  总数: ${techTotal}`);
+  console.log(`  缺少标题: ${techWithoutTitle} (${((techWithoutTitle / techTotal) * 100).toFixed(2)}%)`);
+  console.log(`  缺少摘要: ${techWithoutSummary} (${((techWithoutSummary / techTotal) * 100).toFixed(2)}%)`);
+  
+  console.log('\n成人内容:');
+  console.log(`  总数: ${adultTotal}`);
+  console.log(`  缺少标题: ${adultWithoutTitle} (${((adultWithoutTitle / adultTotal) * 100).toFixed(2)}%)`);
+  console.log(`  缺少摘要: ${adultWithoutSummary} (${((adultWithoutSummary / adultTotal) * 100).toFixed(2)}%)`);
+  
   console.log('');
 }
 
@@ -211,6 +247,8 @@ async function main() {
     const args = process.argv.slice(2);
     const titleOnly = args.includes('--title-only');
     const summaryOnly = args.includes('--summary-only');
+    const techOnly = args.includes('--tech-only');
+    const adultOnly = args.includes('--adult-only');
     const dryRun = args.includes('--dry-run');
     
     console.log('╔════════════════════════════════════════════════════════════╗');
@@ -231,14 +269,24 @@ async function main() {
     
     let totalFixed = 0;
     
-    // 修复标题
-    if (!summaryOnly) {
-      totalFixed += await fixMissingTitles();
+    // 处理技术内容
+    if (!adultOnly) {
+      if (!summaryOnly) {
+        totalFixed += await fixMissingTitles('content');
+      }
+      if (!titleOnly) {
+        totalFixed += await fixMissingSummaries('content');
+      }
     }
     
-    // 修复摘要
-    if (!titleOnly) {
-      totalFixed += await fixMissingSummaries();
+    // 处理成人内容
+    if (!techOnly) {
+      if (!summaryOnly) {
+        totalFixed += await fixMissingTitles('adultContent');
+      }
+      if (!titleOnly) {
+        totalFixed += await fixMissingSummaries('adultContent');
+      }
     }
     
     // 显示修复后的统计
