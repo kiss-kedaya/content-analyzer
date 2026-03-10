@@ -108,8 +108,8 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
       {/* 内容展示 */}
       {isOpen && content && (
         <div>
-          {/* 如果是 Twitter 内容且解析成功，使用专用组件 */}
-          {twitterData ? (
+          {/* 如果是 Twitter 内容且解析成功且有实质内容，使用专用组件 */}
+          {twitterData && twitterData.content.text ? (
             <TwitterTweetViewer data={twitterData} />
           ) : (
             /* 否则使用通用 Markdown 渲染 */
