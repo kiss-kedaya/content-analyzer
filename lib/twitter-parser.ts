@@ -167,9 +167,43 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   
   titleText = titleText.trim()
   
-  // Check if Title text is truncated (ends with " / X but content seems incomplete)
-  // If Title is substantially shorter than Conversation text, it's likely truncated
-  const isTitleTruncated = titleText.endsWith('" / X') || titleText.length < 200
+  // Check if Title text is truncated by comparing with Conversation section
+  // Extract a preview of Conversation text to compare
+  let conversationPreview = ''
+  let foundConv = false
+  let foundAuth = false
+  let previewLines: string[] = []
+  
+  for (let i = 0; i < lines.length && previewLines.length < 50; i++) {
+    const line = lines[i]
+    if (line === 'Conversation' || line.includes('Conversation')) {
+      foundConv = true
+      continue
+    }
+    if (!foundConv) continue
+    
+    if (!foundAuth) {
+      if (line.match(/^[=-]+$/) || line.includes('pbs.twimg.com/profile_images') || 
+          line.match(/^\[.*?\]\(https:\/\/(x\.com|twitter\.com)\//)) {
+        continue
+      }
+      if (line && !line.startsWith('[') && !line.startsWith('http')) {
+        foundAuth = true
+      } else {
+        continue
+      }
+    }
+    
+    if (line.includes('Translate post') || line.includes('pbs.twimg.com/media/')) break
+    if (foundAuth && line && !line.startsWith('http') && !line.match(/^Image \d+:/)) {
+      previewLines.push(line)
+    }
+  }
+  
+  conversationPreview = previewLines.join(' ').trim()
+  
+  // Title is truncated if Conversation has significantly more content
+  const isTitleTruncated = conversationPreview.length > titleText.length * 1.5
   
   // If Title text is substantial and not truncated, use it
   if (titleText.length > 100 && !isTitleTruncated) {
