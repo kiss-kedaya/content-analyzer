@@ -71,9 +71,19 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         const now = Math.floor(Date.now() / 1000)
         let effectiveUrl = item.url
         
-        // 如果有 expiresAt 且已过期，且有 sourceUrl，则使用 sourceUrl
-        if (item.expiresAt && item.expiresAt < now && item.sourceUrl) {
-          effectiveUrl = item.sourceUrl
+        // 如果是 snapcdn URL，检查是否过期
+        const isSnapcdn = item.url.includes('dl.snapcdn.app')
+        
+        if (isSnapcdn) {
+          // 如果有 expiresAt 且已过期，或者没有 expiresAt（不信任），直接使用 sourceUrl
+          if ((item.expiresAt && item.expiresAt < now) || !item.expiresAt) {
+            if (item.sourceUrl) {
+              console.log('Snapcdn token expired or missing, using sourceUrl:', item.sourceUrl)
+              effectiveUrl = item.sourceUrl
+            } else {
+              console.warn('Snapcdn token expired but no sourceUrl available:', item.url)
+            }
+          }
         }
 
         acc.push({
