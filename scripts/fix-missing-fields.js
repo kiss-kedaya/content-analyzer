@@ -255,17 +255,33 @@ async function fetchFromJina(url) {
 }
 
 // 使用 AI 生成标题（JSON 格式）
-async function generateTitleWithAI(content, url) {
+async function generateTitleWithAI(sourceContent, url, existingSummary = '', existingContent = '') {
+  // 构建综合内容
+  let combinedContent = '';
+  
+  // 1. 如果有数据库中的摘要，优先使用
+  if (existingSummary) {
+    combinedContent += `数据库摘要：\n${existingSummary}\n\n`;
+  }
+  
+  // 2. 如果有数据库中的内容，添加
+  if (existingContent) {
+    combinedContent += `数据库内容：\n${existingContent.substring(0, 500)}\n\n`;
+  }
+  
+  // 3. 添加原文内容
+  combinedContent += `原文内容：\n${sourceContent.substring(0, 2000)}`;
+  
   const prompt = `请为以下内容生成一个简洁的中文标题。
 
 要求：
 1. 标题不超过50字
 2. 准确概括主要内容
 3. 使用中文
-4. 以 JSON 格式返回
+4. 综合所有提供的信息（数据库摘要、数据库内容、原文内容）
+5. 以 JSON 格式返回
 
-内容：
-${content.substring(0, 2000)}
+${combinedContent}
 
 请以以下 JSON 格式返回（不要添加其他文字）：
 {"title": "你的标题"}`;
@@ -274,7 +290,7 @@ ${content.substring(0, 2000)}
     const messages = [
       {
         role: 'system',
-        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的标题。'
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的标题。你会综合多个来源的信息来生成最准确的标题。'
       },
       {
         role: 'user',
@@ -306,22 +322,38 @@ ${content.substring(0, 2000)}
   } catch (error) {
     console.error('  ✕ AI 生成标题失败:', error.message);
     // Fallback: 使用简单提取
-    return content.substring(0, 50).trim() + '...';
+    return (existingSummary || sourceContent).substring(0, 50).trim() + '...';
   }
 }
 
 // 使用 AI 生成摘要（JSON 格式）
-async function generateSummaryWithAI(content, url) {
+async function generateSummaryWithAI(sourceContent, url, existingTitle = '', existingContent = '') {
+  // 构建综合内容
+  let combinedContent = '';
+  
+  // 1. 如果有数据库中的标题，优先使用
+  if (existingTitle) {
+    combinedContent += `标题：\n${existingTitle}\n\n`;
+  }
+  
+  // 2. 如果有数据库中的内容，添加
+  if (existingContent) {
+    combinedContent += `数据库内容：\n${existingContent.substring(0, 1000)}\n\n`;
+  }
+  
+  // 3. 添加原文内容
+  combinedContent += `原文内容：\n${sourceContent.substring(0, 3000)}`;
+  
   const prompt = `请为以下内容生成一个简洁的中文摘要。
 
 要求：
 1. 摘要长度 100-200字
 2. 概括主要内容和关键信息
 3. 使用中文
-4. 以 JSON 格式返回
+4. 综合所有提供的信息（标题、数据库内容、原文内容）
+5. 以 JSON 格式返回
 
-内容：
-${content.substring(0, 3000)}
+${combinedContent}
 
 请以以下 JSON 格式返回（不要添加其他文字）：
 {"summary": "你的摘要"}`;
@@ -330,7 +362,7 @@ ${content.substring(0, 3000)}
     const messages = [
       {
         role: 'system',
-        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的摘要。'
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的摘要。你会综合多个来源的信息来生成最准确的摘要。'
       },
       {
         role: 'user',
@@ -361,7 +393,7 @@ ${content.substring(0, 3000)}
   } catch (error) {
     console.error('  ✕ AI 生成摘要失败:', error.message);
     // Fallback: 使用简单提取
-    return content.substring(0, 200).trim() + '...';
+    return (existingContent || sourceContent).substring(0, 200).trim() + '...';
   }
 }
 
@@ -424,9 +456,9 @@ async function fixMissingTitles(tableName = 'content') {
       continue;
     }
     
-    // 4. 使用 AI 生成标题
+    // 4. 使用 AI 生成标题（传入已有的摘要和内容）
     console.log('  → 使用 AI 生成标题...');
-    const title = await generateTitleWithAI(sourceContent, item.url);
+    const title = await generateTitleWithAI(sourceContent, item.url, item.summary, item.content);
     
     // 5. 更新数据库
     await table.update({
@@ -498,9 +530,9 @@ async function fixMissingSummaries(tableName = 'content') {
       continue;
     }
     
-    // 4. 使用 AI 生成摘要
+    // 4. 使用 AI 生成摘要（传入已有的标题和内容）
     console.log('  → 使用 AI 生成摘要...');
-    const summary = await generateSummaryWithAI(sourceContent, item.url);
+    const summary = await generateSummaryWithAI(sourceContent, item.url, item.title, item.content);
     
     // 5. 更新数据库
     await table.update({
