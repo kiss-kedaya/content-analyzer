@@ -10,16 +10,16 @@ export const revalidate = 600 // 10 分钟（秒）
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ orderBy?: string; tab?: string }>
+  searchParams: Promise<{ orderBy?: string; tab?: string; page?: string }>
 }) {
   const params = await searchParams
   const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
-  const tab = params.tab || 'tech'  // 'tech' or 'adult'
-  
-  // 只获取第一页数据（20条）
+  const tab = params.tab === 'adult' ? 'adult' : 'tech'
+  const page = Number(params.page || '1') > 0 ? Number(params.page) : 1
+
   const [techContents, adultContents, techTotal, adultTotal] = await Promise.all([
-    getAllContents(orderBy, 1, 20),
-    getAllAdultContents(orderBy, 1, 20),
+    getAllContents(orderBy, tab === 'tech' ? page : 1, 20),
+    getAllAdultContents(orderBy, tab === 'adult' ? page : 1, 20),
     getContentsCount(),
     getAdultContentsCount()
   ])
@@ -76,6 +76,7 @@ export default async function Home({
         adultContents={adultContents as any}
         initialTab={tab}
         initialOrderBy={orderBy}
+        initialPage={page}
       />
 
       {/* API 使用说明 */}

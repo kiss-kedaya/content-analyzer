@@ -115,15 +115,16 @@ export function useContentListState(
   initialTechContents: Content[],
   initialAdultContents: AdultContent[],
   initialTab: string,
-  initialOrderBy: string
+  initialOrderBy: string,
+  initialPage: number
 ) {
   const [state, dispatch] = useReducer(reducer, {
     activeTab: initialTab,
     orderBy: initialOrderBy,
     techContents: initialTechContents,
     adultContents: initialAdultContents,
-    techPage: 1,
-    adultPage: 1,
+    techPage: initialTab === 'tech' ? initialPage : 1,
+    adultPage: initialTab === 'adult' ? initialPage : 1,
     loading: false,
     techHasMore: true,
     adultHasMore: true,

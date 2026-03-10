@@ -30,6 +30,7 @@ interface ContentListProps {
   adultContents: AdultContent[]
   initialTab: string
   initialOrderBy: string
+  initialPage: number
 }
 
 const ITEMS_PER_PAGE = 20
@@ -38,13 +39,15 @@ export default function ContentList({
   techContents: initialTechContents,
   adultContents: initialAdultContents,
   initialTab,
-  initialOrderBy
+  initialOrderBy,
+  initialPage
 }: ContentListProps) {
   const { state, actions } = useContentListState(
     initialTechContents,
     initialAdultContents,
     initialTab,
-    initialOrderBy
+    initialOrderBy,
+    initialPage
   )
   const router = useRouter()
   const pathname = usePathname()
