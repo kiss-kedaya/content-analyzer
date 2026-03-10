@@ -34,63 +34,41 @@ async function createBackup() {
       fs.mkdirSync(backupDir, { recursive: true });
     }
     
-    const backupFile = path.join(backupDir, `backup-${timestamp}.sql`);
+    const backupFile = path.join(backupDir, `backup-${timestamp}.json`);
     
     console.log('\n=== 创建数据库备份 ===\n');
     console.log(`备份文件: ${backupFile}`);
-    
-    // 从 DATABASE_URL 提取连接信息
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL 环境变量未设置');
-    }
-    
-    // 解析 PostgreSQL 连接字符串
-    const urlMatch = databaseUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
-    if (!urlMatch) {
-      throw new Error('无法解析 DATABASE_URL');
-    }
-    
-    const [, user, password, host, port, database] = urlMatch;
-    
-    // 使用 pg_dump 创建备份
-    const pgDumpCmd = `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -f "${backupFile}"`;
-    
     console.log('正在备份数据库...');
     
-    try {
-      execSync(pgDumpCmd, {
-        env: { ...process.env, PGPASSWORD: password },
-        stdio: 'pipe'
-      });
-      
-      const stats = fs.statSync(backupFile);
-      console.log(`✓ 备份成功！文件大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB\n`);
-      
-      return backupFile;
-    } catch (error) {
-      console.error('⚠ pg_dump 不可用，尝试使用 Prisma 导出...\n');
-      
-      // Fallback: 导出关键表数据为 JSON
-      const content = await prisma.content.findMany();
-      const adultContent = await prisma.adultContent.findMany();
-      const sourceCache = await prisma.sourceCache.findMany();
-      
-      const jsonBackup = {
-        timestamp: new Date().toISOString(),
-        content,
-        adultContent,
-        sourceCache
-      };
-      
-      const jsonFile = backupFile.replace('.sql', '.json');
-      fs.writeFileSync(jsonFile, JSON.stringify(jsonBackup, null, 2));
-      
-      const stats = fs.statSync(jsonFile);
-      console.log(`✓ JSON 备份成功！文件大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB\n`);
-      
-      return jsonFile;
-    }
+    // 使用 Prisma 导出关键表数据为 JSON
+    const content = await prisma.content.findMany();
+    const adultContent = await prisma.adultContent.findMany();
+    const sourceCache = await prisma.sourceCache.findMany();
+    
+    const jsonBackup = {
+      timestamp: new Date().toISOString(),
+      tables: {
+        content: {
+          count: content.length,
+          data: content
+        },
+        adultContent: {
+          count: adultContent.length,
+          data: adultContent
+        },
+        sourceCache: {
+          count: sourceCache.length,
+          data: sourceCache
+        }
+      }
+    };
+    
+    fs.writeFileSync(backupFile, JSON.stringify(jsonBackup, null, 2));
+    
+    const stats = fs.statSync(backupFile);
+    console.log(`✓ 备份成功！文件大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB\n`);
+    
+    return backupFile;
   } catch (error) {
     console.error('✕ 备份失败:', error.message);
     console.error('⚠ 继续执行可能导致数据丢失！');
@@ -186,13 +164,31 @@ async function callCloudflareAI(messages, retries = 3) {
 
       const data = await response.json();
       
-      if (data.success && data.result && data.result.response) {
+      // 调试：打印响应结构（仅第一次）
+      if (i === 0) {
+        console.log('  [DEBUG] API Response:', JSON.stringify(data).substring(0, 200));
+      }
+      
+      // 尝试多种可能的响应格式
+      if (data.result && data.result.response) {
         return data.result.response;
       }
+      
+      if (data.result && typeof data.result === 'string') {
+        return data.result;
+      }
+      
+      if (data.response) {
+        return data.response;
+      }
+      
+      if (typeof data === 'string') {
+        return data;
+      }
 
-      throw new Error('Invalid response from Cloudflare AI');
+      throw new Error(`Invalid response format: ${JSON.stringify(data).substring(0, 100)}`);
     } catch (error) {
-      console.error(`Attempt ${i + 1}/${retries} failed:`, error.message);
+      console.error(`  Attempt ${i + 1}/${retries} failed:`, error.message);
       if (i === retries - 1) throw error;
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
