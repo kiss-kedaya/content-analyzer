@@ -1,6 +1,6 @@
 import ContentList from '@/components/ContentList'
-import { getAllContents, getContentsCount } from '@/lib/api'
-import { getAllAdultContents, getAdultContentsCount } from '@/lib/adult-api'
+import { getAllContents, getContentsCount, getStats } from '@/lib/api'
+import { getAllAdultContents, getAdultContentsCount, getAdultContentStats } from '@/lib/adult-api'
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
@@ -17,21 +17,23 @@ export default async function Home({
   const tab = params.tab === 'adult' ? 'adult' : 'tech'
   const page = Number(params.page || '1') > 0 ? Number(params.page) : 1
 
-  const [techContents, adultContents, techTotal, adultTotal] = await Promise.all([
+  const [techContents, adultContents, techTotal, adultTotal, techStats, adultStats] = await Promise.all([
     getAllContents(orderBy, tab === 'tech' ? page : 1, 20),
     getAllAdultContents(orderBy, tab === 'adult' ? page : 1, 20),
     getContentsCount(),
-    getAdultContentsCount()
+    getAdultContentsCount(),
+    getStats(),
+    getAdultContentStats()
   ])
 
-  const allContents = tab === 'tech' ? techContents : adultContents
   const total = tab === 'tech' ? techTotal : adultTotal
-  
+  const sourceStats = tab === 'tech' ? techStats.bySource : adultStats.bySource
+
   const stats = {
-    total: total,
-    x: allContents.filter(c => ['x', 'twitter'].includes(String(c.source).toLowerCase())).length,
-    xiaohongshu: allContents.filter(c => String(c.source).toLowerCase() === 'xiaohongshu').length,
-    linuxdo: allContents.filter(c => String(c.source).toLowerCase() === 'linuxdo').length
+    total,
+    x: sourceStats['X'] || 0,
+    xiaohongshu: sourceStats['xiaohongshu'] || 0,
+    linuxdo: sourceStats['Linuxdo'] || sourceStats['linuxdo'] || 0,
   }
 
   return (

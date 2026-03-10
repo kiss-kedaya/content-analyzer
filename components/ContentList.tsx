@@ -101,15 +101,13 @@ export default function ContentList({
     }
   }, [state.activeTab, state.orderBy, state.techPage, state.adultPage])
 
-  // URL 同步（不触发整页刷新）
+  // URL 只同步 tab/orderBy，避免无限滚动时频繁 replace 导致页面抖动
   useEffect(() => {
     const params = new URLSearchParams(searchParams?.toString() || '')
-    const targetPage = String(state.activeTab === 'tech' ? state.techPage : state.adultPage)
 
     const unchanged =
       params.get('tab') === state.activeTab &&
-      params.get('orderBy') === state.orderBy &&
-      params.get('page') === targetPage
+      params.get('orderBy') === state.orderBy
 
     if (unchanged) {
       return
@@ -117,11 +115,11 @@ export default function ContentList({
 
     params.set('tab', state.activeTab)
     params.set('orderBy', state.orderBy)
-    params.set('page', targetPage)
+    params.delete('page')
 
     const next = `${pathname}?${params.toString()}`
     router.replace(next, { scroll: false })
-  }, [state.activeTab, state.orderBy, state.techPage, state.adultPage, pathname, router, searchParams])
+  }, [state.activeTab, state.orderBy, pathname, router, searchParams])
 
   // 加载更多
   const loadMore = async () => {

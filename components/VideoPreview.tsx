@@ -21,7 +21,6 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-  const previousRectRef = useRef<DOMRect | null>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const touchCurrentRef = useRef<{ x: number; y: number } | null>(null)
   const touchLockRef = useRef<'x' | 'y' | null>(null)
@@ -30,15 +29,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const restoreFocus = useCallback(() => {
     const previousFocus = previousFocusRef.current
     if (previousFocus && previousFocus.isConnected) {
-      previousFocus.scrollIntoView({ block: 'center', behavior: 'smooth' })
       previousFocus.focus()
-      return
-    }
-
-    const previousRect = previousRectRef.current
-    if (previousRect) {
-      const targetTop = window.scrollY + previousRect.top - window.innerHeight / 2 + previousRect.height / 2
-      window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' })
     }
   }, [])
 
@@ -59,7 +50,6 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    previousRectRef.current = previousFocusRef.current?.getBoundingClientRect() || null
     dialogRef.current?.focus()
   }, [])
 
