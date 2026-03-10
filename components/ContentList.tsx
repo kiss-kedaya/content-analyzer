@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
 import { MobileContentList } from './MobileContentList'
 import { PullToRefresh } from './PullToRefresh'
+import { SearchBar } from './SearchBar'
 import TabSelector from './TabSelector'
 import SortSelector from './SortSelector'
 import DatePicker from './DatePicker'
@@ -62,6 +63,7 @@ export default function ContentList({
   const searchParams = useSearchParams()
 
   const [dateFilter, setDateFilter] = useState<string | null>(initialDate ?? null)
+  const [searchQuery, setSearchQuery] = useState('')
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const isMobile = useIsMobile()
@@ -115,6 +117,37 @@ export default function ContentList({
       toast.error('刷新失败，请重试')
       throw error
     }
+  }
+
+  // 搜索过滤逻辑
+  const filteredTechContents = useMemo(() => {
+    if (!searchQuery.trim()) return state.techContents
+
+    const query = searchQuery.toLowerCase()
+    return state.techContents.filter(content => {
+      const title = (content.title || '').toLowerCase()
+      const summary = content.summary.toLowerCase()
+      const source = content.source.toLowerCase()
+      
+      return title.includes(query) || summary.includes(query) || source.includes(query)
+    })
+  }, [state.techContents, searchQuery])
+
+  const filteredAdultContents = useMemo(() => {
+    if (!searchQuery.trim()) return state.adultContents
+
+    const query = searchQuery.toLowerCase()
+    return state.adultContents.filter(content => {
+      const title = (content.title || '').toLowerCase()
+      const summary = content.summary.toLowerCase()
+      const source = content.source.toLowerCase()
+      
+      return title.includes(query) || summary.includes(query) || source.includes(query)
+    })
+  }, [state.adultContents, searchQuery])
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
   }
 
   useEffect(() => {
@@ -308,37 +341,59 @@ export default function ContentList({
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
       <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
-            <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
-            <TabSelector 
-              currentTab={state.activeTab} 
-              onTabChange={actions.setTab}
-            />
-            <DatePicker
-              value={dateFilter}
-              onChange={(next) => {
-                setDateFilter(next)
-                actions.resetPagination()
-              }}
+        <div className="flex flex-col gap-4">
+          {/* 标题和控制栏 */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
+              <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
+              <TabSelector 
+                currentTab={state.activeTab} 
+                onTabChange={actions.setTab}
+              />
+              <DatePicker
+                value={dateFilter}
+                onChange={(next) => {
+                  setDateFilter(next)
+                  actions.resetPagination()
+                }}
+              />
+            </div>
+            <SortSelector 
+              value={state.orderBy} 
+              currentTab={state.activeTab}
+              onSortChange={actions.setOrderBy}
             />
           </div>
-          <SortSelector 
-            value={state.orderBy} 
-            currentTab={state.activeTab}
-            onSortChange={actions.setOrderBy}
+
+          {/* 搜索栏 */}
+          <SearchBar
+            onSearch={handleSearch}
+            placeholder="搜索标题、摘要或来源..."
+            className="w-full md:w-96"
           />
+
+          {/* 搜索结果提示 */}
+          {searchQuery && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>
+                找到 {state.activeTab === 'tech' ? filteredTechContents.length : filteredAdultContents.length} 条结果
+              </span>
+              {(state.activeTab === 'tech' ? filteredTechContents.length : filteredAdultContents.length) === 0 && (
+                <span className="text-gray-400">- 尝试其他关键词</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 桌面端：表格 */}
         {!isMobile && (
           <>
             <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
-              <ContentTable contents={state.techContents} onDelete={handleDeleteTech} />
+              <ContentTable contents={filteredTechContents} onDelete={handleDeleteTech} />
             </div>
 
             <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
-              <AdultContentTable contents={state.adultContents} onDelete={handleDeleteAdult} />
+              <AdultContentTable contents={filteredAdultContents} onDelete={handleDeleteAdult} />
             </div>
           </>
         )}
@@ -348,7 +403,7 @@ export default function ContentList({
           <>
             <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
               <MobileContentList
-                contents={state.techContents}
+                contents={filteredTechContents}
                 onDelete={handleDeleteTech}
                 detailPathPrefix="/content"
               />
@@ -356,7 +411,7 @@ export default function ContentList({
 
             <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
               <MobileContentList
-                contents={state.adultContents}
+                contents={filteredAdultContents}
                 onDelete={handleDeleteAdult}
                 detailPathPrefix="/adult-content"
               />
