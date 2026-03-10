@@ -101,18 +101,26 @@ export default async function AdultContentDetailPage({
 
         {/* 原文与 Markdown */}
         <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-t border-gray-200">
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <a
-              href={content.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              打开链接
-            </a>
-            <div className="md:ml-auto">
-              <CopyMarkdownButton url={content.url} />
+          <div className="flex flex-col gap-3">
+            {/* 查看原文标题 - 手机端居中 */}
+            <div className="flex justify-center md:justify-start">
+              <h3 className="text-sm font-semibold text-gray-900">查看原文</h3>
+            </div>
+            
+            {/* 按钮组 - 手机端并排，桌面端分开 */}
+            <div className="flex flex-row items-center gap-3 md:flex-row">
+              <a
+                href={content.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-white transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                打开链接
+              </a>
+              <div className="flex-1 md:flex-none md:ml-auto">
+                <CopyMarkdownButton url={content.url} />
+              </div>
             </div>
           </div>
         </div>
