@@ -167,8 +167,12 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   
   titleText = titleText.trim()
   
-  // If Title text is substantial (> 100 chars), use it
-  if (titleText.length > 100) {
+  // Check if Title text is truncated (ends with " / X but content seems incomplete)
+  // If Title is substantially shorter than Conversation text, it's likely truncated
+  const isTitleTruncated = titleText.endsWith('" / X') || titleText.length < 200
+  
+  // If Title text is substantial and not truncated, use it
+  if (titleText.length > 100 && !isTitleTruncated) {
     tweetText = titleText
   } else {
     // Fall back to Conversation section
