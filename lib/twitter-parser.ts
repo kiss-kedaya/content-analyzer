@@ -25,6 +25,10 @@ export interface TwitterTweetData {
   }
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 export function parseTwitterContent(text: string, url: string): TwitterTweetData | null {
   if (!text || !url) return null
 
@@ -264,16 +268,26 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       
       // Collect content lines (including empty lines for paragraph breaks)
       if (foundAuthor) {
-        // Skip URLs, Image labels, emoji images, and Markdown images
-        if (line.startsWith('http://') || 
-            line.startsWith('https://') || 
-            line.match(/^Image \d+:/) ||
-            line.match(/^!\[Image \d+\]/) ||
-            line.includes('abs-0.twimg.com/emoji')) {
+        // Skip Image labels (non-content) and media-only markdown images
+        if (line.match(/^Image \d+:/)) {
           continue
         }
-        // Include the line (even if empty, for paragraph breaks)
-        contentLines.push(line)
+
+        // Convert inline emoji markdown images to their alt text, keep the rest of the line
+        // Example: "• ![Image 6: 🎮](...emoji...) 多人游戏" -> "• 🎮 多人游戏"
+        let normalizedLine = line
+        if (normalizedLine.includes('abs-0.twimg.com/emoji') || normalizedLine.includes('emoji/v2/svg')) {
+          normalizedLine = normalizedLine.replace(/!\[Image\s+\d+:\s*([^\]]+)\]\([^)]*\)/g, '$1')
+        }
+
+        // Drop media markdown images if a line is only an image
+        // Example: "![Image 2](https://pbs.twimg.com/media/...)"
+        if (normalizedLine.match(/^!\[Image \d+\]\(https:\/\/pbs\.twimg\.com\/(media|amplify_video_thumb)\//)) {
+          continue
+        }
+
+        // Keep URLs if they are part of the content (some tweets have standalone URL lines)
+        contentLines.push(normalizedLine)
       }
     }
     
@@ -299,19 +313,29 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
         .replace(/\s*•\s*/g, '\n• ')
         .replace(/\s*→\s*/g, '\n→ ')
 
-      // 4) Ensure question/section headers create paragraph breaks
-      tweetText = tweetText
-        .replace(/这意味着什么？/g, '这意味着什么？\n\n')
-        .replace(/AI Agent 可以直接：/g, 'AI Agent 可以直接：\n\n')
-        .replace(/几个关键点很有意思：/g, '几个关键点很有意思：\n\n')
-        .replace(/未来的办公流可能是：/g, '未来的办公流可能是：\n\n')
+      // 4) Ensure question/section headers create paragraph breaks (generic)
+      const paragraphHeads = [
+        '几个关键点很有意思：',
+        '这意味着什么？',
+        'AI Agent 可以直接：',
+        '未来的办公流可能是：',
+        '最骚的演示：',
+        '适用场景：',
+        '开源地址：',
+        '来源：',
+      ]
+      for (const h of paragraphHeads) {
+        // add blank line before heading if it is glued to previous text
+        tweetText = tweetText.replace(new RegExp(`([^\n])\s*(${escapeRegExp(h)})`, 'g'), `$1\n\n$2`)
+        // ensure blank line after heading
+        tweetText = tweetText.replace(new RegExp(`${escapeRegExp(h)}\s*`, 'g'), `${h}\n\n`)
+      }
 
-      // 5) After specific colon lists, split known app names into one-per-line
-      // Example: "整个 Google Workspace： Gmail Drive Docs ..." -> each item on its own line.
+      // 5) Split known app names into one-per-line after "整个 Google Workspace："
       tweetText = tweetText.replace(/(整个 Google Workspace：)\s*([A-Za-z][A-Za-z0-9+.-]*(?:\s+[A-Za-z][A-Za-z0-9+.-]*)*)/g, (_, head: string, list: string) => {
         const tokens = list.split(/\s+/).filter(Boolean)
         const allKnown = tokens.length >= 3 && tokens.every(t => workspaceApps.includes(t))
-        if (!allKnown) return `${head} ${list}`
+        if (!allKnown) return `${head}\n${list}`
         return `${head}\n${tokens.join('\n')}`
       })
 
@@ -319,16 +343,22 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       tweetText = tweetText
         .replace(/([。！？])\s*(几个关键点很有意思：)/g, '$1\n\n$2')
         .replace(/([。！？])\s*(这意味着什么？)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(适用场景：)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(开源地址：)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(来源：)/g, '$1\n\n$2')
         .replace(/([。！？])\s*(整个)/g, '$1\n\n$2')
         .replace(/([。！？])\s*(未来)/g, '$1\n\n$2')
 
-      // 7) Clean up: remove leading spaces after newlines, normalize blank lines
+      // 7) Convert markdown links to plain URL when it is a naked link
+      tweetText = tweetText.replace(/\[https?:\/\/[^\]]+\]\((https?:\/\/[^)]+)\)/g, '$1')
+
+      // 8) Clean up: remove leading spaces after newlines, normalize blank lines
       tweetText = tweetText
         .replace(/\n[ \t]+/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim()
 
-      // 8) Ensure the content starts without a leading blank line
+      // 9) Ensure the content starts without a leading blank line
       tweetText = tweetText.replace(/^\n+/, '')
     }
   }
