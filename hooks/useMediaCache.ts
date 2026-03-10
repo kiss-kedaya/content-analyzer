@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 interface VideoInfo {
   url: string
@@ -66,6 +66,14 @@ function getCachedMedia(url: string, options: FetchOptions): MediaData | null {
 
 export function useMediaCache() {
   const [loading, setLoading] = useState<Record<string, boolean>>({})
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   const fetchMedia = useCallback(async (url: string, options: FetchOptions = {}): Promise<MediaData | null> => {
     if (!options.force) {
@@ -82,7 +90,9 @@ export function useMediaCache() {
       return existingRequest
     }
 
-    setLoading(prev => ({ ...prev, [url]: true }))
+    if (isMountedRef.current) {
+      setLoading(prev => ({ ...prev, [url]: true }))
+    }
 
     const request = (async () => {
       const controller = new AbortController()
@@ -130,7 +140,9 @@ export function useMediaCache() {
       } finally {
         clearTimeout(timeoutId)
         inFlightRequests.delete(url)
-        setLoading(prev => ({ ...prev, [url]: false }))
+        if (isMountedRef.current) {
+          setLoading(prev => ({ ...prev, [url]: false }))
+        }
       }
     })()
 

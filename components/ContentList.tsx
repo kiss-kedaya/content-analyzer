@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
@@ -129,10 +129,11 @@ export default function ContentList({
     router.replace(next, { scroll: false })
   }, [state.activeTab, state.orderBy, dateFilter, pathname, router, searchParams])
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (state.loading) return
 
     actions.setLoading(true)
+    setLoadError(null)
 
     try {
       const isTech = state.activeTab === 'tech'
@@ -178,10 +179,11 @@ export default function ContentList({
       }
     } catch (error) {
       console.error('Failed to load more:', error)
+      setLoadError(error instanceof Error ? error.message : '加载失败，请重试')
     } finally {
       actions.setLoading(false)
     }
-  }
+  }, [state.loading, state.activeTab, state.techPage, state.adultPage, dateFilter, state.orderBy, actions])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -196,16 +198,17 @@ export default function ContentList({
       { threshold: 0.1 }
     )
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
+    const currentRef = loadMoreRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
     }
 
     return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current)
+      if (currentRef) {
+        observer.unobserve(currentRef)
       }
     }
-  }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, state.techPage, state.adultPage, state.orderBy, dateFilter])
+  }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, loadMore])
 
   useEffect(() => {
     const fetchSortedData = async () => {
@@ -293,7 +296,18 @@ export default function ContentList({
             <span className="ml-2 text-gray-500">加载中...</span>
           </div>
         )}
-        {!state.loading && ((state.activeTab === 'tech' && !state.techHasMore) || (state.activeTab === 'adult' && !state.adultHasMore)) && (
+        {loadError && (
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="text-center text-red-600 text-sm">{loadError}</div>
+            <button
+              onClick={loadMore}
+              className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
+            >
+              重试
+            </button>
+          </div>
+        )}
+        {!state.loading && !loadError && ((state.activeTab === 'tech' && !state.techHasMore) || (state.activeTab === 'adult' && !state.adultHasMore)) && (
           <div className="text-center text-gray-400 text-sm">
             已加载全部内容
           </div>

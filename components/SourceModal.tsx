@@ -31,12 +31,12 @@ export default function SourceModal({ url, open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
 
-    let cancelled = false
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
     setData(null)
 
-    fetch(`/api/source?url=${encoded}`)
+    fetch(`/api/source?url=${encoded}`, { signal: controller.signal })
       .then(async (res) => {
         const json = await res.json()
         if (!res.ok || !json?.success) {
@@ -45,17 +45,20 @@ export default function SourceModal({ url, open, onClose }: Props) {
         return json.data as SourceData
       })
       .then((d) => {
-        if (!cancelled) setData(d)
+        setData(d)
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Unknown error')
+        if (e instanceof Error && e.name === 'AbortError') {
+          return
+        }
+        setError(e instanceof Error ? e.message : 'Unknown error')
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        setLoading(false)
       })
 
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [open, encoded])
 

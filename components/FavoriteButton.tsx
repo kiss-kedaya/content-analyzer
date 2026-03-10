@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Heart, Loader2 } from '@/components/Icon'
 
 interface FavoriteButtonProps {
@@ -12,7 +12,19 @@ interface FavoriteButtonProps {
 export default function FavoriteButton({ id, initialFavorited, type }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(initialFavorited)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
   
   const toggleFavorite = async () => {
     // 防止重复点击
@@ -33,10 +45,13 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
         signal: abortControllerRef.current.signal
       })
       
-      if (response.ok) {
+      if (response.ok && isMountedRef.current) {
         setFavorited(!favorited)
-      } else {
-        alert('操作失败')
+      } else if (isMountedRef.current) {
+        setError('操作失败，请重试')
+        setTimeout(() => {
+          if (isMountedRef.current) setError(null)
+        }, 3000)
       }
     } catch (error) {
       // 忽略取消的请求
@@ -44,9 +59,16 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
         return
       }
       console.error('Favorite error:', error)
-      alert('操作失败')
+      if (isMountedRef.current) {
+        setError('操作失败，请重试')
+        setTimeout(() => {
+          if (isMountedRef.current) setError(null)
+        }, 3000)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
       abortControllerRef.current = null
     }
   }
