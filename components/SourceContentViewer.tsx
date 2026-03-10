@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { FileText, Loader2, AlertCircle } from './Icon'
+import { cleanTwitterContent } from '@/lib/content-cleaner'
 
 interface SourceContentViewerProps {
   url: string
@@ -41,7 +42,9 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
         throw new Error(data.error?.message || '原文内容为空')
       }
 
-      setContent(data.data.text)
+      // Clean Twitter/X content
+      const cleanedText = cleanTwitterContent(data.data.text)
+      setContent(cleanedText)
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取原文失败')
       setIsOpen(false)
