@@ -123,47 +123,55 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   }
 
   // Second pass: extract main tweet text
-  // Strategy: skip metadata, then collect all text until we hit images/stats
-  let skipMetadata = true
+  // Strategy: find "Conversation" marker, skip author info, then capture content
+  let foundConversation = false
+  let foundAuthor = false
   let contentLines: string[] = []
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     
-    // Skip metadata section (Title, URL Source, Markdown Content, etc.)
-    if (skipMetadata) {
-      if (
-        line.startsWith('Title:') ||
-        line.startsWith('URL Source:') ||
-        line.startsWith('Markdown Content:') ||
-        line === authorHandle ||
-        line === authorName ||
-        line.includes('pbs.twimg.com/profile_images')
-      ) {
+    // Look for "Conversation" marker
+    if (line === 'Conversation' || line.includes('Conversation')) {
+      foundConversation = true
+      continue
+    }
+    
+    // Skip until we find the conversation section
+    if (!foundConversation) {
+      continue
+    }
+    
+    // Skip author info lines after Conversation
+    if (!foundAuthor) {
+      if (line === authorHandle || line === authorName || line.startsWith('[') || line.includes('pbs.twimg.com/profile_images')) {
         continue
       }
-      // Once we hit real content (not metadata), start collecting
-      skipMetadata = false
+      // Once we hit real content, mark author as found
+      foundAuthor = true
     }
     
     // Stop at various markers
     if (
-      line.includes('pbs.twimg.com/media/') ||
-      line.match(/\d+\s*(回复|replies|转帖|retweets|喜欢|likes|书签|bookmarks|查看|views)/i) ||
       line.includes('Translate post') ||
       line.includes('翻译推文') ||
+      line.includes('pbs.twimg.com/media/') ||
+      line.match(/^\d{1,2}:\d{2} (AM|PM)/) || // Timestamp
       line.match(/^Read \d+ repl/i) ||
       line.includes('New to') ||
       line.includes('Sign up') ||
       line.includes('Create account') ||
-      line.includes('Trending') ||
-      line.match(/^\d{1,2}:\d{2} (AM|PM)/) // Timestamp
+      line.includes('Terms of Service')
     ) {
       break
     }
     
-    // Collect content lines (skip URLs and Image labels)
-    if (!skipMetadata && line && !line.startsWith('http://') && !line.startsWith('https://') && !line.match(/^Image \d+:/)) {
+    // Collect content lines (skip URLs, Image labels, and emoji images)
+    if (foundAuthor && line && 
+        !line.startsWith('http://') && 
+        !line.startsWith('https://') && 
+        !line.match(/^Image \d+:/) &&
+        !line.includes('abs-0.twimg.com/emoji')) {
       contentLines.push(line)
     }
   }
