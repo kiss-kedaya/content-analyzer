@@ -1,7 +1,6 @@
 'use client'
 
 import { TwitterTweetData } from '@/lib/twitter-parser'
-import Image from 'next/image'
 
 interface Props {
   data: TwitterTweetData
@@ -18,11 +17,9 @@ export default function TwitterTweetViewer({ data }: Props) {
         <div className="flex-shrink-0">
           {author.avatar ? (
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-              <Image
+              <img
                 src={author.avatar}
                 alt={author.name}
-                width={48}
-                height={48}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -73,12 +70,10 @@ export default function TwitterTweetViewer({ data }: Props) {
                 content.images.length === 1 ? 'aspect-video' : 'aspect-square'
               }`}
             >
-              <Image
+              <img
                 src={img}
                 alt={`Image ${idx + 1}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 600px"
+                className="w-full h-full object-cover"
               />
             </div>
           ))}
