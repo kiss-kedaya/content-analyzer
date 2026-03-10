@@ -75,8 +75,11 @@ export default function ContentList({
         method: 'DELETE',
       })
 
-      if (!response.ok) {
-        toast.error('删除失败，请重试')
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        console.error('Delete failed:', data)
+        toast.error(data.error || '删除失败，请重试')
         return
       }
 
@@ -94,8 +97,11 @@ export default function ContentList({
         method: 'DELETE',
       })
 
-      if (!response.ok) {
-        toast.error('删除失败，请重试')
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        console.error('Delete failed:', data)
+        toast.error(data.error || '删除失败，请重试')
         return
       }
 
