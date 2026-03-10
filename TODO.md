@@ -42,7 +42,7 @@
 ## 本周计划（P1）
 
 ### 性能优化
-- [ ] 代码分割（动态导入 VideoPreview, ImagePreview）
+- [x] 代码分割（动态导入 VideoPreview）
 - [ ] 实现 SWR 或 React Query
 - [ ] 优化图片格式（WebP）
 - [ ] 添加 Service Worker（PWA）
