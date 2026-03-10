@@ -1,22 +1,164 @@
 const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
 
 /**
  * 修复脚本：使用 AI 自动生成缺失的标题和摘要
  * 
  * 使用方法：
- * node scripts/fix-missing-fields-ai.js
+ * node scripts/fix-missing-fields.js
  * 
  * 或者只修复特定字段：
- * node scripts/fix-missing-fields-ai.js --title-only
- * node scripts/fix-missing-fields-ai.js --summary-only
+ * node scripts/fix-missing-fields.js --title-only
+ * node scripts/fix-missing-fields.js --summary-only
  * 
  * 功能：
+ * - 修复前自动创建数据库备份
  * - 优先使用 SourceCache 中的原文（避免重复请求）
- * - 如果没有缓存，调用 jina.ai 获取原文
+ * - 技术内容使用 r.jina.ai 获取原文
+ * - 成人内容使用 defuddle.md 获取原文
  * - 使用 Cloudflare Workers AI (GLM-4.7-flash) 生成标题和摘要
  */
 
 const prisma = new PrismaClient();
+
+// 创建数据库备份
+async function createBackup() {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const backupDir = path.join(__dirname, '..', 'backups');
+    
+    // 确保备份目录存在
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    
+    const backupFile = path.join(backupDir, `backup-${timestamp}.sql`);
+    
+    console.log('\n=== 创建数据库备份 ===\n');
+    console.log(`备份文件: ${backupFile}`);
+    
+    // 从 DATABASE_URL 提取连接信息
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL 环境变量未设置');
+    }
+    
+    // 解析 PostgreSQL 连接字符串
+    const urlMatch = databaseUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+    if (!urlMatch) {
+      throw new Error('无法解析 DATABASE_URL');
+    }
+    
+    const [, user, password, host, port, database] = urlMatch;
+    
+    // 使用 pg_dump 创建备份
+    const pgDumpCmd = `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} -f "${backupFile}"`;
+    
+    console.log('正在备份数据库...');
+    
+    try {
+      execSync(pgDumpCmd, {
+        env: { ...process.env, PGPASSWORD: password },
+        stdio: 'pipe'
+      });
+      
+      const stats = fs.statSync(backupFile);
+      console.log(`✓ 备份成功！文件大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB\n`);
+      
+      return backupFile;
+    } catch (error) {
+      console.error('⚠ pg_dump 不可用，尝试使用 Prisma 导出...\n');
+      
+      // Fallback: 导出关键表数据为 JSON
+      const content = await prisma.content.findMany();
+      const adultContent = await prisma.adultContent.findMany();
+      const sourceCache = await prisma.sourceCache.findMany();
+      
+      const jsonBackup = {
+        timestamp: new Date().toISOString(),
+        content,
+        adultContent,
+        sourceCache
+      };
+      
+      const jsonFile = backupFile.replace('.sql', '.json');
+      fs.writeFileSync(jsonFile, JSON.stringify(jsonBackup, null, 2));
+      
+      const stats = fs.statSync(jsonFile);
+      console.log(`✓ JSON 备份成功！文件大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB\n`);
+      
+      return jsonFile;
+    }
+  } catch (error) {
+    console.error('✕ 备份失败:', error.message);
+    console.error('⚠ 继续执行可能导致数据丢失！');
+    console.error('按 Ctrl+C 取消，或等待 5 秒后继续...\n');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    return null;
+  }
+}
+
+// 从 defuddle.md 获取原文（用于成人内容）
+async function fetchFromDefuddle(url) {
+  try {
+    console.log('  → 从 defuddle.md 获取原文...');
+    const defuddleUrl = `https://defuddle.md/${url}`;
+    
+    const response = await fetch(defuddleUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Defuddle.md error: ${response.status}`);
+    }
+
+    const html = await response.text();
+    
+    // 简单提取文本内容（移除 HTML 标签）
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    if (text.length > 100) {
+      console.log(`  ✓ 获取成功 (${text.length} 字符)`);
+      
+      // 保存到缓存
+      try {
+        await prisma.sourceCache.upsert({
+          where: { url },
+          create: {
+            url,
+            provider: 'defuddle',
+            status: 'ok',
+            text: text,
+            wordCount: text.split(/\s+/).length
+          },
+          update: {
+            text: text,
+            wordCount: text.split(/\s+/).length,
+            lastFetchedAt: new Date()
+          }
+        });
+      } catch (cacheError) {
+        console.error('  ⚠ 保存缓存失败:', cacheError.message);
+      }
+      
+      return text;
+    }
+
+    throw new Error('Content too short or empty');
+  } catch (error) {
+    console.error('  ✕ Defuddle.md 请求失败:', error.message);
+    return null;
+  }
+}
 
 // Cloudflare Workers AI 配置
 const CF_ACCOUNT_ID = '554575d3a47f5fd86b1f60fbbe8d9967';
@@ -246,9 +388,15 @@ async function fixMissingTitles(tableName = 'content') {
     // 1. 获取原文（优先使用缓存）
     let sourceContent = await getSourceContent(item.url);
     
-    // 2. 如果没有缓存，从 jina.ai 获取
+    // 2. 如果没有缓存，根据内容类型选择获取方式
     if (!sourceContent) {
-      sourceContent = await fetchFromJina(item.url);
+      if (isAdult) {
+        // 成人内容使用 defuddle.md
+        sourceContent = await fetchFromDefuddle(item.url);
+      } else {
+        // 技术内容使用 jina.ai
+        sourceContent = await fetchFromJina(item.url);
+      }
     }
     
     // 3. 如果还是没有原文，使用现有的 content 或 summary
@@ -314,9 +462,15 @@ async function fixMissingSummaries(tableName = 'content') {
     // 1. 获取原文（优先使用缓存）
     let sourceContent = await getSourceContent(item.url);
     
-    // 2. 如果没有缓存，从 jina.ai 获取
+    // 2. 如果没有缓存，根据内容类型选择获取方式
     if (!sourceContent) {
-      sourceContent = await fetchFromJina(item.url);
+      if (isAdult) {
+        // 成人内容使用 defuddle.md
+        sourceContent = await fetchFromDefuddle(item.url);
+      } else {
+        // 技术内容使用 jina.ai
+        sourceContent = await fetchFromJina(item.url);
+      }
     }
     
     // 3. 如果还是没有原文，使用现有的 content
@@ -419,6 +573,12 @@ async function main() {
     if (dryRun) {
       console.log('✓ DRY RUN 完成，未修改任何数据');
       return;
+    }
+    
+    // 创建数据库备份
+    const backupFile = await createBackup();
+    if (backupFile) {
+      console.log(`备份文件已保存: ${backupFile}\n`);
     }
     
     let totalFixed = 0;
