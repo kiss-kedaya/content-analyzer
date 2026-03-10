@@ -144,8 +144,8 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     
     // Skip author info lines after Conversation
     if (!foundAuthor) {
-      // Skip separator lines
-      if (line === '=' || line.match(/^=+$/)) {
+      // Skip separator lines (= or -)
+      if (line.match(/^[=-]+$/)) {
         continue
       }
       // Skip avatar/profile image links
@@ -179,11 +179,12 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       break
     }
     
-    // Collect content lines (skip URLs, Image labels, and emoji images)
+    // Collect content lines (skip URLs, Image labels, emoji images, and Markdown images)
     if (foundAuthor && line && 
         !line.startsWith('http://') && 
         !line.startsWith('https://') && 
         !line.match(/^Image \d+:/) &&
+        !line.match(/^!\[Image \d+\]/) && // Skip Markdown image syntax
         !line.includes('abs-0.twimg.com/emoji')) {
       contentLines.push(line)
     }
