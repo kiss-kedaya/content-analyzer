@@ -11,7 +11,8 @@ export const env = createEnv({
     DATABASE_URL: z.string().url().min(1, 'DATABASE_URL is required'),
     
     // 认证
-    ACCESS_PASSWORD: z.string().min(8, 'ACCESS_PASSWORD must be at least 8 characters'),
+    // 注意：用户口令可能较短（例如 kedaya），这里允许最短 6 位。
+    ACCESS_PASSWORD: z.string().min(6, 'ACCESS_PASSWORD must be at least 6 characters'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     
     // Node 环境

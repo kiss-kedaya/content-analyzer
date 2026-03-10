@@ -16,13 +16,13 @@ export async function middleware(request: NextRequest) {
   // 检查 Cookie
   const authToken = request.cookies.get('auth-token')
   
-  // 调试日志
-  console.log('[Middleware]', {
-    pathname,
-    hasToken: !!authToken,
-    tokenLength: authToken?.value.length,
-    allCookies: request.cookies.getAll().map(c => c.name)
-  })
+  // 调试日志（仅开发环境）
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Middleware]', {
+      pathname,
+      hasToken: !!authToken,
+    })
+  }
   
   if (!authToken) {
     console.log('[Middleware] No token')
