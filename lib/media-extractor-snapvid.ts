@@ -4,6 +4,9 @@
  */
 
 import { isValidTwitterUrl } from './twitter-url-utils'
+import { createLogger } from './logger'
+
+const log = createLogger('media/snapvid')
 
 function base64UrlToUtf8(input: string): string {
   const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
@@ -64,7 +67,7 @@ export interface SnapvidExtractionResult {
  * 3. 解析 HTML 提取视频直链
  */
 export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<SnapvidExtractionResult> {
-  console.log('[snapvid] 提取媒体:', twitterUrl)
+  log.info({ urlHost: new URL(twitterUrl).hostname }, '提取媒体')
   
   // 验证 URL
   if (!isValidTwitterUrl(twitterUrl)) {
@@ -73,7 +76,7 @@ export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<Sn
   
   try {
     // 步骤 1: 获取 token
-    console.log('[snapvid] 步骤 1: 获取 token')
+    log.debug('步骤 1: 获取 token')
     const tokenRes = await fetch('https://snapvid.net/api/userverify', {
       method: 'POST',
       headers: {
@@ -94,10 +97,10 @@ export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<Sn
     }
     
     const token = tokenData.token
-    console.log('[snapvid] Token 获取成功')
+    log.debug('Token 获取成功')
     
     // 步骤 2: 获取视频链接
-    console.log('[snapvid] 步骤 2: 获取视频链接')
+    log.debug('步骤 2: 获取视频链接')
     const videoRes = await fetch('https://snapvid.net/api/ajaxSearch', {
       method: 'POST',
       headers: {
@@ -113,31 +116,31 @@ export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<Sn
     
     const videoData = await videoRes.json()
     
-    console.log('[snapvid] 视频数据响应:', JSON.stringify(videoData).substring(0, 500))
+    log.debug({ status: videoData?.status, statusCode: videoData?.statusCode }, '视频数据响应(摘要)')
     
     // 检查是否有错误状态码
     if (videoData.statusCode === 404) {
-      console.log('[snapvid] 视频不可访问（404）:', videoData.msg)
+      log.info({ msg: videoData?.msg }, '视频不可访问（404）')
       return { media: [], rawResponse: videoData } // 返回空数组，表示没有媒体
     }
     
     if (videoData.status !== 'ok' || !videoData.data) {
-      console.error('[snapvid] 视频数据格式错误:', videoData)
+      log.warn({ hasData: !!videoData?.data, status: videoData?.status }, '视频数据格式错误')
       throw new Error(`Failed to get video data: status=${videoData.status}, hasData=${!!videoData.data}`)
     }
     
     // 步骤 3: 解析 HTML 提取链接
-    console.log('[snapvid] 步骤 3: 解析 HTML')
+    log.debug('步骤 3: 解析 HTML')
     const mediaList = extractVideoUrlsFromHtml(videoData.data)
     
-    console.log(`[snapvid] 提取成功: ${mediaList.length} 个媒体`)
+    log.info({ count: mediaList.length }, '提取成功')
     
     return {
       media: mediaList,
       rawResponse: videoData
     }
   } catch (error) {
-    console.error('[snapvid] 提取失败:', error)
+    log.error({ err: error instanceof Error ? { name: error.name, message: error.message } : String(error) }, '提取失败')
     throw error
   }
 }
@@ -150,7 +153,7 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
   
   // 情况 1：检查是否是纯图片（photo-list）
   if (html.includes('photo-list')) {
-    console.log('[snapvid] 检测到纯图片推文（photo-list）')
+    log.debug('检测到纯图片推文（photo-list）')
     
     // 提取所有图片下载链接
     const photoListRegex = /<a href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*title="下载图片"/g
@@ -163,12 +166,12 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
       })
     }
     
-    console.log(`[snapvid] 提取到 ${mediaList.length} 张图片`)
+    log.info({ count: mediaList.length }, '提取到图片')
     return mediaList
   }
   
   // 情况 2：视频 + 图片（tw-video）
-  console.log('[snapvid] 检测到视频推文（tw-video）')
+  log.debug('检测到视频推文（tw-video）')
 
   const qualityOrder: Record<string, number> = {
     '1280p': 5,
@@ -261,7 +264,7 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     return acc
   }, [])
 
-  console.log(`[snapvid] 共提取 ${uniqueMedia.length} 个有序媒体`)
+  log.info({ count: uniqueMedia.length }, '共提取有序媒体')
   return uniqueMedia
 }
 

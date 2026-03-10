@@ -1,5 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { env } from './env'
+import { createLogger } from './logger'
+
+const log = createLogger('auth')
 
 // 将字符串转换为 Uint8Array（Edge Runtime 兼容）
 const secret = new TextEncoder().encode(env.JWT_SECRET)
@@ -28,7 +31,9 @@ export async function verifyToken(token: string): Promise<boolean> {
     await jwtVerify(token, secret)
     return true
   } catch (error) {
-    console.error('Token verification failed:', error instanceof Error ? error.message : error)
+    log.warn({
+      err: error instanceof Error ? { name: error.name, message: error.message } : String(error),
+    }, 'Token verification failed')
     return false
   }
 }
