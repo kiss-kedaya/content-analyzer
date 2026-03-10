@@ -32,7 +32,7 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   const isTwitter = url.includes('x.com') || url.includes('twitter.com')
   if (!isTwitter) return null
 
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = text.split('\n').map(l => l.trim())
 
   // Extract author info
   let authorName = ''
@@ -88,10 +88,10 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       timestamp = line
     }
 
-    // Extract images (media URLs, not profile images)
-    if (line.includes('pbs.twimg.com/media/')) {
+    // Extract images (media URLs and video thumbnails, not profile images)
+    if (line.includes('pbs.twimg.com/media/') || line.includes('pbs.twimg.com/amplify_video_thumb/')) {
       // Extract URL from Markdown syntax if present
-      const urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/media\/[^\s)]+/)
+      const urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/(media|amplify_video_thumb)\/[^\s)]+/)
       if (urlMatch) {
         images.push(urlMatch[0])
       }
@@ -169,6 +169,7 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       line.includes('Translate post') ||
       line.includes('翻译推文') ||
       line.includes('pbs.twimg.com/media/') ||
+      line.includes('pbs.twimg.com/amplify_video_thumb/') ||
       line.match(/^\d{1,2}:\d{2} (AM|PM)/) || // Timestamp
       line.match(/^Read \d+ repl/i) ||
       line.includes('New to') ||
@@ -179,13 +180,17 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       break
     }
     
-    // Collect content lines (skip URLs, Image labels, emoji images, and Markdown images)
-    if (foundAuthor && line && 
-        !line.startsWith('http://') && 
-        !line.startsWith('https://') && 
-        !line.match(/^Image \d+:/) &&
-        !line.match(/^!\[Image \d+\]/) && // Skip Markdown image syntax
-        !line.includes('abs-0.twimg.com/emoji')) {
+    // Collect content lines (including empty lines for paragraph breaks)
+    if (foundAuthor) {
+      // Skip URLs, Image labels, emoji images, and Markdown images
+      if (line.startsWith('http://') || 
+          line.startsWith('https://') || 
+          line.match(/^Image \d+:/) ||
+          line.match(/^!\[Image \d+\]/) ||
+          line.includes('abs-0.twimg.com/emoji')) {
+        continue
+      }
+      // Include the line (even if empty, for paragraph breaks)
       contentLines.push(line)
     }
   }
