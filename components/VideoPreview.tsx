@@ -7,6 +7,9 @@ import { useMediaCache } from '@/hooks/useMediaCache'
 type MediaItem = {
   type: 'video' | 'image'
   url: string
+  sourceUrl?: string
+  expiresAt?: number
+  fallbackUrl?: string
 }
 
 interface VideoPreviewProps {
@@ -64,9 +67,21 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
           return acc
         }
 
+        // 检查 snapcdn token 是否过期
+        const now = Math.floor(Date.now() / 1000)
+        let effectiveUrl = item.url
+        
+        // 如果有 expiresAt 且已过期，且有 sourceUrl，则使用 sourceUrl
+        if (item.expiresAt && item.expiresAt < now && item.sourceUrl) {
+          effectiveUrl = item.sourceUrl
+        }
+
         acc.push({
           type: item.type,
-          url: item.url,
+          url: effectiveUrl,
+          sourceUrl: item.sourceUrl,
+          expiresAt: item.expiresAt,
+          fallbackUrl: item.fallbackUrl,
         })
 
         return acc

@@ -15,6 +15,9 @@ interface ImageInfo {
 interface MediaItem {
   type: 'video' | 'image'
   url: string
+  sourceUrl?: string
+  expiresAt?: number
+  fallbackUrl?: string
   quality?: string
   format?: string
 }
