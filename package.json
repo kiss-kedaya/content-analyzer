@@ -12,7 +12,11 @@
     "fix:fields": "node scripts/fix-missing-fields.js",
     "fix:titles": "node scripts/fix-missing-fields.js --title-only",
     "fix:summaries": "node scripts/fix-missing-fields.js --summary-only",
-    "fix:check": "node scripts/fix-missing-fields.js --dry-run"
+    "fix:check": "node scripts/fix-missing-fields.js --dry-run",
+    "fix:ai": "node scripts/fix-missing-fields-ai.js",
+    "fix:ai:titles": "node scripts/fix-missing-fields-ai.js --title-only",
+    "fix:ai:summaries": "node scripts/fix-missing-fields-ai.js --summary-only",
+    "fix:ai:check": "node scripts/fix-missing-fields-ai.js --dry-run"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

@@ -1,0 +1,420 @@
+const { PrismaClient } = require('@prisma/client');
+
+/**
+ * 修复脚本：使用 AI 自动生成缺失的标题和摘要
+ * 
+ * 使用方法：
+ * node scripts/fix-missing-fields-ai.js
+ * 
+ * 或者只修复特定字段：
+ * node scripts/fix-missing-fields-ai.js --title-only
+ * node scripts/fix-missing-fields-ai.js --summary-only
+ * 
+ * 功能：
+ * - 优先使用 SourceCache 中的原文（避免重复请求）
+ * - 如果没有缓存，调用 jina.ai 获取原文
+ * - 使用 Cloudflare Workers AI (GLM-4.7-flash) 生成标题和摘要
+ */
+
+const prisma = new PrismaClient();
+
+// Cloudflare Workers AI 配置
+const CF_ACCOUNT_ID = '554575d3a47f5fd86b1f60fbbe8d9967';
+const CF_API_TOKEN = 'dJDdE5EF8Q8aATIJxoRqZPQngMpx4G1PWWRsbtiF';
+const CF_MODEL = '@cf/zai-org/glm-4.7-flash';
+const CF_API_URL = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${CF_MODEL}`;
+
+// 调用 Cloudflare Workers AI
+async function callCloudflareAI(messages, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(CF_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CF_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messages })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Cloudflare AI API error: ${response.status} ${error}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.result && data.result.response) {
+        return data.result.response;
+      }
+
+      throw new Error('Invalid response from Cloudflare AI');
+    } catch (error) {
+      console.error(`Attempt ${i + 1}/${retries} failed:`, error.message);
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+}
+
+// 从 SourceCache 获取原文
+async function getSourceContent(url) {
+  try {
+    const cached = await prisma.sourceCache.findUnique({
+      where: { url },
+      select: {
+        text: true,
+        status: true
+      }
+    });
+
+    if (cached && cached.status === 'ok' && cached.text) {
+      console.log(`  ✓ 使用缓存的原文 (${cached.text.length} 字符)`);
+      return cached.text;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('  ✕ 获取缓存失败:', error.message);
+    return null;
+  }
+}
+
+// 从 jina.ai 获取原文
+async function fetchFromJina(url) {
+  try {
+    console.log('  → 从 jina.ai 获取原文...');
+    const response = await fetch(`https://r.jina.ai/${url}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Return-Format': 'text'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Jina.ai error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.data && data.data.content) {
+      console.log(`  ✓ 获取成功 (${data.data.content.length} 字符)`);
+      
+      // 保存到缓存
+      try {
+        await prisma.sourceCache.upsert({
+          where: { url },
+          create: {
+            url,
+            provider: 'jina',
+            status: 'ok',
+            text: data.data.content,
+            title: data.data.title || null,
+            wordCount: data.data.content.split(/\s+/).length
+          },
+          update: {
+            text: data.data.content,
+            title: data.data.title || null,
+            wordCount: data.data.content.split(/\s+/).length,
+            lastFetchedAt: new Date()
+          }
+        });
+      } catch (cacheError) {
+        console.error('  ⚠ 保存缓存失败:', cacheError.message);
+      }
+      
+      return data.data.content;
+    }
+
+    throw new Error('No content in jina.ai response');
+  } catch (error) {
+    console.error('  ✕ Jina.ai 请求失败:', error.message);
+    return null;
+  }
+}
+
+// 使用 AI 生成标题
+async function generateTitleWithAI(content, url) {
+  const prompt = `请为以下内容生成一个简洁、准确的中文标题（不超过50个字）。只返回标题文本，不要添加引号或其他说明。
+
+内容：
+${content.substring(0, 2000)}
+
+标题：`;
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的标题。'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ];
+
+    const title = await callCloudflareAI(messages);
+    
+    // 清理标题（移除引号、换行等）
+    const cleanTitle = title
+      .replace(/^["'「『]|["'」』]$/g, '')
+      .replace(/\n/g, ' ')
+      .trim();
+    
+    // 限制长度
+    return cleanTitle.length > 100 ? cleanTitle.substring(0, 97) + '...' : cleanTitle;
+  } catch (error) {
+    console.error('  ✕ AI 生成标题失败:', error.message);
+    // Fallback: 使用简单提取
+    return content.substring(0, 50).trim() + '...';
+  }
+}
+
+// 使用 AI 生成摘要
+async function generateSummaryWithAI(content, url) {
+  const prompt = `请为以下内容生成一个简洁的中文摘要（100-200字）。摘要应该概括主要内容和关键信息。只返回摘要文本，不要添加"摘要："等前缀。
+
+内容：
+${content.substring(0, 3000)}
+
+摘要：`;
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的摘要。'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ];
+
+    const summary = await callCloudflareAI(messages);
+    
+    // 清理摘要
+    const cleanSummary = summary
+      .replace(/^(摘要：|Summary:|摘要:)/i, '')
+      .trim();
+    
+    // 限制长度
+    return cleanSummary.length > 300 ? cleanSummary.substring(0, 297) + '...' : cleanSummary;
+  } catch (error) {
+    console.error('  ✕ AI 生成摘要失败:', error.message);
+    // Fallback: 使用简单提取
+    return content.substring(0, 200).trim() + '...';
+  }
+}
+
+async function fixMissingTitles() {
+  console.log('\n=== 修复缺失的标题（使用 AI） ===\n');
+  
+  const contentsWithoutTitle = await prisma.content.findMany({
+    where: {
+      OR: [
+        { title: null },
+        { title: '' }
+      ]
+    },
+    select: {
+      id: true,
+      url: true,
+      title: true,
+      summary: true,
+      content: true
+    }
+  });
+  
+  console.log(`找到 ${contentsWithoutTitle.length} 条没有标题的内容\n`);
+  
+  if (contentsWithoutTitle.length === 0) {
+    console.log('✓ 所有内容都有标题');
+    return 0;
+  }
+  
+  let updated = 0;
+  
+  for (const item of contentsWithoutTitle) {
+    console.log(`\n[${updated + 1}/${contentsWithoutTitle.length}] 处理: ${item.url}`);
+    
+    // 1. 获取原文（优先使用缓存）
+    let sourceContent = await getSourceContent(item.url);
+    
+    // 2. 如果没有缓存，从 jina.ai 获取
+    if (!sourceContent) {
+      sourceContent = await fetchFromJina(item.url);
+    }
+    
+    // 3. 如果还是没有原文，使用现有的 content 或 summary
+    if (!sourceContent) {
+      sourceContent = item.content || item.summary || '';
+    }
+    
+    if (!sourceContent) {
+      console.log('  ⚠ 无法获取内容，跳过');
+      continue;
+    }
+    
+    // 4. 使用 AI 生成标题
+    console.log('  → 使用 AI 生成标题...');
+    const title = await generateTitleWithAI(sourceContent, item.url);
+    
+    // 5. 更新数据库
+    await prisma.content.update({
+      where: { id: item.id },
+      data: { title }
+    });
+    
+    updated++;
+    console.log(`  ✓ 标题: ${title}`);
+  }
+  
+  console.log(`\n✓ 成功修复 ${updated} 条内容的标题\n`);
+  return updated;
+}
+
+async function fixMissingSummaries() {
+  console.log('\n=== 修复缺失的摘要（使用 AI） ===\n');
+  
+  const contentsWithoutSummary = await prisma.content.findMany({
+    where: {
+      summary: ''
+    },
+    select: {
+      id: true,
+      url: true,
+      title: true,
+      summary: true,
+      content: true
+    }
+  });
+  
+  console.log(`找到 ${contentsWithoutSummary.length} 条没有摘要的内容\n`);
+  
+  if (contentsWithoutSummary.length === 0) {
+    console.log('✓ 所有内容都有摘要');
+    return 0;
+  }
+  
+  let updated = 0;
+  
+  for (const item of contentsWithoutSummary) {
+    console.log(`\n[${updated + 1}/${contentsWithoutSummary.length}] 处理: ${item.url}`);
+    
+    // 1. 获取原文（优先使用缓存）
+    let sourceContent = await getSourceContent(item.url);
+    
+    // 2. 如果没有缓存，从 jina.ai 获取
+    if (!sourceContent) {
+      sourceContent = await fetchFromJina(item.url);
+    }
+    
+    // 3. 如果还是没有原文，使用现有的 content
+    if (!sourceContent) {
+      sourceContent = item.content || '';
+    }
+    
+    if (!sourceContent) {
+      console.log('  ⚠ 无法获取内容，跳过');
+      continue;
+    }
+    
+    // 4. 使用 AI 生成摘要
+    console.log('  → 使用 AI 生成摘要...');
+    const summary = await generateSummaryWithAI(sourceContent, item.url);
+    
+    // 5. 更新数据库
+    await prisma.content.update({
+      where: { id: item.id },
+      data: { summary }
+    });
+    
+    updated++;
+    console.log(`  ✓ 摘要: ${summary.substring(0, 80)}...`);
+  }
+  
+  console.log(`\n✓ 成功修复 ${updated} 条内容的摘要\n`);
+  return updated;
+}
+
+async function showStatistics() {
+  console.log('\n=== 数据统计 ===\n');
+  
+  const total = await prisma.content.count();
+  const withoutTitle = await prisma.content.count({
+    where: {
+      OR: [
+        { title: null },
+        { title: '' }
+      ]
+    }
+  });
+  const withoutSummary = await prisma.content.count({
+    where: {
+      summary: ''
+    }
+  });
+  
+  console.log(`总内容数: ${total}`);
+  console.log(`缺少标题: ${withoutTitle} (${((withoutTitle / total) * 100).toFixed(2)}%)`);
+  console.log(`缺少摘要: ${withoutSummary} (${((withoutSummary / total) * 100).toFixed(2)}%)`);
+  console.log('');
+}
+
+async function main() {
+  try {
+    const args = process.argv.slice(2);
+    const titleOnly = args.includes('--title-only');
+    const summaryOnly = args.includes('--summary-only');
+    const dryRun = args.includes('--dry-run');
+    
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║     Content Analyzer - AI 字段修复脚本                     ║');
+    console.log('║     Powered by Cloudflare Workers AI (GLM-4.7-flash)      ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
+    
+    if (dryRun) {
+      console.log('\n⚠️  DRY RUN 模式 - 不会修改数据库\n');
+    }
+    
+    // 显示修复前的统计
+    await showStatistics();
+    
+    if (dryRun) {
+      console.log('✓ DRY RUN 完成，未修改任何数据');
+      return;
+    }
+    
+    let totalFixed = 0;
+    
+    // 修复标题
+    if (!summaryOnly) {
+      totalFixed += await fixMissingTitles();
+    }
+    
+    // 修复摘要
+    if (!titleOnly) {
+      totalFixed += await fixMissingSummaries();
+    }
+    
+    // 显示修复后的统计
+    if (totalFixed > 0) {
+      await showStatistics();
+    }
+    
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log(`║  ✓ 修复完成！共修复 ${totalFixed.toString().padEnd(3)} 条记录                        ║`);
+    console.log('╚════════════════════════════════════════════════════════════╝\n');
+    
+  } catch (error) {
+    console.error('\n✕ 修复失败:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// 运行脚本
+main();
