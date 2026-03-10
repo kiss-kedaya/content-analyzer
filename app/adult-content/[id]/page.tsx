@@ -20,10 +20,11 @@ export default async function AdultContentDetailPage({
   const getSourceBadge = (source: string) => {
     const badges: Record<string, string> = {
       twitter: 'bg-blue-50 text-blue-700 border-blue-200',
+      x: 'bg-blue-50 text-blue-700 border-blue-200',
       xiaohongshu: 'bg-pink-50 text-pink-700 border-pink-200',
       linuxdo: 'bg-green-50 text-green-700 border-green-200'
     }
-    return badges[source] || 'bg-gray-50 text-gray-700 border-gray-200'
+    return badges[source.toLowerCase()] || 'bg-gray-50 text-gray-700 border-gray-200'
   }
 
   const getScoreColor = (score: number) => {

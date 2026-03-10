@@ -30,8 +30,8 @@ export default async function Home({
   const stats = {
     total: total,
     x: allContents.filter(c => ['x', 'twitter'].includes(String(c.source).toLowerCase())).length,
-    xiaohongshu: allContents.filter(c => c.source === 'xiaohongshu').length,
-    linuxdo: allContents.filter(c => c.source === 'linuxdo').length
+    xiaohongshu: allContents.filter(c => String(c.source).toLowerCase() === 'xiaohongshu').length,
+    linuxdo: allContents.filter(c => String(c.source).toLowerCase() === 'linuxdo').length
   }
 
   return (

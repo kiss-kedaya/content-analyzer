@@ -5,8 +5,8 @@ import { z } from 'zod'
  */
 export const ContentCreateSchema = z.object({
   source: z.string().refine(
-    (value) => ['twitter', 'Twitter', 'x', 'X', 'xiaohongshu', 'linuxdo'].includes(value),
-    { message: 'Source must be one of: X, twitter, xiaohongshu, linuxdo' }
+    (value) => ['twitter', 'Twitter', 'x', 'X', 'xiaohongshu', 'linuxdo', 'Linuxdo'].includes(value),
+    { message: 'Source must be one of: X, twitter, xiaohongshu, linuxdo, Linuxdo' }
   ),
   url: z.string().url({ message: 'Invalid URL format' }),
   title: z.string().max(200, 'Title must be less than 200 characters').optional(),

@@ -6,6 +6,10 @@ export function normalizeSource(source: string): string {
     return 'X'
   }
 
+  if (lower === 'linuxdo') {
+    return 'Linuxdo'
+  }
+
   return value
 }
 
