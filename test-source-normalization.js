@@ -109,8 +109,8 @@ const batchTestCase = {
   expected: ['X', 'Linuxdo', 'Xiaohongshu']
 };
 
-// HTTP 请求函数
-async function request(method, path, body = null) {
+// HTTP 请求函数（带重试）
+async function request(method, path, body = null, retries = 3) {
   const url = `${API_BASE}${path}`;
   const options = {
     method,
@@ -124,14 +124,29 @@ async function request(method, path, body = null) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
-  const data = await response.json();
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+      }
+
+      return data;
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 指数退避，最大 5 秒
+        console.log(`  重试 ${attempt}/${retries - 1}（${delay}ms 后）...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
-  return data;
+  throw lastError;
 }
 
 // 创建内容
