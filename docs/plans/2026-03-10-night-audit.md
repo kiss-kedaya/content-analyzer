@@ -21,3 +21,8 @@
 - File: app/api/agent/content/by-date/md/route.ts + app/api/agent/adult-content/by-date/md/route.ts | Risk: P1 | Issue: missing raw cache fetch is sequential and unbounded, could block markdown responses under high miss rate. | Fix: same as above; consider fetch on-demand per item and mark missing.
 - File: lib/source-cache.ts + app/api/source/route.ts | Risk: P1 | Issue: URL validation only trims/min length; no scheme check or private network guard. Enables SSRF-style fetch via third-party fetchers. | Fix: enforce http/https, reject localhost/private IPs, optional allowlist.
 - File: lib/md.ts | Risk: P2 | Issue: mdEscape only normalizes newlines; text fields can include markdown or HTML. Output is plain markdown but could be rendered unsafely elsewhere. | Fix: escape markdown special chars or ensure renderer uses safe mode and strips HTML.
+
+## [2026-03-10 12:01:53] Findings (timezone/url validation review)
+- File: lib/url-validate.ts | Risk: None | Note: normalizeAndValidateHttpUrl already enforces http/https, rejects credentials, private hostnames, and private IPv4. Prior SSRF finding is invalid.
+- File: app/api/agent/*/by-date/*.ts + md routes | Risk: P2 | Issue: includeRaw fetch lacks total time budget and cap on missing URLs; mapLimit=3 limits concurrency but not total duration. | Fix: add per-request maxMissing and global timeout, return partial rawStatus if exceeded.
+- File: lib/date.ts | Risk: None | Note: getShanghaiDayRange computes UTC instants for Asia/Shanghai day correctly (UTC+8, no DST).
