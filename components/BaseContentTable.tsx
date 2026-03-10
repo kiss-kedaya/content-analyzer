@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Loader2, Play } from '@/components/Icon'
-import VideoPreview from './VideoPreview'
+import { VideoPreview } from './DynamicMedia'
 import FavoriteButton from './FavoriteButton'
 import HoverVideoPreview from './HoverVideoPreview'
 import MediaThumbnail from './MediaThumbnail'
