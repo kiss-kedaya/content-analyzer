@@ -21,6 +21,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const touchCurrentRef = useRef<{ x: number; y: number } | null>(null)
   const touchLockRef = useRef<'x' | 'y' | null>(null)
@@ -127,6 +128,25 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   }
 
   const active = items[activeIndex]
+
+  useEffect(() => {
+    if (active?.type !== 'video') return
+
+    const el = videoRef.current
+    if (!el) return
+
+    const tryPlay = async () => {
+      try {
+        await el.play()
+      } catch {
+        // ignore: user gesture may be required
+      }
+    }
+
+    requestAnimationFrame(() => {
+      tryPlay()
+    })
+  }, [active?.type, active?.url])
 
   const resetTouchState = () => {
     touchStartRef.current = null
@@ -238,7 +258,10 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                 {active.type === 'video' ? (
                   <video
                     key={active.url}
+                    ref={videoRef}
                     controls
+                    muted
+                    playsInline
                     autoPlay
                     preload="metadata"
                     className="w-full rounded-lg bg-black"

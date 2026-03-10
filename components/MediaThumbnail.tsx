@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Play, Image as ImageIcon, Loader2 } from '@/components/Icon'
+import { Image as ImageIcon, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface MediaThumbnailProps {
@@ -69,6 +69,8 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
     onPreview?.()
   }
 
+  const containerClass = `relative overflow-hidden bg-black ${className} ${onPreview ? 'cursor-pointer' : ''}`
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
@@ -88,7 +90,7 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
 
   return (
     <div
-      className={`relative overflow-hidden bg-black ${className} ${onPreview ? 'cursor-pointer' : ''}`}
+      className={containerClass}
       onClick={handleClick}
       role={onPreview ? 'button' : undefined}
       tabIndex={onPreview ? 0 : undefined}
@@ -110,11 +112,6 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
             autoPlay
             onError={() => setError(true)}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-              <Play className="w-6 h-6 text-black ml-1" />
-            </div>
-          </div>
         </>
       ) : (
         <img

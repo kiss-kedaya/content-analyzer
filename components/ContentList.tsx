@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
 import TabSelector from './TabSelector'
 import SortSelector from './SortSelector'
+import DatePicker from './DatePicker'
 import { Loader2 } from './Icon'
 import { useContentListState } from '@/hooks/useContentListState'
 
@@ -31,16 +32,19 @@ interface ContentListProps {
   initialTab: string
   initialOrderBy: string
   initialPage: number
+  initialDate?: string | null
 }
 
-const ITEMS_PER_PAGE = 20
+const DEFAULT_PAGE_SIZE = 20
+const DATE_PAGE_SIZE = 10
 
 export default function ContentList({
   techContents: initialTechContents,
   adultContents: initialAdultContents,
   initialTab,
   initialOrderBy,
-  initialPage
+  initialPage,
+  initialDate
 }: ContentListProps) {
   const { state, actions } = useContentListState(
     initialTechContents,
@@ -53,9 +57,9 @@ export default function ContentList({
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  const [dateFilter, setDateFilter] = useState<string | null>(initialDate ?? null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  // 删除处理函数
   const handleDeleteTech = (id: string) => {
     actions.deleteTechContent(id)
   }
@@ -64,7 +68,6 @@ export default function ContentList({
     actions.deleteAdultContent(id)
   }
 
-  // 页面返回后恢复滚动位置
   useEffect(() => {
     const raw = sessionStorage.getItem('content-list-state')
     if (!raw) return
@@ -81,7 +84,6 @@ export default function ContentList({
     }
   }, [])
 
-  // 持久化滚动与列表状态
   useEffect(() => {
     const onBeforeUnload = () => {
       sessionStorage.setItem('content-list-state', JSON.stringify({
@@ -101,13 +103,13 @@ export default function ContentList({
     }
   }, [state.activeTab, state.orderBy, state.techPage, state.adultPage])
 
-  // URL 只同步 tab/orderBy，避免无限滚动时频繁 replace 导致页面抖动
   useEffect(() => {
     const params = new URLSearchParams(searchParams?.toString() || '')
 
     const unchanged =
       params.get('tab') === state.activeTab &&
-      params.get('orderBy') === state.orderBy
+      params.get('orderBy') === state.orderBy &&
+      (params.get('date') || '') === (dateFilter || '')
 
     if (unchanged) {
       return
@@ -115,34 +117,42 @@ export default function ContentList({
 
     params.set('tab', state.activeTab)
     params.set('orderBy', state.orderBy)
+    if (dateFilter) {
+      params.set('date', dateFilter)
+    } else {
+      params.delete('date')
+    }
     params.delete('page')
 
     const next = `${pathname}?${params.toString()}`
     router.replace(next, { scroll: false })
-  }, [state.activeTab, state.orderBy, pathname, router, searchParams])
+  }, [state.activeTab, state.orderBy, dateFilter, pathname, router, searchParams])
 
-  // 加载更多
   const loadMore = async () => {
     if (state.loading) return
-    
+
     actions.setLoading(true)
-    
+
     try {
       const isTech = state.activeTab === 'tech'
       const nextPage = isTech ? state.techPage + 1 : state.adultPage + 1
-      const endpoint = isTech ? '/api/content/paginated' : '/api/adult-content/paginated'
-      
-      const response = await fetch(
-        `${endpoint}?page=${nextPage}&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`
-      )
-      
+      const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
+      const endpoint = dateFilter
+        ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
+        : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
+
+      const url = dateFilter
+        ? `${endpoint}?date=${dateFilter}&page=${nextPage}&pageSize=${pageSize}&orderBy=${state.orderBy}`
+        : `${endpoint}?page=${nextPage}&pageSize=${pageSize}&orderBy=${state.orderBy}`
+
+      const response = await fetch(url)
+
       if (!response.ok) {
         throw new Error('Failed to fetch more contents')
       }
-      
+
       const data = await response.json()
-      
-      // 适配新的响应格式
+
       if (data.success && data.data) {
         if (isTech) {
           actions.appendTechContents(data.data)
@@ -162,8 +172,7 @@ export default function ContentList({
       actions.setLoading(false)
     }
   }
-  
-  // Intersection Observer 监听滚动到底部
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -176,27 +185,34 @@ export default function ContentList({
       },
       { threshold: 0.1 }
     )
-    
+
     if (loadMoreRef.current) {
       observer.observe(loadMoreRef.current)
     }
-    
+
     return () => {
       if (loadMoreRef.current) {
         observer.unobserve(loadMoreRef.current)
       }
     }
-  }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, state.techPage, state.adultPage, state.orderBy])
-  
-  // 切换排序时只重新获取当前 tab 数据，避免双请求
+  }, [state.activeTab, state.techHasMore, state.adultHasMore, state.loading, state.techPage, state.adultPage, state.orderBy, dateFilter])
+
   useEffect(() => {
     const fetchSortedData = async () => {
       actions.setLoading(true)
 
       try {
         const isTech = state.activeTab === 'tech'
-        const endpoint = isTech ? '/api/content/paginated' : '/api/adult-content/paginated'
-        const response = await fetch(`${endpoint}?page=1&pageSize=${ITEMS_PER_PAGE}&orderBy=${state.orderBy}`)
+        const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
+        const endpoint = dateFilter
+          ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
+          : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
+
+        const url = dateFilter
+          ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+          : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+
+        const response = await fetch(url)
 
         if (!response.ok) {
           throw new Error('Failed to fetch sorted data')
@@ -223,11 +239,10 @@ export default function ContentList({
       }
     }
 
-    // 只在排序改变时重新获取（不包括初始加载）
-    if (state.orderBy !== initialOrderBy) {
+    if (state.orderBy !== initialOrderBy || dateFilter !== (initialDate ?? null)) {
       fetchSortedData()
     }
-  }, [state.orderBy, state.activeTab])
+  }, [state.orderBy, state.activeTab, dateFilter])
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -238,6 +253,13 @@ export default function ContentList({
             currentTab={state.activeTab} 
             onTabChange={actions.setTab}
           />
+          <DatePicker
+            value={dateFilter}
+            onChange={(next) => {
+              setDateFilter(next)
+              actions.resetPagination()
+            }}
+          />
         </div>
         <SortSelector 
           value={state.orderBy} 
@@ -245,17 +267,15 @@ export default function ContentList({
           onSortChange={actions.setOrderBy}
         />
       </div>
-      
-      {/* 使用 CSS 隐藏/显示，避免重新渲染 */}
+
       <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
         <ContentTable contents={state.techContents} onDelete={handleDeleteTech} />
       </div>
-      
+
       <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
         <AdultContentTable contents={state.adultContents} onDelete={handleDeleteAdult} />
       </div>
-      
-      {/* 加载更多触发器 */}
+
       <div ref={loadMoreRef} className="py-8">
         {state.loading && (
           <div className="flex items-center justify-center">

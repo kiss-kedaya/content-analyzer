@@ -1,6 +1,8 @@
 import ContentList from '@/components/ContentList'
 import { getAllContents, getContentsCount, getStats } from '@/lib/api'
 import { getAllAdultContents, getAdultContentsCount, getAdultContentStats } from '@/lib/adult-api'
+import { getContentsByDate, getContentsCountByDate, getStatsByDate } from '@/lib/api-date'
+import { getAdultContentsByDate, getAdultContentsCountByDate, getAdultStatsByDate } from '@/lib/adult-api-date'
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
@@ -10,20 +12,23 @@ export const revalidate = 600 // 10 分钟（秒）
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ orderBy?: string; tab?: string; page?: string }>
+  searchParams: Promise<{ orderBy?: string; tab?: string; page?: string; date?: string }>
 }) {
   const params = await searchParams
   const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
   const tab = params.tab === 'adult' ? 'adult' : 'tech'
   const page = Number(params.page || '1') > 0 ? Number(params.page) : 1
+  const date = params.date || null
+
+  const pageSize = date ? 10 : 20
 
   const [techContents, adultContents, techTotal, adultTotal, techStats, adultStats] = await Promise.all([
-    getAllContents(orderBy, tab === 'tech' ? page : 1, 20),
-    getAllAdultContents(orderBy, tab === 'adult' ? page : 1, 20),
-    getContentsCount(),
-    getAdultContentsCount(),
-    getStats(),
-    getAdultContentStats()
+    date ? getContentsByDate(date, orderBy, tab === 'tech' ? page : 1, pageSize) : getAllContents(orderBy, tab === 'tech' ? page : 1, pageSize),
+    date ? getAdultContentsByDate(date, orderBy, tab === 'adult' ? page : 1, pageSize) : getAllAdultContents(orderBy, tab === 'adult' ? page : 1, pageSize),
+    date ? getContentsCountByDate(date) : getContentsCount(),
+    date ? getAdultContentsCountByDate(date) : getAdultContentsCount(),
+    date ? getStatsByDate(date) : getStats(),
+    date ? getAdultStatsByDate(date) : getAdultContentStats()
   ])
 
   const total = tab === 'tech' ? techTotal : adultTotal
@@ -79,6 +84,7 @@ export default async function Home({
         initialTab={tab}
         initialOrderBy={orderBy}
         initialPage={page}
+        initialDate={date}
       />
 
       {/* API 使用说明 */}

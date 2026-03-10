@@ -25,7 +25,16 @@ export async function middleware(request: NextRequest) {
   })
   
   if (!authToken) {
-    console.log('[Middleware] No token, redirecting to login')
+    console.log('[Middleware] No token')
+
+    // API routes should return 401 (agents/curl should not be redirected)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      }, { status: 401 })
+    }
+
     return NextResponse.redirect(new URL('/login', request.url))
   }
   
@@ -33,7 +42,15 @@ export async function middleware(request: NextRequest) {
   const isValid = await verifyToken(authToken.value)
   
   if (!isValid) {
-    console.log('[Middleware] Token verification failed, redirecting to login')
+    console.log('[Middleware] Token verification failed')
+
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      }, { status: 401 })
+    }
+
     return NextResponse.redirect(new URL('/login', request.url))
   }
   

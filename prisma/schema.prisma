@@ -67,3 +67,22 @@ model MediaCache {
   @@index([status])
   @@index([lastFetchedAt])
 }
+
+model SourceCache {
+  id            String   @id @default(cuid())
+  url           String   @unique
+  provider      String   // jina | defuddle
+  status        String   // ok | failed
+  rawResponse   Json?
+  title         String?
+  text          String   @db.Text
+  wordCount     Int?
+  sha256        String?
+  lastFetchedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([provider])
+  @@index([status])
+  @@index([lastFetchedAt])
+}
