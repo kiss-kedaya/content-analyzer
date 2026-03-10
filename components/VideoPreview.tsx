@@ -28,6 +28,8 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const touchCurrentRef = useRef<{ x: number; y: number } | null>(null)
   const touchLockRef = useRef<'x' | 'y' | null>(null)
+  const refreshAttemptsRef = useRef<Set<string>>(new Set())
+  const refreshInFlightRef = useRef(false)
   const { fetchMedia } = useMediaCache()
 
   const restoreFocus = useCallback(() => {
@@ -52,12 +54,14 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     setActiveIndex(prev => (prev === items.length - 1 ? 0 : prev + 1))
   }, [items.length])
 
-  const fetchMediaUrls = useCallback(async () => {
+  const fetchMediaUrls = useCallback(async (options?: { force?: boolean; keepActiveKey?: string }) => {
+    const force = options?.force ?? false
+
     setLoading(true)
     setError(null)
 
     try {
-      const data = await fetchMedia(url, { force: true })
+      const data = await fetchMedia(url, { force })
       if (!data) {
         throw new Error('Failed to fetch media')
       }
@@ -67,11 +71,11 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
           return acc
         }
 
-        // 检查 snapcdn token 是否过期（snapcdn JWT payload: exp 字段）
+        // snapcdn JWT payload: exp -> expiresAt
         const now = Math.floor(Date.now() / 1000)
         let effectiveUrl = item.url
 
-        // 仅当明确过期时才切换到 sourceUrl（避免过于激进）
+        // 仅当明确过期时才切换到 sourceUrl（不激进）
         if (item.expiresAt && item.expiresAt < now && item.sourceUrl) {
           effectiveUrl = item.sourceUrl
         }
@@ -91,8 +95,18 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         throw new Error('No media found')
       }
 
-      setItems(merged)
-      setActiveIndex(0)
+      // Try to keep active item after refresh
+      const keepKey = options?.keepActiveKey
+      if (keepKey) {
+        const nextIndex = merged.findIndex((it) => {
+          return it.url === keepKey || it.sourceUrl === keepKey || it.fallbackUrl === keepKey
+        })
+        setItems(merged)
+        setActiveIndex(nextIndex >= 0 ? nextIndex : 0)
+      } else {
+        setItems(merged)
+        setActiveIndex(0)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -110,7 +124,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   }, [activeIndex, loading, error])
 
   useEffect(() => {
-    fetchMediaUrls()
+    fetchMediaUrls({ force: false })
   }, [fetchMediaUrls])
 
   useEffect(() => {
@@ -144,6 +158,39 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   const active = items[activeIndex]
 
+  const refreshActiveOnce = useCallback(async () => {
+    if (!active) return
+    const isSnapcdn = (() => {
+      try {
+        return new URL(active.url).hostname === 'dl.snapcdn.app'
+      } catch {
+        return false
+      }
+    })()
+
+    if (!isSnapcdn) return
+
+    // Prefer to refetch once, then fallback to sourceUrl.
+    const key = active.fallbackUrl || active.url
+    if (refreshAttemptsRef.current.has(key)) {
+      if (active.sourceUrl && active.url !== active.sourceUrl) {
+        setItems(prev => prev.map((it, idx) => (idx === activeIndex ? { ...it, url: active.sourceUrl || it.url } : it)))
+      }
+      return
+    }
+
+    if (refreshInFlightRef.current) return
+
+    refreshAttemptsRef.current.add(key)
+    refreshInFlightRef.current = true
+
+    try {
+      await fetchMediaUrls({ force: true, keepActiveKey: active.sourceUrl || active.fallbackUrl || active.url })
+    } finally {
+      refreshInFlightRef.current = false
+    }
+  }, [active, activeIndex, fetchMediaUrls])
+
   // 处理视频加载错误（包括 206 状态码）
   useEffect(() => {
     if (active?.type !== 'video') return
@@ -152,29 +199,18 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     if (!el) return
 
     const handleError = () => {
-      console.log('视频加载错误，当前状态:', {
-        url: active.url,
-        sourceUrl: active.sourceUrl,
-        expiresAt: active.expiresAt,
-        now: Math.floor(Date.now() / 1000),
-        expired: active.expiresAt ? active.expiresAt < Math.floor(Date.now() / 1000) : 'unknown'
-      })
-      
-      // 如果有 sourceUrl，尝试切换到源地址
+      // 先尝试强制重新提取（只尝试 1 次），仍失败再降级到 sourceUrl
+      refreshActiveOnce()
+
+      // fallback: if we already have sourceUrl and it isn't used, switch immediately
       if (active.sourceUrl && active.url !== active.sourceUrl) {
-        console.log('切换到源地址:', active.sourceUrl)
-        setItems(prevItems => 
-          prevItems.map((item, idx) => 
-            idx === activeIndex 
+        setItems(prevItems =>
+          prevItems.map((item, idx) =>
+            idx === activeIndex
               ? { ...item, url: item.sourceUrl || item.url }
               : item
           )
         )
-      } else {
-        console.log('无法切换:', {
-          hasSourceUrl: !!active.sourceUrl,
-          alreadyUsingSourceUrl: active.url === active.sourceUrl
-        })
       }
     }
 
@@ -195,37 +231,24 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     return () => {
       el.removeEventListener('error', handleError)
     }
-  }, [active?.type, active?.url, active?.sourceUrl, activeIndex])
+  }, [active?.type, active?.url, active?.sourceUrl, activeIndex, refreshActiveOnce])
 
   // 处理图片加载错误（包括 206 状态码）
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget
-    
-    console.log('图片加载错误，当前状态:', {
-      url: active?.url,
-      sourceUrl: active?.sourceUrl,
-      expiresAt: active?.expiresAt,
-      now: Math.floor(Date.now() / 1000),
-      expired: active?.expiresAt ? active.expiresAt < Math.floor(Date.now() / 1000) : 'unknown'
-    })
-    
-    // 如果有 sourceUrl 且当前不是 sourceUrl，尝试切换
+  const handleImageError = useCallback(() => {
+    // 先尝试强制重新提取（只尝试 1 次），仍失败再降级到 sourceUrl
+    refreshActiveOnce()
+
+    // fallback: if we already have sourceUrl and it isn't used, switch immediately
     if (active?.sourceUrl && active.url !== active.sourceUrl) {
-      console.log('切换到源地址:', active.sourceUrl)
-      setItems(prevItems => 
-        prevItems.map((item, idx) => 
-          idx === activeIndex 
+      setItems(prevItems =>
+        prevItems.map((item, idx) =>
+          idx === activeIndex
             ? { ...item, url: item.sourceUrl || item.url }
             : item
         )
       )
-    } else {
-      console.log('无法切换:', {
-        hasSourceUrl: !!active?.sourceUrl,
-        alreadyUsingSourceUrl: active?.url === active?.sourceUrl
-      })
     }
-  }, [active?.sourceUrl, active?.url, active?.expiresAt, activeIndex])
+  }, [active?.sourceUrl, active?.url, activeIndex, refreshActiveOnce])
 
   const resetTouchState = () => {
     touchStartRef.current = null
@@ -271,7 +294,10 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               <p className="font-medium">加载失败</p>
               <p className="text-sm mt-1">{error}</p>
               <button
-                onClick={fetchMediaUrls}
+                onClick={() => {
+                  refreshAttemptsRef.current.clear()
+                  fetchMediaUrls({ force: true })
+                }}
                 disabled={loading}
                 className="mt-3 px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
