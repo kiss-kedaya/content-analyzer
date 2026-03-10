@@ -4,11 +4,15 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import ContentTable from './ContentTable'
 import AdultContentTable from './AdultContentTable'
+import { MobileContentList } from './MobileContentList'
+import { PullToRefresh } from './PullToRefresh'
 import TabSelector from './TabSelector'
 import SortSelector from './SortSelector'
 import DatePicker from './DatePicker'
 import { Loader2 } from './Icon'
 import { useContentListState } from '@/hooks/useContentListState'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useToastContext } from './ClientLayout'
 
 interface Content {
   id: string
@@ -60,13 +64,57 @@ export default function ContentList({
   const [dateFilter, setDateFilter] = useState<string | null>(initialDate ?? null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
+  const toast = useToastContext()
 
   const handleDeleteTech = (id: string) => {
     actions.deleteTechContent(id)
+    toast.success('删除成功')
   }
 
   const handleDeleteAdult = (id: string) => {
     actions.deleteAdultContent(id)
+    toast.success('删除成功')
+  }
+
+  const handleRefresh = async () => {
+    try {
+      const isTech = state.activeTab === 'tech'
+      const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
+      const endpoint = dateFilter
+        ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
+        : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
+
+      const url = dateFilter
+        ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+        : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error('刷新失败')
+      }
+
+      const data = await response.json()
+      if (!data.success || !data.data) {
+        throw new Error(data.error?.message || '刷新失败')
+      }
+
+      if (isTech) {
+        actions.setTechContents(data.data)
+        actions.setTechPage(1)
+        actions.setTechHasMore(data.pagination?.hasMore ?? false)
+      } else {
+        actions.setAdultContents(data.data)
+        actions.setAdultPage(1)
+        actions.setAdultHasMore(data.pagination?.hasMore ?? false)
+      }
+
+      toast.success('刷新成功')
+    } catch (error) {
+      toast.error('刷新失败，请重试')
+      throw error
+    }
   }
 
   useEffect(() => {
@@ -258,61 +306,89 @@ export default function ContentList({
   }, [state.orderBy, state.activeTab, dateFilter, actions, initialDate, initialOrderBy])
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
-          <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
-          <TabSelector 
-            currentTab={state.activeTab} 
-            onTabChange={actions.setTab}
-          />
-          <DatePicker
-            value={dateFilter}
-            onChange={(next) => {
-              setDateFilter(next)
-              actions.resetPagination()
-            }}
+    <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
+            <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
+            <TabSelector 
+              currentTab={state.activeTab} 
+              onTabChange={actions.setTab}
+            />
+            <DatePicker
+              value={dateFilter}
+              onChange={(next) => {
+                setDateFilter(next)
+                actions.resetPagination()
+              }}
+            />
+          </div>
+          <SortSelector 
+            value={state.orderBy} 
+            currentTab={state.activeTab}
+            onSortChange={actions.setOrderBy}
           />
         </div>
-        <SortSelector 
-          value={state.orderBy} 
-          currentTab={state.activeTab}
-          onSortChange={actions.setOrderBy}
-        />
-      </div>
 
-      <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
-        <ContentTable contents={state.techContents} onDelete={handleDeleteTech} />
-      </div>
+        {/* 桌面端：表格 */}
+        {!isMobile && (
+          <>
+            <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
+              <ContentTable contents={state.techContents} onDelete={handleDeleteTech} />
+            </div>
 
-      <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
-        <AdultContentTable contents={state.adultContents} onDelete={handleDeleteAdult} />
-      </div>
+            <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
+              <AdultContentTable contents={state.adultContents} onDelete={handleDeleteAdult} />
+            </div>
+          </>
+        )}
 
-      <div ref={loadMoreRef} className="py-8">
-        {state.loading && (
-          <div className="flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-            <span className="ml-2 text-gray-500">加载中...</span>
-          </div>
+        {/* 移动端：卡片 */}
+        {isMobile && (
+          <>
+            <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
+              <MobileContentList
+                contents={state.techContents}
+                onDelete={handleDeleteTech}
+                detailPathPrefix="/content"
+              />
+            </div>
+
+            <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
+              <MobileContentList
+                contents={state.adultContents}
+                onDelete={handleDeleteAdult}
+                detailPathPrefix="/adult-content"
+              />
+            </div>
+          </>
         )}
-        {loadError && (
-          <div className="flex flex-col items-center justify-center gap-3">
-            <div className="text-center text-red-600 text-sm">{loadError}</div>
-            <button
-              onClick={loadMore}
-              className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
-            >
-              重试
-            </button>
-          </div>
-        )}
-        {!state.loading && !loadError && ((state.activeTab === 'tech' && !state.techHasMore) || (state.activeTab === 'adult' && !state.adultHasMore)) && (
-          <div className="text-center text-gray-400 text-sm">
-            已加载全部内容
-          </div>
-        )}
+
+        <div ref={loadMoreRef} className="py-8">
+          {state.loading && (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+              <span className="ml-2 text-gray-500">加载中...</span>
+            </div>
+          )}
+          {loadError && (
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="text-center text-red-600 text-sm">{loadError}</div>
+              <button
+                onClick={loadMore}
+                className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
+              >
+                重试
+              </button>
+            </div>
+          )}
+          {!state.loading && !loadError && ((state.activeTab === 'tech' && !state.techHasMore) || (state.activeTab === 'adult' && !state.adultHasMore)) && (
+            <div className="text-center text-gray-400 text-sm">
+              已加载全部内容
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </PullToRefresh>
   )
 }
