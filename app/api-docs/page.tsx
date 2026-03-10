@@ -159,6 +159,125 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
           </div>
         </Section>
 
+        {/* 自动字段处理 */}
+        <Section title="自动字段处理">
+          <div className="space-y-6">
+            {/* 标题自动生成 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-black mb-3">标题自动生成</h3>
+              <p className="text-gray-700 mb-4">
+                当创建内容时 <code className="bg-white px-2 py-1 rounded text-sm">title</code> 字段为空或缺失，后端会自动分析以下信息生成标题：
+              </p>
+              <ol className="list-decimal list-inside space-y-2 text-gray-700 mb-4">
+                <li>数据库中的 <code className="bg-white px-2 py-1 rounded text-sm">summary</code>（摘要）</li>
+                <li>数据库中的 <code className="bg-white px-2 py-1 rounded text-sm">content</code>（完整内容）</li>
+                <li>从 defuddle.md 或 r.jina.ai 获取的原文</li>
+              </ol>
+              <p className="text-gray-700 mb-4">
+                使用 <strong>Cloudflare Workers AI (GLM-4.7-flash)</strong> 生成简洁准确的中文标题（不超过50字）。
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                <strong>适用范围：</strong> 技术内容和成人内容均支持
+              </p>
+              
+              <h4 className="text-sm font-semibold text-black mb-3">示例</h4>
+              <CodeBlock>
+{`# 不提供 title，后端自动生成
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b "auth-token=<token>" \\
+  -d '{
+    "source": "X",
+    "url": "https://x.com/user/status/123",
+    "summary": "OpenClaw 是一个强大的 AI Agent 框架",
+    "content": "详细内容...",
+    "score": 8.5
+  }'
+
+# 响应中会包含自动生成的 title
+{
+  "id": "clxxx...",
+  "title": "OpenClaw：强大的AI Agent框架", // 自动生成
+  "source": "X",
+  ...
+}`}
+              </CodeBlock>
+            </div>
+
+            {/* Source 字段规范化 */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-black mb-3">Source 字段规范化</h3>
+              <p className="text-gray-700 mb-4">
+                所有 <code className="bg-white px-2 py-1 rounded text-sm">source</code> 字段会自动规范化为统一格式，确保数据一致性。
+              </p>
+              
+              <h4 className="text-sm font-semibold text-black mb-3">规范化映射表</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-300 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-300 px-4 py-2 text-left">输入（任意大小写）</th>
+                      <th className="border border-gray-300 px-4 py-2 text-left">输出（规范格式）</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 px-4 py-2">twitter, Twitter, TWITTER</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">X</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2">linuxdo, LinuxDo, LINUXDO</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">Linuxdo</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-4 py-2">xiaohongshu, XiaoHongShu, xhs</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">Xiaohongshu</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2">github, Github, GITHUB</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">GitHub</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 px-4 py-2">reddit, Reddit, REDDIT</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">Reddit</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2">youtube, Youtube, yt</td>
+                      <td className="border border-gray-300 px-4 py-2 font-semibold">YouTube</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-white border border-gray-300 rounded-lg p-4 mt-4">
+                <p className="text-sm text-gray-700">
+                  <strong>建议：</strong> 直接使用规范化后的名称（X, Linuxdo, Xiaohongshu 等）以避免转换。
+                </p>
+              </div>
+
+              <h4 className="text-sm font-semibold text-black mb-3 mt-4">示例</h4>
+              <CodeBlock>
+{`# 使用旧格式（twitter）
+curl -X POST https://ca.kedaya.xyz/api/content \\
+  -H "Content-Type: application/json" \\
+  -b "auth-token=<token>" \\
+  -d '{
+    "source": "twitter",  // 输入
+    "url": "https://twitter.com/user/status/123",
+    ...
+  }'
+
+# 响应中 source 自动转换为 X
+{
+  "id": "clxxx...",
+  "source": "X",  // 自动规范化
+  ...
+}`}
+              </CodeBlock>
+            </div>
+          </div>
+        </Section>
+
         {/* 端点列表 */}
         <Section title="端点列表">
           <div className="space-y-8">
@@ -172,9 +291,9 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
               <h4 className="text-sm font-semibold text-black mb-3">请求体</h4>
               <CodeBlock>
 {`{
-  "source": "twitter",           // 必填：来源
+  "source": "X",                 // 必填：来源（自动规范化：twitter→X, linuxdo→Linuxdo）
   "url": "https://...",          // 必填：原文链接（唯一）
-  "title": "标题",               // 可选：标题
+  "title": "标题",               // 可选：标题（缺失时后端自动生成）
   "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
@@ -186,9 +305,9 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
               <CodeBlock>
 {`{
   "id": "clxxx...",
-  "source": "twitter",
+  "source": "X",  // 自动规范化
   "url": "https://...",
-  "title": "标题",
+  "title": "标题",  // 如果未提供，则为自动生成
   "summary": "内容摘要",
   "content": "完整内容",
   "score": 8.5,
@@ -207,8 +326,8 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
   -H "Content-Type: application/json" \\
   -b "auth-token=<your-jwt-token>" \\
   -d '{
-    "source": "twitter",
-    "url": "https://twitter.com/user/status/123",
+    "source": "X",
+    "url": "https://x.com/user/status/123",
     "title": "示例推文",
     "summary": "这是一条示例推文的摘要",
     "content": "这是完整的推文内容...",
@@ -228,15 +347,21 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
               <h4 className="text-sm font-semibold text-black mb-3">请求体</h4>
               <CodeBlock>
 {`{
-  "source": "twitter",
-  "url": "https://...",
-  "title": "标题",
-  "summary": "内容摘要",
-  "content": "完整内容",
-  "score": 8.5,
-  "analyzedBy": "OpenClaw Agent"
+  "source": "X",                 // 必填：来源（自动规范化：twitter→X, linuxdo→Linuxdo）
+  "url": "https://...",          // 必填：原文链接（唯一）
+  "title": "标题",               // 可选：标题（缺失时后端自动生成）
+  "summary": "内容摘要",         // 必填：摘要
+  "content": "完整内容",         // 必填：完整内容
+  "score": 8.5,                  // 必填：评分（0-10）
+  "analyzedBy": "OpenClaw Agent" // 可选：分析者
 }`}
               </CodeBlock>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <p className="text-sm text-yellow-900">
+                  <strong>注意：</strong> 成人内容的原文获取使用 defuddle.md，而非 r.jina.ai。
+                </p>
+              </div>
             </Endpoint>
 
             {/* 批量创建技术内容 */}
@@ -250,8 +375,8 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
               <CodeBlock>
 {`[
   {
-    "source": "twitter",
-    "url": "https://twitter.com/user/status/123",
+    "source": "X",  // 自动规范化
+    "url": "https://x.com/user/status/123",
     "title": "标题",
     "summary": "摘要",
     "content": "完整内容",
@@ -259,7 +384,7 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
     "analyzedBy": "OpenClaw Agent"
   },
   {
-    "source": "xiaohongshu",
+    "source": "Xiaohongshu",  // 自动规范化
     "url": "https://xiaohongshu.com/...",
     "summary": "摘要",
     "content": "完整内容",
@@ -279,7 +404,7 @@ GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&order
     {
       "index": 0,
       "id": "clxxx...",
-      "url": "https://twitter.com/user/status/123"
+      "url": "https://x.com/user/status/123"
     },
     {
       "index": 1,
