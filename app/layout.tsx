@@ -3,6 +3,7 @@ import './globals.css'
 import { BarChart3 } from '@/components/Icon'
 import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
+import { ClientLayout } from '@/components/ClientLayout'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -71,7 +72,9 @@ export default function RootLayout({
           </div>
         </header>
         <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12">
-          {children}
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </main>
         <footer className="border-t border-gray-200 mt-12 md:mt-24">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12">

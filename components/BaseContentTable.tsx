@@ -7,7 +7,7 @@ import VideoPreview from './VideoPreview'
 import FavoriteButton from './FavoriteButton'
 import HoverVideoPreview from './HoverVideoPreview'
 import MediaThumbnail from './MediaThumbnail'
-import ConfirmDialog from './ConfirmDialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 // 评分颜色阈值常量
 const SCORE_THRESHOLDS = {
@@ -329,12 +329,12 @@ export default function BaseContentTable<T extends BaseContent>({
       {previewUrl && <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />}
       
       <ConfirmDialog
-        open={confirmDelete !== null}
+        isOpen={confirmDelete !== null}
         title="确认删除"
         message="确定要删除这条内容吗？此操作无法撤销。"
         confirmText="删除"
         cancelText="取消"
-        danger
+        type="danger"
         onConfirm={() => confirmDelete && handleDelete(confirmDelete)}
         onCancel={() => setConfirmDelete(null)}
       />

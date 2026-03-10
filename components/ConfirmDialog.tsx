@@ -1,89 +1,128 @@
 'use client'
 
-import { useEffect } from 'react'
-import { X } from '@/components/Icon'
+import { useEffect, useRef } from 'react'
+import { AlertTriangle, X } from './Icon'
 
 interface ConfirmDialogProps {
-  open: boolean
+  isOpen: boolean
   title: string
   message: string
   confirmText?: string
   cancelText?: string
+  type?: 'danger' | 'warning' | 'info'
   onConfirm: () => void
   onCancel: () => void
-  danger?: boolean
 }
 
-export default function ConfirmDialog({
-  open,
+export function ConfirmDialog({
+  isOpen,
   title,
   message,
   confirmText = '确认',
   cancelText = '取消',
+  type = 'danger',
   onConfirm,
-  onCancel,
-  danger = false
+  onCancel
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!open) return
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement
+      dialogRef.current?.focus()
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+      previousFocusRef.current?.focus()
+    }
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isOpen) {
         onCancel()
       }
     }
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [open, onCancel])
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onCancel])
 
-  if (!open) return null
+  if (!isOpen) return null
+
+  const styles = {
+    danger: {
+      icon: 'bg-red-100 text-red-600',
+      button: 'bg-red-600 hover:bg-red-700 text-white'
+    },
+    warning: {
+      icon: 'bg-yellow-100 text-yellow-600',
+      button: 'bg-yellow-600 hover:bg-yellow-700 text-white'
+    },
+    info: {
+      icon: 'bg-blue-100 text-blue-600',
+      button: 'bg-blue-600 hover:bg-blue-700 text-white'
+    }
+  }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200"
-        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
+        aria-describedby="dialog-description"
+        tabIndex={-1}
+        className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 id="dialog-title" className="text-lg font-semibold text-black">
-            {title}
-          </h3>
+        <div className="flex items-start gap-4">
+          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles[type].icon}`}>
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h3 id="dialog-title" className="text-lg font-semibold text-black mb-2">
+              {title}
+            </h3>
+            <p id="dialog-description" className="text-sm text-gray-600 mb-6">
+              {message}
+            </p>
+
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                {cancelText}
+              </button>
+              <button
+                onClick={() => {
+                  onConfirm()
+                  onCancel()
+                }}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${styles[type].button}`}
+              >
+                {confirmText}
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={onCancel}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
             aria-label="关闭"
           >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        <div className="px-6 py-4">
-          <p className="text-gray-700">{message}</p>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            {cancelText}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`px-4 py-2 rounded-md text-white transition-colors ${
-              danger
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-black hover:bg-gray-800'
-            }`}
-          >
-            {confirmText}
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
       </div>
