@@ -6,8 +6,8 @@ import { getAdultContentsByDate, getAdultContentsCountByDate, getAdultStatsByDat
 import Link from 'next/link'
 import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
 
-// ISR: 每 10 分钟重新生成页面
-export const revalidate = 600 // 10 分钟（秒）
+// ISR: 每 1 分钟重新生成页面（用于测试）
+export const revalidate = 60 // 1 分钟（秒）
 
 export default async function Home({
   searchParams
