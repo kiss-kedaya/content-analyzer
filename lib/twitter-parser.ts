@@ -285,8 +285,16 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       tweetText = tweetText
         // Add line break before bullet points (• or →) if not at start of line
         .replace(/([^\n])([•→])/g, '$1\n$2')
-        // Add line break after colons followed by list items (for section headers)
-        .replace(/：\s*\n/g, '：\n')
+        // Add line break after bullet points followed by text
+        .replace(/([•→]\s+[^\n]+?)(\s+[•→])/g, '$1\n$2')
+        // Add line break after "这意味着什么？" and similar questions
+        .replace(/(这意味着什么？|什么意思？|为什么？)/g, '$1\n\n')
+        // Add line break before "AI Agent" if preceded by text
+        .replace(/([^\n])(AI Agent)/g, '$1\n\n$2')
+        // Add line break after section headers (text ending with colon followed by list)
+        .replace(/([：:])(\s*)([A-Za-z\u4e00-\u9fa5])/g, '$1\n$2$3')
+        // Add line break before "整个" and "未来" if they start a new thought
+        .replace(/([。！？])(\s*)(整个|未来)/g, '$1\n\n$2$3')
         // Clean up multiple consecutive line breaks
         .replace(/\n{3,}/g, '\n\n')
     }
