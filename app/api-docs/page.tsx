@@ -66,7 +66,7 @@ export default function ApiDocsPage() {
           
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-900">
-              <strong>⚠️ 重要：</strong> 请先登录系统获取 JWT token，然后在所有 API 请求中自动携带 cookie。
+              <strong>重要：</strong> 请先登录系统获取 JWT token，然后在所有 API 请求中携带 auth-token cookie。
             </p>
           </div>
 
@@ -248,7 +248,7 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
                 <p className="text-sm text-blue-900">
-                  <strong>💡 提示：</strong> 最大批量大小为 100 条。部分失败不影响其他内容创建。
+                  <strong>提示：</strong> 最大批量大小为 100 条。部分失败不影响其他内容创建。
                 </p>
               </div>
             </Endpoint>

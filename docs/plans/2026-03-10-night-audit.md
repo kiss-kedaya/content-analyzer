@@ -9,3 +9,9 @@
 - File: app/api/agent/*/by-date/*.ts | Risk: P1 | Issue: includeRaw missing fetch loop is sequential without time budget or per-request cap; can stall long requests for large missing lists. | Fix: enforce max missing URLs per request, add total timeout or concurrency-limited pool, and return partial results with rawStatus.
 - File: app/api/source/route.ts + lib/source-cache.ts | Risk: P1 | Issue: URL validation only checks non-empty string; no scheme/domain checks, enabling unexpected behavior and SSRF via third-party fetchers. | Fix: validate http/https, reject localhost/private IPs if possible, or add allowlist.
 - File: lib/md.ts | Risk: P2 | Issue: mdEscape only normalizes newlines; titles/fields can inject markdown or HTML if rendered unsafely. | Fix: escape markdown special chars in titles/fields or render with safe markdown settings; consider stripping HTML.
+
+## [2026-03-10 11:38:49] Findings (runtime checks)
+- File: .env | Risk: P2 | Issue: ACCESS_PASSWORD default is placeholder (your-access-password); runtime login with expected password (kedaya) fails unless env overridden. | Fix: set ACCESS_PASSWORD to expected value in local env for dev, or update .env/.env.example with correct default and document override.
+- File: next.config.js | Risk: P3 | Issue: Next.js warns about workspace root due to multiple lockfiles; can affect output tracing. | Fix: set outputFileTracingRoot or remove extra lockfile outside repo if not needed.
+## [2026-03-10 11:40:08] Findings (auth env validation)
+- File: lib/env.ts | Risk: P1 | Issue: ACCESS_PASSWORD requires min length 8. Required login password is kedaya (6 chars) causing env validation failure in middleware and /api/auth/login returns 404. UI shows network error. | Fix: reduce minimum length to 6 or update password and documentation to an 8+ char value, and ensure env validation does not crash middleware.
