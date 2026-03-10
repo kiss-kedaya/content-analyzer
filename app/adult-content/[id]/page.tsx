@@ -4,7 +4,6 @@ import { ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/component
 import FavoriteButton from '@/components/FavoriteButton'
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
-import SourceModalLauncher from '@/components/SourceModalLauncher'
 import SourceContentViewer from '@/components/SourceContentViewer'
 
 export default async function AdultContentDetailPage({
@@ -103,7 +102,6 @@ export default async function AdultContentDetailPage({
         {/* 原文与 Markdown */}
         <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-t border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <SourceModalLauncher url={content.url} label="查看原文" />
             <a
               href={content.url}
               target="_blank"
