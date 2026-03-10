@@ -86,7 +86,7 @@ export async function GET(request: Request) {
         const remaining = Math.max(1, deadline - Date.now())
         try {
           await Promise.race([
-            getOrFetchSourceText(u),
+            getOrFetchSourceText(u, { preferProvider: 'defuddle' }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), Math.min(8000, remaining)))
           ])
         } catch {

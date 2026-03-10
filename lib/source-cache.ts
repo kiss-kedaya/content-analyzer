@@ -81,8 +81,12 @@ async function fetchText(url: string, provider: SourceProvider, timeoutMs = 2500
   }
 }
 
-export async function getOrFetchSourceText(inputUrl: string, opts?: { force?: boolean }) {
+export async function getOrFetchSourceText(
+  inputUrl: string, 
+  opts?: { force?: boolean; preferProvider?: SourceProvider }
+) {
   const url = normalizeAndValidateHttpUrl(normalizeUrl(inputUrl))
+  const preferProvider = opts?.preferProvider || 'jina'
 
   if (!opts?.force) {
     const cached = await prisma.sourceCache.findUnique({ where: { url } })
@@ -104,83 +108,65 @@ export async function getOrFetchSourceText(inputUrl: string, opts?: { force?: bo
   const task = (async () => {
     const now = new Date()
 
-    // Try jina first
-    try {
-      const jina = await fetchText(url, 'jina')
-      const textSha = sha256(jina.text)
-      return await prisma.sourceCache.upsert({
-        where: { url },
-        create: {
-          url,
-          provider: 'jina',
-          status: 'ok',
-          title: jina.title,
-          text: jina.text,
-          rawResponse: jina.rawResponse as any,
-          wordCount: approxWordCount(jina.text),
-          sha256: textSha,
-          lastFetchedAt: now,
-        },
-        update: {
-          provider: 'jina',
-          status: 'ok',
-          title: jina.title,
-          text: jina.text,
-          rawResponse: jina.rawResponse as any,
-          wordCount: approxWordCount(jina.text),
-          sha256: textSha,
-          lastFetchedAt: now,
-        }
-      })
-    } catch (e) {
-      // fallback
+    // Determine provider order based on preference
+    const providers: SourceProvider[] = preferProvider === 'defuddle' 
+      ? ['defuddle', 'jina'] 
+      : ['jina', 'defuddle']
+
+    let lastError: Error | null = null
+
+    // Try providers in order
+    for (const provider of providers) {
       try {
-        const def = await fetchText(url, 'defuddle')
-        const textSha = sha256(def.text)
+        const result = await fetchText(url, provider)
+        const textSha = sha256(result.text)
         return await prisma.sourceCache.upsert({
           where: { url },
           create: {
             url,
-            provider: 'defuddle',
+            provider,
             status: 'ok',
-            title: def.title,
-            text: def.text,
-            rawResponse: def.rawResponse as any,
-            wordCount: approxWordCount(def.text),
+            title: result.title,
+            text: result.text,
+            rawResponse: result.rawResponse as any,
+            wordCount: approxWordCount(result.text),
             sha256: textSha,
             lastFetchedAt: now,
           },
           update: {
-            provider: 'defuddle',
+            provider,
             status: 'ok',
-            title: def.title,
-            text: def.text,
-            rawResponse: def.rawResponse as any,
-            wordCount: approxWordCount(def.text),
+            title: result.title,
+            text: result.text,
+            rawResponse: result.rawResponse as any,
+            wordCount: approxWordCount(result.text),
             sha256: textSha,
             lastFetchedAt: now,
           }
         })
-      } catch (e2) {
-        const msg = e2 instanceof Error ? e2.message : String(e2)
-        // Save failed state (keep text minimal)
-        return await prisma.sourceCache.upsert({
-          where: { url },
-          create: {
-            url,
-            provider: 'defuddle',
-            status: 'failed',
-            text: msg,
-            lastFetchedAt: now,
-          },
-          update: {
-            status: 'failed',
-            text: msg,
-            lastFetchedAt: now,
-          }
-        })
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e))
+        // Continue to next provider
       }
     }
+
+    // All providers failed
+    const msg = lastError?.message || 'All providers failed'
+    return await prisma.sourceCache.upsert({
+      where: { url },
+      create: {
+        url,
+        provider: preferProvider,
+        status: 'failed',
+        text: msg,
+        lastFetchedAt: now,
+      },
+      update: {
+        status: 'failed',
+        text: msg,
+        lastFetchedAt: now,
+      }
+    })
   })()
 
   inflight.set(url, task)
