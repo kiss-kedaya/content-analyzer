@@ -123,7 +123,7 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   }
 
   // Second pass: extract main tweet text
-  // Strategy: find the longest text block between author info and media/stats
+  // Strategy: find text between @handle and first image/stats marker
   let inContent = false
   let contentLines: string[] = []
   
@@ -136,17 +136,23 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       continue
     }
     
+    // Skip metadata lines
+    if (line.startsWith('Title:') || line.startsWith('URL Source:') || line.startsWith('Markdown Content:')) {
+      continue
+    }
+    
     // Stop at various markers
     if (
       line.includes('pbs.twimg.com') ||
       line.match(/\d+\s*(回复|replies|转帖|retweets|喜欢|likes|书签|bookmarks|查看|views)/i) ||
       line.includes('Translate post') ||
       line.includes('翻译推文') ||
-      line.includes('Read ') ||
+      line.match(/^Read \d+ repl/i) ||
       line.includes('New to') ||
       line.includes('Sign up') ||
       line.includes('Create account') ||
-      line.includes('Trending')
+      line.includes('Trending') ||
+      line.match(/^\d{1,2}:\d{2} (AM|PM)/) // Timestamp
     ) {
       break
     }
