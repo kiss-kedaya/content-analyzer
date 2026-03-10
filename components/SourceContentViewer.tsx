@@ -45,13 +45,14 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
         throw new Error(data.error?.message || '原文内容为空')
       }
 
-      // Clean Twitter/X content
-      const cleanedText = cleanTwitterContent(data.data.text)
-      setContent(cleanedText)
-
-      // Try to parse as Twitter content
+      // Try to parse as Twitter content BEFORE cleaning
+      // This preserves more information for parsing
       const parsed = parseTwitterContent(data.data.text, url)
       setTwitterData(parsed)
+
+      // Clean Twitter/X content for fallback Markdown rendering
+      const cleanedText = cleanTwitterContent(data.data.text)
+      setContent(cleanedText)
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取原文失败')
       setIsOpen(false)
