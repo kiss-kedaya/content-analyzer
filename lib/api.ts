@@ -1,4 +1,5 @@
 import prisma from './db'
+import { normalizeSource } from './source'
 
 export interface ContentInput {
   source: string
@@ -31,6 +32,7 @@ export async function createContent(data: ContentInput) {
   return await prisma.content.upsert({
     where: { url: data.url },
     update: {
+      source: normalizeSource(data.source),
       title: data.title,
       summary: data.summary,
       content: data.content,
@@ -39,7 +41,7 @@ export async function createContent(data: ContentInput) {
       analyzedAt: new Date()
     },
     create: {
-      source: data.source,
+      source: normalizeSource(data.source),
       url: data.url,
       title: data.title,
       summary: data.summary,

@@ -29,7 +29,7 @@ export default async function Home({
   
   const stats = {
     total: total,
-    twitter: allContents.filter(c => c.source === 'twitter').length,
+    x: allContents.filter(c => ['x', 'twitter'].includes(String(c.source).toLowerCase())).length,
     xiaohongshu: allContents.filter(c => c.source === 'xiaohongshu').length,
     linuxdo: allContents.filter(c => c.source === 'linuxdo').length
   }
@@ -54,8 +54,8 @@ export default async function Home({
           icon={<FileText className="w-5 h-5 text-gray-400" />}
         />
         <StatCard 
-          title="Twitter" 
-          value={stats.twitter} 
+          title="X" 
+          value={stats.x} 
           icon={<Twitter className="w-5 h-5 text-gray-400" />}
         />
         <StatCard 
@@ -93,7 +93,7 @@ export default async function Home({
           </p>
           <pre className="bg-white border border-gray-200 p-3 md:p-4 rounded-lg overflow-x-auto text-xs font-mono">
 {`{
-  "source": "twitter",
+  "source": "X",
   "url": "https://...",
   "title": "标题（可选）",
   "summary": "摘要",

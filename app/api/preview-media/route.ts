@@ -22,6 +22,10 @@ function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMed
       total: media.length,
     },
     raw,
+  }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400'
+    }
   })
 }
 

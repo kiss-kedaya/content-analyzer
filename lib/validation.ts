@@ -4,9 +4,10 @@ import { z } from 'zod'
  * 内容创建验证 Schema
  */
 export const ContentCreateSchema = z.object({
-  source: z.enum(['twitter', 'xiaohongshu', 'linuxdo'], {
-    message: 'Source must be one of: twitter, xiaohongshu, linuxdo'
-  }),
+  source: z.string().refine(
+    (value) => ['twitter', 'Twitter', 'x', 'X', 'xiaohongshu', 'linuxdo'].includes(value),
+    { message: 'Source must be one of: X, twitter, xiaohongshu, linuxdo' }
+  ),
   url: z.string().url({ message: 'Invalid URL format' }),
   title: z.string().max(200, 'Title must be less than 200 characters').optional(),
   summary: z.string()

@@ -1,4 +1,5 @@
 import prisma from './db'
+import { normalizeSource } from './source'
 
 export interface AdultContentInput {
   source: string
@@ -28,7 +29,7 @@ export function validateOrderBy(value: string): OrderBy {
 export async function createAdultContent(data: AdultContentInput) {
   return await prisma.adultContent.create({
     data: {
-      source: data.source,
+      source: normalizeSource(data.source),
       url: data.url,
       title: data.title,
       summary: data.summary,
