@@ -94,25 +94,18 @@ export default async function ContentDetailPage({
         {/* 原文与 Markdown */}
         <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
           <div className="flex flex-col gap-3">
-            {/* 查看原文按钮 - 手机端居中 */}
-            <div className="flex justify-center md:justify-start">
-              <h3 className="text-sm font-semibold text-gray-900">查看原文</h3>
-            </div>
-            
-            {/* 按钮组 - 手机端并排，桌面端分开 */}
-            <div className="flex flex-row items-center gap-3 md:flex-row">
+            {/* 按钮组 - 居中显示，大小一致 */}
+            <div className="flex flex-row items-center justify-center gap-3">
               <a
                 href={content.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-white transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-white transition-colors w-32"
               >
                 <ExternalLink className="w-4 h-4" />
                 打开链接
               </a>
-              <div className="flex-1 md:flex-none md:ml-auto">
-                <CopyMarkdownButton url={content.url} />
-              </div>
+              <CopyMarkdownButton url={content.url} />
             </div>
           </div>
         </div>

@@ -45,7 +45,7 @@ export default function CopyMarkdownButton({ url, label = '复制原文' }: Prop
       <button
         type="button"
         onClick={onCopy}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-60 w-32"
         disabled={loading}
       >
         {copied ? (
