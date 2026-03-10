@@ -279,24 +279,57 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     
     conversationText = contentLines.join('\n').trim()
     
-    // Use conversation text and apply intelligent line breaks
+    // Use conversation text and apply intelligent formatting to restore paragraph/list structure
     tweetText = conversationText
     if (tweetText) {
+      const workspaceApps = ['Gmail', 'Drive', 'Docs', 'Sheets', 'Calendar', 'Chat']
+
+      // 1) Normalize whitespace first
       tweetText = tweetText
-        // Add line break before bullet points (• or →) if not at start of line
-        .replace(/([^\n])([•→])/g, '$1\n$2')
-        // Add line break after bullet points followed by text
-        .replace(/([•→]\s+[^\n]+?)(\s+[•→])/g, '$1\n$2')
-        // Add line break after "这意味着什么？" and similar questions
-        .replace(/(这意味着什么？|什么意思？|为什么？)/g, '$1\n\n')
-        // Add line break before "AI Agent" if preceded by text
-        .replace(/([^\n])(AI Agent)/g, '$1\n\n$2')
-        // Add line break after section headers (text ending with colon followed by list)
-        .replace(/([：:])(\s*)([A-Za-z\u4e00-\u9fa5])/g, '$1\n$2$3')
-        // Add line break before "整个" and "未来" if they start a new thought
-        .replace(/([。！？])(\s*)(整个|未来)/g, '$1\n\n$2$3')
-        // Clean up multiple consecutive line breaks
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]{2,}/g, ' ')
+
+      // 2) Force section breaks for common patterns (when content is flattened)
+      // Keep "Google Workspace CLI" as a standalone block if it appears.
+      tweetText = tweetText.replace(/\s*(Google Workspace CLI)\s*/g, '\n\n$1\n\n')
+
+      // 3) Split bullet and arrow lists
+      // Ensure every bullet/arrow starts at the beginning of a line.
+      tweetText = tweetText
+        .replace(/\s*•\s*/g, '\n• ')
+        .replace(/\s*→\s*/g, '\n→ ')
+
+      // 4) Ensure question/section headers create paragraph breaks
+      tweetText = tweetText
+        .replace(/这意味着什么？/g, '这意味着什么？\n\n')
+        .replace(/AI Agent 可以直接：/g, 'AI Agent 可以直接：\n\n')
+        .replace(/几个关键点很有意思：/g, '几个关键点很有意思：\n\n')
+        .replace(/未来的办公流可能是：/g, '未来的办公流可能是：\n\n')
+
+      // 5) After specific colon lists, split known app names into one-per-line
+      // Example: "整个 Google Workspace： Gmail Drive Docs ..." -> each item on its own line.
+      tweetText = tweetText.replace(/(整个 Google Workspace：)\s*([A-Za-z][A-Za-z0-9+.-]*(?:\s+[A-Za-z][A-Za-z0-9+.-]*)*)/g, (_, head: string, list: string) => {
+        const tokens = list.split(/\s+/).filter(Boolean)
+        const allKnown = tokens.length >= 3 && tokens.every(t => workspaceApps.includes(t))
+        if (!allKnown) return `${head} ${list}`
+        return `${head}\n${tokens.join('\n')}`
+      })
+
+      // 6) Add paragraph breaks after major sentence boundaries when next phrase is a new section
+      tweetText = tweetText
+        .replace(/([。！？])\s*(几个关键点很有意思：)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(这意味着什么？)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(整个)/g, '$1\n\n$2')
+        .replace(/([。！？])\s*(未来)/g, '$1\n\n$2')
+
+      // 7) Clean up: remove leading spaces after newlines, normalize blank lines
+      tweetText = tweetText
+        .replace(/\n[ \t]+/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
+        .trim()
+
+      // 8) Ensure the content starts without a leading blank line
+      tweetText = tweetText.replace(/^\n+/, '')
     }
   }
 
