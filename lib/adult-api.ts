@@ -48,7 +48,10 @@ export async function getAllAdultContents(
   pageSize: number = 20
 ) {
   const validatedOrderBy = validateOrderBy(orderBy)
-  const skip = (page - 1) * pageSize
+
+  const safePage = Math.max(1, Number(page) || 1)
+  const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
+  const skip = (safePage - 1) * safePageSize
   
   // 构建排序对象：主排序 + 第二排序（createdAt）
   const orderByClause = validatedOrderBy === 'createdAt'
@@ -61,7 +64,7 @@ export async function getAllAdultContents(
   return await prisma.adultContent.findMany({
     orderBy: orderByClause,
     skip,
-    take: pageSize
+    take: safePageSize
   })
 }
 
