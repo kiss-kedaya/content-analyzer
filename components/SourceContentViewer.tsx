@@ -7,6 +7,8 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { FileText, Loader2, AlertCircle } from './Icon'
 import { cleanTwitterContent } from '@/lib/content-cleaner'
+import { parseTwitterContent } from '@/lib/twitter-parser'
+import TwitterTweetViewer from './TwitterTweetViewer'
 
 interface SourceContentViewerProps {
   url: string
@@ -17,6 +19,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [twitterData, setTwitterData] = useState<ReturnType<typeof parseTwitterContent>>(null)
 
   const fetchContent = async () => {
     if (content) {
@@ -45,6 +48,10 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
       // Clean Twitter/X content
       const cleanedText = cleanTwitterContent(data.data.text)
       setContent(cleanedText)
+
+      // Try to parse as Twitter content
+      const parsed = parseTwitterContent(data.data.text, url)
+      setTwitterData(parsed)
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取原文失败')
       setIsOpen(false)
@@ -55,6 +62,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
 
   const handleRetry = () => {
     setContent(null)
+    setTwitterData(null)
     setError(null)
     fetchContent()
   }
@@ -98,13 +106,19 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
 
       {/* 内容展示 */}
       {isOpen && content && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-4 h-4 text-gray-600" />
-            <h3 className="text-sm font-semibold text-gray-900">原文内容</h3>
-          </div>
-          <div className="prose prose-sm md:prose-base max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-strong:font-semibold prose-code:text-pink-600 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-img:rounded-lg prose-img:shadow-md">
-            <ReactMarkdown
+        <div>
+          {/* 如果是 Twitter 内容且解析成功，使用专用组件 */}
+          {twitterData ? (
+            <TwitterTweetViewer data={twitterData} />
+          ) : (
+            /* 否则使用通用 Markdown 渲染 */
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-4 h-4 text-gray-600" />
+                <h3 className="text-sm font-semibold text-gray-900">原文内容</h3>
+              </div>
+              <div className="prose prose-sm md:prose-base max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-strong:font-semibold prose-code:text-pink-600 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-img:rounded-lg prose-img:shadow-md">
+                <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw, rehypeSanitize]}
               components={{
@@ -199,6 +213,8 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
               {content}
             </ReactMarkdown>
           </div>
+        </div>
+          )}
         </div>
       )}
     </div>
