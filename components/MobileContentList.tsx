@@ -34,7 +34,10 @@ export function MobileContentCard({
   detailPath
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const hasMedia = mediaUrls && mediaUrls.length > 0
+  
+  // 对于成人内容，使用 mediaUrls；对于普通内容，使用 URL 本身
+  const hasMedia = (mediaUrls && mediaUrls.length > 0) || url
+  const mediaUrl = mediaUrls && mediaUrls.length > 0 ? mediaUrls[0] : url
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'bg-green-100 text-green-700 border-green-200'
@@ -67,8 +70,8 @@ export function MobileContentCard({
 
       {/* 媒体预览 */}
       {hasMedia && (
-        <div className="relative w-full h-48 rounded-lg overflow-hidden">
-          <MediaThumbnail url={mediaUrls[0]} className="w-full h-full" />
+        <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+          <MediaThumbnail url={mediaUrl} className="w-full h-full" />
         </div>
       )}
 
