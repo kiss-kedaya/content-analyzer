@@ -200,15 +200,13 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   tweetText = contentLines.join('\n').trim()
   
   // Post-process: add line breaks for better readability
-  // Insert line breaks after certain patterns to restore paragraph structure
+  // Insert line breaks before bullet points and arrows to restore list structure
   if (tweetText) {
     tweetText = tweetText
-      // Add line break after bullet points (• or →)
-      .replace(/([•→])\s+([^\s•→])/g, '$1 $2\n')
-      // Add line break before bullet points if not at start
-      .replace(/([^\n])\s+([•→])/g, '$1\n$2')
-      // Add line break after colons followed by list items
-      .replace(/：\s*([A-Za-z\u4e00-\u9fa5])/g, '：\n$1')
+      // Add line break before bullet points (• or →) if not at start of line
+      .replace(/([^\n])([•→])/g, '$1\n$2')
+      // Add line break after colons followed by list items (for section headers)
+      .replace(/：\s*\n/g, '：\n')
       // Clean up multiple consecutive line breaks
       .replace(/\n{3,}/g, '\n\n')
   }
