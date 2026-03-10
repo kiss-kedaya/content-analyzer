@@ -2,10 +2,12 @@ export function normalizeSource(source: string): string {
   const value = (source || '').trim()
   const lower = value.toLowerCase()
 
-  if (lower === 'twitter' || lower === 'x') {
+  // 规范化 Twitter/X 相关的来源
+  if (lower === 'twitter' || lower === 'x' || lower === 'x.com') {
     return 'X'
   }
 
+  // 规范化 LinuxDo
   if (lower === 'linuxdo') {
     return 'Linuxdo'
   }
