@@ -1,5 +1,6 @@
 import YTDlpWrap from 'yt-dlp-wrap'
 import { createLogger } from './logger'
+import { normalizeAndValidateHttpUrl } from './url-validate'
 
 const logger = createLogger('media-extractor')
 
@@ -10,6 +11,22 @@ export interface MediaInfo {
   width?: number
   height?: number
   format?: string
+}
+
+const ALLOWED_TWITTER_HOSTS = ['twitter.com', 'x.com']
+
+function isAllowedTwitterHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase()
+  return ALLOWED_TWITTER_HOSTS.some((host) => lower === host || lower.endsWith(`.${host}`))
+}
+
+function normalizeAndValidateTwitterUrl(input: string): string {
+  const normalized = normalizeAndValidateHttpUrl(input)
+  const hostname = new URL(normalized).hostname
+  if (!isAllowedTwitterHost(hostname)) {
+    throw new Error('Only x.com or twitter.com hosts are allowed')
+  }
+  return normalized
 }
 
 /**
@@ -78,9 +95,10 @@ async function extractWithRetry<T>(
 export async function extractTwitterMedia(twitterUrl: string): Promise<MediaInfo[]> {
   return extractWithRetry(async () => {
     const ytDlp = new YTDlpWrap()
+    const normalizedUrl = normalizeAndValidateTwitterUrl(twitterUrl)
     
     // 获取视频信息（包括图片）
-    const info = await ytDlp.getVideoInfo(twitterUrl)
+    const info = await ytDlp.getVideoInfo(normalizedUrl)
     
     const mediaList: MediaInfo[] = []
     
@@ -117,7 +135,7 @@ export async function extractTwitterMedia(twitterUrl: string): Promise<MediaInfo
       new Map(mediaList.map(item => [item.url, item])).values()
     )
     
-    logger.info({ count: uniqueMedia.length, url: twitterUrl }, 'Media extraction successful')
+    logger.info({ count: uniqueMedia.length, url: normalizedUrl }, 'Media extraction successful')
     return uniqueMedia
   }, `extractTwitterMedia(${twitterUrl})`)
 }

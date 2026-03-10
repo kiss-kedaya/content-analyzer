@@ -48,3 +48,36 @@
 - [check] app/api/agent/content/[id]/md/route.ts | Risk: P2 | raw may be null; renderContentMarkdown should handle. Ensure content-type set ok.
 - [check] app/api/agent/adult-content/by-date/route.ts | Risk: P1 | same as tech. 
 - [check] app/api/agent/adult-content/by-date/md/route.ts | Risk: P1 | same as tech.
+
+## [2026-03-10 16:30:12] Fixes (media URL validation + limits)
+- File: app/api/preview-media/route.ts | Risk: P1 | Fix: validate URL with normalizeAndValidateHttpUrl and allowlist x.com/twitter.com before extraction; cache key normalized.
+- File: app/api/extract-media/route.ts | Risk: P1 | Fix: validate URL(s) with normalizeAndValidateHttpUrl, normalize outputs, enforce max batch size (20).
+- File: lib/media-extractor.ts | Risk: P1 | Fix: validate and allowlist x.com/twitter.com before yt-dlp fetch to reduce SSRF/abuse risk.
+
+
+## [2026-03-10 17:47:05] Audit findings
+- File: lib\\url-validate.ts | Risk: P1 | Issue: SSRF guard only checks IPv4 literals + hostname suffix; missing IPv6 literal checks and DNS rebinding protection (hostnames can resolve to private IPs). | Fix: resolve DNS (A/AAAA) and block private ranges; block IPv6 literals and IPv6 private ranges (fc00::/7, ::1, fe80::/10), consider allowlist or fetch via server-side proxy with strict egress.
+- File: lib\\source-cache.ts | Risk: P2 | Issue: failed-cache TTL prevents retry for 15m, but failed responses store only error text; no recorded error type/status, makes triage harder and repeated failures less diagnosable. | Fix: store status code and provider in failed state; include retryAfter and lastErrorType.
+- File: app\\api\\agent\\*\\by-date\\route.ts | Risk: P2 | Issue: pageSize forced to 10 OK, but page param accepts large values causing deep skip that may be expensive. | Fix: add upper bound on page (e.g. max 100 or max skip) or use cursor-based pagination.
+- File: app\\api\\agent\\*\\by-date\\md\\route.ts | Risk: P3 | Issue: missing raw cache items trigger fetch; time budget 10s but no explicit response field for "partial"; consumers may assume full coverage. | Fix: include rawStatus summary in markdown header or response metadata; consider exposing missing count.
+- File: lib\\promise-pool.ts | Risk: P3 | Issue: no per-task try/catch inside worker; exception bubbles, aborts all workers. | Fix: wrap fn in try/catch and store error sentinel or allow caller to provide onError.
+- File: middleware.ts | Risk: P3 | Issue: matcher excludes asset extensions but not other public paths; OK for /api 401 behavior; ensure non-api redirect works. | Fix: ensure public files in /public with extensions are excluded, and add robots.txt or manifest if needed.
+- File: lib\\date.ts | Risk: P3 | Issue: date string does not validate month/day ranges; 2026-13-99 becomes valid and produces unintended UTC date. | Fix: validate real calendar date (construct date and compare components) before using.
+- File: app\\api\\source\\route.ts | Risk: P2 | Issue: for force=1, inflight map still dedupes; but if force used to bypass failed-cache, inflight may return cached rejected? | Fix: include force in inflight key or bypass inflight when force true.
+- File: lib\\source-cache.ts | Risk: P2 | Issue: inflight map keyed by normalized URL; simultaneous callers with force true still dedupe; not a bug but may surprise; also fetchText has no response size limit. | Fix: consider max response size guard and optional force bypass in inflight.
+
+### Notes
+- audit-framework.md reference missing in skill folder; performed best-effort audit without it.
+
+## [2026-03-10 17:53:17] UX/logic findings
+- File: app\\page.tsx + components\\ContentList.tsx | Risk: P1 | Issue: tab switch showed adult records while tab=tech; likely due to SSR payload mismatch or client state divergence from searchParams. Possible cause: ContentList state not reset when initialTab changes via URL; also adult/tech endpoints may both include adult items. | Fix: verify server filtering; on client, clear contents when tab changes and fetch first page for new tab; ensure API routes enforce content-type separation.
+- File: components\\ContentList.tsx | Risk: P2 | Issue: IntersectionObserver triggers loadMore without guarding against stale tab data; loadMore uses current state but does not cancel in-flight when tab/order/date changes; can append wrong list or mix content. | Fix: cancel in-flight fetch on dependency change; use AbortController and track requestId; reset lists when tab/order/date changes.
+- File: components\\ContentList.tsx | Risk: P2 | Issue: date filter changes trigger fetchSortedData but does not clear existing list before loading; can cause UI flash with stale rows. | Fix: clear contents on date change before fetching.
+- File: components\\ContentTable.tsx | Risk: P3 | Issue: preview hover loads media with force fetch on click and hover; no rate limit, can cause repeated extraction on table hover. | Fix: add debounce and global hover cache TTL or disable hover on low power.
+- File: components\\SourceModal.tsx | Risk: P3 | Issue: copy button fails silently; user receives no feedback. | Fix: add toast or temporary label.
+- File: components\\DatePicker.tsx | Risk: P3 | Issue: click outside does not close; no Escape handling. | Fix: add click-away and keydown listeners.
+- File: components\\ContentList.tsx | Risk: P2 | Issue: loadMore uses pageSize 20 or 10 but API by-date enforces max 10. For non-date pagination, server allows more; but for date filter always 10. If pageSize mismatch (20) with API ignoring, may misalign pagination. | Fix: keep constants aligned with API enforcement (10) or add server response pageSize.
+- File: components\\ContentTable.tsx | Risk: P2 | Issue: preview hover auto-play in HoverVideoPreview uses muted + playsInline but no controls; on mobile this could fail silently; open modal required for controls. | Fix: indicate "点击预览" and disable hover on touch devices.
+- File: components\\ContentTable.tsx | Risk: P3 | Issue: preview button and hover use same URL; if URL is not from x.com, preview API rejects; UI shows no explanation. | Fix: detect unsupported hosts and show tooltip.
+- File: UI runtime | Risk: P2 | Issue: Garbled text observed in tech tab rows indicates encoding mismatch or wrong decode path, likely from data ingestion. | Fix: enforce UTF-8 decode on ingestion; sanitize storage encoding and add heuristic re-encode if invalid.
+

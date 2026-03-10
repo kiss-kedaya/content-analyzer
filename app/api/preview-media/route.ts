@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractWithSnapvidDetailed } from '@/lib/media-extractor-snapvid'
 import { getMediaCache, normalizeCachedMedia, saveMediaCache } from '@/lib/media-cache'
 import { logApiError } from '@/lib/logger'
+import { normalizeAndValidateHttpUrl } from '@/lib/url-validate'
+
+const ALLOWED_MEDIA_HOSTS = ['twitter.com', 'x.com']
+
+function isAllowedMediaHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase()
+  return ALLOWED_MEDIA_HOSTS.some((host) => lower === host || lower.endsWith(`.${host}`))
+}
 
 function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMedia>, raw?: unknown) {
   return NextResponse.json({
@@ -42,11 +50,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const cached = await getMediaCache(url)
+    let normalizedUrl: string
+    try {
+      normalizedUrl = normalizeAndValidateHttpUrl(url)
+      const hostname = new URL(normalizedUrl).hostname
+      if (!isAllowedMediaHost(hostname)) {
+        return NextResponse.json(
+          { error: 'Only x.com or twitter.com hosts are allowed' },
+          { status: 400 }
+        )
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Invalid url' },
+        { status: 400 }
+      )
+    }
+
+    const cached = await getMediaCache(normalizedUrl)
     if (cached?.status === 'success') {
       const media = normalizeCachedMedia(cached.parsedMedia)
       if (media.length > 0) {
-        return formatResponse(url, media, cached.rawResponse)
+        return formatResponse(normalizedUrl, media, cached.rawResponse)
       }
     }
 
@@ -56,23 +81,23 @@ export async function GET(request: NextRequest) {
       })
 
       const extraction = await Promise.race([
-        extractWithSnapvidDetailed(url),
+        extractWithSnapvidDetailed(normalizedUrl),
         timeoutPromise,
       ]) as Awaited<ReturnType<typeof extractWithSnapvidDetailed>>
 
       const media = extraction.media || []
 
       if (media.length > 0) {
-        await saveMediaCache(url, extraction.rawResponse, media)
+        await saveMediaCache(normalizedUrl, extraction.rawResponse, media)
       }
 
-      return formatResponse(url, media, extraction.rawResponse)
+      return formatResponse(normalizedUrl, media, extraction.rawResponse)
     } catch (extractError) {
-      logApiError('preview-media-extract', extractError, { url })
+      logApiError('preview-media-extract', extractError, { url: normalizedUrl })
 
       return NextResponse.json({
         success: true,
-        url,
+        url: normalizedUrl,
         media: [],
         videos: [],
         images: [],
