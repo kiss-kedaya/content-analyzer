@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createContent, getAllContents } from '@/lib/api'
+import { normalizeSource } from '@/lib/normalize-source'
 
 // POST /api/content - 创建内容
 export async function POST(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
     
     const content = await createContent({
-      source: body.source,
+      source: normalizeSource(body.source), // 规范化 source
       url: body.url,
       title: body.title,
       summary: body.summary,

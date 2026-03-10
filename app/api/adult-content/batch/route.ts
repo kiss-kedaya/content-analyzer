@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdultContent } from '@/lib/adult-api'
+import { normalizeSource } from '@/lib/normalize-source'
 
 interface AdultContentInput {
   source: string
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
 
         // 创建内容
         const created = await createAdultContent({
-          source: item.source,
+          source: normalizeSource(item.source), // 规范化 source
           url: item.url,
           title: item.title,
           summary: item.summary,

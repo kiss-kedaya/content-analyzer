@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdultContent, getAllAdultContents } from '@/lib/adult-api'
+import { normalizeSource } from '@/lib/normalize-source'
 
 // GET /api/adult-content - 获取所有成人内容
 export async function GET(request: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
     
     const content = await createAdultContent({
-      source: body.source,
+      source: normalizeSource(body.source), // 规范化 source
       url: body.url,
       title: body.title,
       summary: body.summary,
