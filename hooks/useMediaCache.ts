@@ -24,95 +24,111 @@ interface CacheEntry {
 }
 
 const mediaCache = new Map<string, CacheEntry>()
-const FAILED_TTL_MS = 30 * 1000
-const SUCCESS_TTL_MS = 5 * 60 * 1000
+const inFlightRequests = new Map<string, Promise<MediaData | null>>()
+
+const DEFAULT_FAILED_TTL_MS = 30 * 1000
+const DEFAULT_SUCCESS_TTL_MS = 5 * 60 * 1000
+const REQUEST_TIMEOUT_MS = 10 * 1000
+const EMPTY_MEDIA_DATA: MediaData = { videos: [], images: [] }
 
 interface FetchOptions {
   force?: boolean
+  failedTtlMs?: number
+  successTtlMs?: number
+}
+
+function getCachedMedia(url: string, options: FetchOptions): MediaData | null {
+  const cached = mediaCache.get(url)
+
+  if (!cached) {
+    return null
+  }
+
+  const failedTtlMs = options.failedTtlMs ?? DEFAULT_FAILED_TTL_MS
+  const successTtlMs = options.successTtlMs ?? DEFAULT_SUCCESS_TTL_MS
+  const ttl = cached.isFailed ? failedTtlMs : successTtlMs
+
+  if (Date.now() - cached.timestamp < ttl) {
+    return cached.data
+  }
+
+  mediaCache.delete(url)
+  return null
 }
 
 export function useMediaCache() {
   const [loading, setLoading] = useState<Record<string, boolean>>({})
 
   const fetchMedia = useCallback(async (url: string, options: FetchOptions = {}): Promise<MediaData | null> => {
-    const now = Date.now()
-    const cached = mediaCache.get(url)
-
-    if (!options.force && cached) {
-      const ttl = cached.isFailed ? FAILED_TTL_MS : SUCCESS_TTL_MS
-      if (now - cached.timestamp < ttl) {
-        return cached.data
+    if (!options.force) {
+      const cachedData = getCachedMedia(url, options)
+      if (cachedData) {
+        return cachedData
       }
+    } else {
       mediaCache.delete(url)
     }
 
-    if (loading[url]) {
-      return new Promise((resolve) => {
-        const checkCache = setInterval(() => {
-          const updated = mediaCache.get(url)
-          if (updated) {
-            clearInterval(checkCache)
-            resolve(updated.data)
-          }
-        }, 100)
-
-        setTimeout(() => {
-          clearInterval(checkCache)
-          resolve(null)
-        }, 10000)
-      })
+    const existingRequest = inFlightRequests.get(url)
+    if (existingRequest) {
+      return existingRequest
     }
 
     setLoading(prev => ({ ...prev, [url]: true }))
 
-    try {
+    const request = (async () => {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-      const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`, {
-        signal: controller.signal,
-        cache: 'no-store'
-      })
+      try {
+        const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`, {
+          signal: controller.signal,
+          cache: 'no-store'
+        })
 
-      clearTimeout(timeoutId)
+        if (!response.ok) {
+          throw new Error('Failed to fetch media')
+        }
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch media')
+        const payload = await response.json()
+        const data: MediaData = {
+          videos: Array.isArray(payload.videos) ? payload.videos : [],
+          images: Array.isArray(payload.images) ? payload.images : []
+        }
+
+        mediaCache.set(url, {
+          data,
+          timestamp: Date.now(),
+          isFailed: data.videos.length === 0 && data.images.length === 0
+        })
+
+        return data
+      } catch (error) {
+        console.error('Failed to fetch media:', error)
+        mediaCache.set(url, {
+          data: EMPTY_MEDIA_DATA,
+          timestamp: Date.now(),
+          isFailed: true
+        })
+        return null
+      } finally {
+        clearTimeout(timeoutId)
+        inFlightRequests.delete(url)
+        setLoading(prev => ({ ...prev, [url]: false }))
       }
+    })()
 
-      const payload = await response.json()
-      const data: MediaData = {
-        videos: Array.isArray(payload.videos) ? payload.videos : [],
-        images: Array.isArray(payload.images) ? payload.images : []
-      }
-
-      const isFailed = data.videos.length === 0 && data.images.length === 0
-      mediaCache.set(url, {
-        data,
-        timestamp: Date.now(),
-        isFailed
-      })
-
-      return data
-    } catch (error) {
-      console.error('Failed to fetch media:', error)
-      const emptyData: MediaData = { videos: [], images: [] }
-      mediaCache.set(url, {
-        data: emptyData,
-        timestamp: Date.now(),
-        isFailed: true
-      })
-      return null
-    } finally {
-      setLoading(prev => ({ ...prev, [url]: false }))
-    }
-  }, [loading])
+    inFlightRequests.set(url, request)
+    return request
+  }, [])
 
   const clearCache = useCallback((url?: string) => {
     if (url) {
       mediaCache.delete(url)
+      inFlightRequests.delete(url)
     } else {
       mediaCache.clear()
+      inFlightRequests.clear()
     }
   }, [])
 

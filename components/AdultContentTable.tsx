@@ -48,18 +48,16 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定要删除这条内容吗？')) return
-    
-    // 防止重复点击
+
     if (deleting) return
-    
+
     setDeleting(id)
     try {
       const response = await fetch(`/api/adult-content/${id}`, {
         method: 'DELETE'
       })
-      
+
       if (response.ok) {
-        // 调用父组件的删除回调，更新状态
         onDelete?.(id)
       } else {
         alert('删除失败')
@@ -70,10 +68,6 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
     } finally {
       setDeleting(null)
     }
-  }
-
-  const downloadMedia = (url: string) => {
-    window.open(url, '_blank')
   }
 
   if (contents.length === 0) {
@@ -89,7 +83,6 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
 
   return (
     <>
-      {/* 桌面端：表格布局 */}
       <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -208,21 +201,19 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
         </table>
       </div>
 
-      {/* 移动端：卡片布局 */}
       <div className="md:hidden space-y-4">
         {contents.map((content) => (
           <div
             key={content.id}
             className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm"
           >
-            {/* 缩略图 */}
             <MediaThumbnail
               url={content.url}
               className="w-full h-48"
+              onPreview={() => setPreviewUrl(content.url)}
             />
-            
+
             <div className="p-4">
-              {/* 评分和收藏 */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className={`text-2xl font-bold ${getScoreColor(content.score)}`}>
@@ -239,64 +230,60 @@ export default function AdultContentTable({ contents, onDelete }: AdultContentTa
                 />
               </div>
 
-              {/* 标题 */}
               {content.title && (
                 <h3 className="font-medium text-base text-gray-900 mb-2">
                   {content.title}
                 </h3>
               )}
 
-              {/* 摘要 */}
               <p className="text-gray-600 text-sm mb-3 line-clamp-4">
                 {content.summary}
               </p>
 
-              {/* 操作按钮 */}
               <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setPreviewUrl(content.url)}
-                className="flex items-center justify-center gap-1 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-              >
-                <Play className="w-4 h-4" />
-                预览
-              </button>
-              <a
-                href={content.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                原文
-              </a>
-              <Link
-                href={`/adult-content/${content.id}`}
-                className="flex items-center justify-center gap-1 px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-                详情
-              </Link>
-              <button
-                onClick={() => handleDelete(content.id)}
-                disabled={deleting === content.id}
-                className="flex items-center justify-center gap-1 px-4 py-2.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {deleting === content.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    删除
-                  </>
-                )}
-              </button>
-            </div>
+                <button
+                  onClick={() => setPreviewUrl(content.url)}
+                  className="flex items-center justify-center gap-1 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                >
+                  <Play className="w-4 h-4" />
+                  完整预览
+                </button>
+                <a
+                  href={content.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1 px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  原文
+                </a>
+                <Link
+                  href={`/adult-content/${content.id}`}
+                  className="flex items-center justify-center gap-1 px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  详情
+                </Link>
+                <button
+                  onClick={() => handleDelete(content.id)}
+                  disabled={deleting === content.id}
+                  className="flex items-center justify-center gap-1 px-4 py-2.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {deleting === content.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      删除
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
-    
-      {/* 视频预览模态框 */}
+
       {previewUrl && (
         <VideoPreview
           url={previewUrl}

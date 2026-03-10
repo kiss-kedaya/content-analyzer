@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 
@@ -19,16 +19,43 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [error, setError] = useState<string | null>(null)
   const [items, setItems] = useState<MediaItem[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const touchStartX = useRef<number | null>(null)
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const touchCurrentRef = useRef<{ x: number; y: number } | null>(null)
+  const touchLockRef = useRef<'x' | 'y' | null>(null)
   const { fetchMedia } = useMediaCache()
 
-  const goPrev = () => {
-    setActiveIndex(prev => (prev === 0 ? items.length - 1 : prev - 1))
-  }
+  const restoreFocus = useCallback(() => {
+    const previousFocus = previousFocusRef.current
+    if (previousFocus && previousFocus.isConnected) {
+      previousFocus.focus()
+    }
+  }, [])
 
-  const goNext = () => {
+  const handleClose = useCallback(() => {
+    onClose()
+    requestAnimationFrame(() => {
+      restoreFocus()
+    })
+  }, [onClose, restoreFocus])
+
+  const goPrev = useCallback(() => {
+    setActiveIndex(prev => (prev === 0 ? items.length - 1 : prev - 1))
+  }, [items.length])
+
+  const goNext = useCallback(() => {
     setActiveIndex(prev => (prev === items.length - 1 ? 0 : prev + 1))
-  }
+  }, [items.length])
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialogRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [activeIndex, loading, error])
 
   useEffect(() => {
     fetchMediaUrls()
@@ -37,17 +64,31 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-      } else if (e.key === 'ArrowLeft' && items.length > 1) {
+        e.preventDefault()
+        handleClose()
+        return
+      }
+
+      if (items.length < 2) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
         goPrev()
-      } else if (e.key === 'ArrowRight' && items.length > 1) {
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
         goNext()
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [items.length])
+  }, [goNext, goPrev, handleClose, items.length])
+
+  useEffect(() => {
+    return () => {
+      restoreFocus()
+    }
+  }, [restoreFocus])
 
   async function fetchMediaUrls() {
     setLoading(true)
@@ -59,17 +100,30 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         throw new Error('Failed to fetch media')
       }
 
-      const merged: MediaItem[] = [
-        ...data.videos.map(v => ({ type: 'video' as const, url: v.url })),
-        ...data.images.map(i => ({ type: 'image' as const, url: i.url }))
-      ]
+      const merged = [...data.videos, ...data.images].reduce<MediaItem[]>((acc, item) => {
+        if (!item?.url || acc.some(existing => existing.url === item.url)) {
+          return acc
+        }
+
+        acc.push({
+          type: data.videos.some(video => video.url === item.url) ? 'video' : 'image',
+          url: item.url,
+        })
+
+        return acc
+      }, [])
 
       if (merged.length === 0) {
         throw new Error('No media found')
       }
 
+      const initialIndex = Math.max(
+        merged.findIndex(item => item.url === url),
+        0,
+      )
+
       setItems(merged)
-      setActiveIndex(0)
+      setActiveIndex(initialIndex)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -79,19 +133,31 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   const active = items[activeIndex]
 
+  const resetTouchState = () => {
+    touchStartRef.current = null
+    touchCurrentRef.current = null
+    touchLockRef.current = null
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
-        className="relative w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="媒体预览"
+        tabIndex={-1}
+        className="relative w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
           <h2 className="text-lg md:text-xl font-semibold text-black">媒体预览</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            aria-label="关闭预览"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
           >
             <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
@@ -124,28 +190,76 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               <div
                 className="flex items-center justify-center"
                 onTouchStart={(e) => {
-                  touchStartX.current = e.changedTouches[0]?.clientX ?? null
+                  const touch = e.changedTouches[0]
+                  if (!touch) return
+
+                  touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+                  touchCurrentRef.current = { x: touch.clientX, y: touch.clientY }
+                  touchLockRef.current = null
                 }}
-                onTouchEnd={(e) => {
-                  const start = touchStartX.current
-                  const end = e.changedTouches[0]?.clientX
-                  if (start == null || end == null || items.length < 2) return
-                  const delta = end - start
-                  if (Math.abs(delta) < 40) return
-                  if (delta > 0) {
-                    goPrev()
-                  } else {
-                    goNext()
+                onTouchMove={(e) => {
+                  const start = touchStartRef.current
+                  const touch = e.changedTouches[0]
+                  if (!start || !touch) return
+
+                  const current = { x: touch.clientX, y: touch.clientY }
+                  touchCurrentRef.current = current
+
+                  const deltaX = current.x - start.x
+                  const deltaY = current.y - start.y
+
+                  if (!touchLockRef.current && (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12)) {
+                    touchLockRef.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y'
+                  }
+
+                  if (touchLockRef.current === 'x' && e.cancelable) {
+                    e.preventDefault()
                   }
                 }}
+                onTouchEnd={() => {
+                  const start = touchStartRef.current
+                  const current = touchCurrentRef.current
+                  const axis = touchLockRef.current
+
+                  if (!start || !current || !axis || items.length < 2) {
+                    resetTouchState()
+                    return
+                  }
+
+                  const deltaX = current.x - start.x
+
+                  if (axis === 'x' && Math.abs(deltaX) >= 50) {
+                    if (deltaX > 0) {
+                      goPrev()
+                    } else {
+                      goNext()
+                    }
+                  }
+
+                  resetTouchState()
+                }}
+                onTouchCancel={resetTouchState}
               >
                 {active.type === 'video' ? (
-                  <video controls autoPlay className="w-full rounded-lg bg-black" style={{ maxHeight: '70vh' }}>
+                  <video
+                    key={active.url}
+                    controls
+                    autoPlay
+                    preload="metadata"
+                    className="w-full rounded-lg bg-black"
+                    style={{ maxHeight: '70vh' }}
+                  >
                     <source src={active.url} type="video/mp4" />
                     您的浏览器不支持视频播放
                   </video>
                 ) : (
-                  <img src={active.url} alt="Media" className="w-full rounded-lg bg-black object-contain" style={{ maxHeight: '70vh' }} />
+                  <img
+                    key={active.url}
+                    src={active.url}
+                    alt={`媒体 ${activeIndex + 1}`}
+                    className="w-full rounded-lg bg-black object-contain"
+                    style={{ maxHeight: '70vh' }}
+                  />
                 )}
               </div>
 
@@ -158,8 +272,9 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                   <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
                     {items.map((item, idx) => (
                       <button
-                        key={item.url + idx}
+                        key={item.url}
                         onClick={() => setActiveIndex(idx)}
+                        aria-pressed={idx === activeIndex}
                         className={`border rounded-md p-1 text-xs ${idx === activeIndex ? 'border-black' : 'border-gray-200'}`}
                       >
                         {item.type === 'video' ? '视频' : '图片'} {idx + 1}

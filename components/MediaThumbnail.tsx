@@ -1,51 +1,64 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Play, Image as ImageIcon, Loader2, X } from '@/components/Icon'
+import { useState, useEffect } from 'react'
+import { Play, Image as ImageIcon, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface MediaThumbnailProps {
   url: string
   className?: string
+  onPreview?: () => void
 }
 
-export default function MediaThumbnail({ url, className = '' }: MediaThumbnailProps) {
+export default function MediaThumbnail({ url, className = '', onPreview }: MediaThumbnailProps) {
   const [loading, setLoading] = useState(true)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
-  const [mediaType, setMediaType] = useState<'video' | 'image' | null>(null)
+  const [primaryMediaType, setPrimaryMediaType] = useState<'video' | 'image' | null>(null)
+  const [mediaLabel, setMediaLabel] = useState<string | null>(null)
+  const [extraCount, setExtraCount] = useState(0)
   const [error, setError] = useState(false)
-  const [playing, setPlaying] = useState(false)
-  const [showImageModal, setShowImageModal] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
   const { fetchMedia } = useMediaCache()
-  
+
   useEffect(() => {
     fetchThumbnail()
   }, [url])
-  
+
   async function fetchThumbnail() {
     setLoading(true)
     setError(false)
-    
+
     try {
       const data = await fetchMedia(url)
-      
+
       if (!data) {
         setError(true)
         return
       }
-      
-      // 优先显示视频缩略图
-      if (data.videos && data.videos.length > 0) {
+
+      const videoCount = data.videos?.length || 0
+      const imageCount = data.images?.length || 0
+      const totalCount = videoCount + imageCount
+
+      if (videoCount > 0) {
         setThumbnailUrl(data.videos[0].url)
-        setMediaType('video')
-      } else if (data.images && data.images.length > 0) {
+        setPrimaryMediaType('video')
+      } else if (imageCount > 0) {
         setThumbnailUrl(data.images[0].url)
-        setMediaType('image')
+        setPrimaryMediaType('image')
       } else {
-        // 没有媒体，显示占位图
         setError(true)
+        return
       }
+
+      if (videoCount > 0 && imageCount > 0) {
+        setMediaLabel('视频/图片')
+      } else if (videoCount > 0) {
+        setMediaLabel('视频')
+      } else {
+        setMediaLabel('图片')
+      }
+
+      setExtraCount(Math.max(totalCount - 1, 0))
     } catch (err) {
       console.error('Failed to fetch thumbnail:', err)
       setError(true)
@@ -53,24 +66,11 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
       setLoading(false)
     }
   }
-  
+
   const handleClick = () => {
-    if (mediaType === 'video') {
-      // 视频：切换播放状态
-      setPlaying(!playing)
-      if (videoRef.current) {
-        if (playing) {
-          videoRef.current.pause()
-        } else {
-          videoRef.current.play()
-        }
-      }
-    } else if (mediaType === 'image') {
-      // 图片：显示大图模态框
-      setShowImageModal(true)
-    }
+    onPreview?.()
   }
-  
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
@@ -78,7 +78,7 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
       </div>
     )
   }
-  
+
   if (error || !thumbnailUrl) {
     return (
       <div className={`flex flex-col items-center justify-center bg-gray-100 ${className}`}>
@@ -87,62 +87,61 @@ export default function MediaThumbnail({ url, className = '' }: MediaThumbnailPr
       </div>
     )
   }
-  
+
   return (
-    <>
-      <div 
-        className={`relative overflow-hidden bg-black ${className} cursor-pointer`}
-        onClick={handleClick}
-      >
-        {mediaType === 'video' ? (
-          <>
-            <video
-              ref={videoRef}
-              src={thumbnailUrl}
-              className="w-full h-full object-cover"
-              muted
-              playsInline
-              loop
-              onError={() => setError(true)}
-            />
-            {!playing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                  <Play className="w-6 h-6 text-black ml-1" />
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <img
+    <div
+      className={`relative overflow-hidden bg-black ${className} ${onPreview ? 'cursor-pointer' : ''}`}
+      onClick={handleClick}
+      role={onPreview ? 'button' : undefined}
+      tabIndex={onPreview ? 0 : undefined}
+      onKeyDown={onPreview ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onPreview()
+        }
+      } : undefined}
+    >
+      {primaryMediaType === 'video' ? (
+        <>
+          <video
             src={thumbnailUrl}
-            alt="Thumbnail"
             className="w-full h-full object-cover"
+            muted
+            playsInline
+            loop
+            autoPlay
             onError={() => setError(true)}
           />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
+              <Play className="w-6 h-6 text-black ml-1" />
+            </div>
+          </div>
+        </>
+      ) : (
+        <img
+          src={thumbnailUrl}
+          alt="Thumbnail"
+          className="w-full h-full object-cover"
+          onError={() => setError(true)}
+        />
+      )}
+
+      <div className="absolute top-3 left-3 flex items-center gap-2">
+        {mediaLabel && (
+          <span className="inline-flex items-center rounded-full bg-black/65 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            {mediaLabel}
+          </span>
         )}
       </div>
-      
-      {/* 图片大图模态框 */}
-      {showImageModal && mediaType === 'image' && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setShowImageModal(false)}
-        >
-          <button
-            onClick={() => setShowImageModal(false)}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-          <img
-            src={thumbnailUrl}
-            alt="Full size"
-            className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+
+      {extraCount > 0 && (
+        <div className="absolute top-3 right-3">
+          <span className="inline-flex items-center rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-black shadow-sm">
+            +{extraCount}
+          </span>
         </div>
       )}
-    </>
+    </div>
   )
 }
