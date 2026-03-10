@@ -20,6 +20,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [twitterData, setTwitterData] = useState<ReturnType<typeof parseTwitterContent>>(null)
+  const [showDebug, setShowDebug] = useState(false)
 
   const fetchContent = async () => {
     if (content) {
@@ -107,7 +108,41 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
 
       {/* 内容展示 */}
       {isOpen && content && (
-        <div>
+        <div className="space-y-4">
+          {/* Debug 按钮 */}
+          {twitterData && (
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              {showDebug ? '隐藏调试信息' : '显示调试信息'}
+            </button>
+          )}
+
+          {/* Debug 信息 */}
+          {showDebug && twitterData && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs font-mono space-y-2">
+              <div>
+                <strong>Author:</strong> {twitterData.author.name} ({twitterData.author.handle})
+              </div>
+              <div>
+                <strong>Avatar:</strong> {twitterData.author.avatar || '(empty)'}
+              </div>
+              <div>
+                <strong>Text length:</strong> {twitterData.content.text.length}
+              </div>
+              <div>
+                <strong>Images:</strong> {twitterData.content.images.length}
+                {twitterData.content.images.map((img, i) => (
+                  <div key={i} className="ml-4 break-all">{img}</div>
+                ))}
+              </div>
+              <div>
+                <strong>Stats:</strong> {twitterData.stats.replies}R / {twitterData.stats.retweets}RT / {twitterData.stats.likes}L / {twitterData.stats.views}V
+              </div>
+            </div>
+          )}
+
           {/* 如果是 Twitter 内容且解析成功且有实质内容，使用专用组件 */}
           {twitterData && twitterData.content.text ? (
             <TwitterTweetViewer data={twitterData} />
