@@ -68,7 +68,13 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
 
     // Extract avatar URL
     if (line.includes('pbs.twimg.com/profile_images') && !authorAvatar) {
-      authorAvatar = line
+      // Extract URL from Markdown syntax if present
+      const urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/profile_images\/[^\s)]+/)
+      if (urlMatch) {
+        authorAvatar = urlMatch[0]
+      } else {
+        authorAvatar = line
+      }
     }
 
     // Check if verified
@@ -84,7 +90,11 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
 
     // Extract images (media URLs, not profile images)
     if (line.includes('pbs.twimg.com/media/')) {
-      images.push(line)
+      // Extract URL from Markdown syntax if present
+      const urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/media\/[^\s)]+/)
+      if (urlMatch) {
+        images.push(urlMatch[0])
+      }
     }
 
     // Extract stats
