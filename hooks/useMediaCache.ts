@@ -102,7 +102,8 @@ export function useMediaCache() {
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
       try {
-        const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}`, {
+        const forceParam = options.force ? '&force=1' : ''
+        const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}${forceParam}`, {
           signal: controller.signal,
           cache: 'no-store'
         })
