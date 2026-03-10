@@ -30,3 +30,10 @@
 ## [2026-03-10 12:11:36] Fixes applied
 - File: lib/source-cache.ts | Risk: P1 | Fix: add inflight dedupe for same URL and failed-cache cooldown (15 min) to prevent repeated failed re-fetches.
 - File: app/api/agent/*/by-date/*.ts + md routes | Risk: P1 | Fix: cap missing raw fetches (max 20) and enforce 10s time budget with per-request timeout to avoid unbounded waits.
+
+## [2026-03-10 12:16:46] UX checks
+- Flow: login + API 401 check | Result: /api/content without cookie returns 401; login via /api/auth/login success; home list renders.
+- Flow: tab switch + sort | Result: switching to 成人内容 updates URL to tab=adult; sort select change to createdAt updates URL.
+- Flow: detail + markdown + source modal | Result: detail page loads, copy markdown button works, source modal opens with fetch (jina).
+- Flow: date picker | Result: clicking 选择日期 did not reveal input[type=date] in DOM; likely custom picker or hidden input not detected. Needs follow-up manual check in UI.
+- Flow: video preview | Result: no video item tested in current dataset; requires manual verification with a content item containing video.
