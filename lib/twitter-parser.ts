@@ -125,90 +125,133 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   }
 
   // Second pass: extract main tweet text
-  // Strategy: find "Conversation" marker, skip author info, then capture content
+  // Strategy 1: Try to extract from Title section (preserves original line breaks)
+  // Strategy 2: Fall back to Conversation section if Title is incomplete
+  
+  let titleText = ''
+  let conversationText = ''
+  let inTitle = false
   let foundConversation = false
   let foundAuthor = false
   let contentLines: string[] = []
   
+  // First, try to extract from Title section
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     
-    // Look for "Conversation" marker
-    if (line === 'Conversation' || line.includes('Conversation')) {
-      foundConversation = true
+    // Look for Title marker
+    if (line.startsWith('Title:')) {
+      inTitle = true
+      // Extract text after "Title: author on X: "
+      const titleMatch = line.match(/Title:\s*.*?\s+on\s+X:\s+"(.*)/)
+      if (titleMatch) {
+        titleText = titleMatch[1]
+      }
       continue
     }
     
-    // Skip until we find the conversation section
-    if (!foundConversation) {
-      continue
-    }
-    
-    // Skip author info lines after Conversation
-    if (!foundAuthor) {
-      // Skip separator lines (= or -)
-      if (line.match(/^[=-]+$/)) {
-        continue
+    // Collect lines until we hit URL Source or Markdown Content
+    if (inTitle) {
+      if (line.startsWith('URL Source:') || line.startsWith('Markdown Content:')) {
+        inTitle = false
+        break
       }
-      // Skip avatar/profile image links
-      if (line.includes('pbs.twimg.com/profile_images')) {
-        continue
+      // Skip the closing quote and " / X" at the end
+      if (line.endsWith('" / X')) {
+        titleText += '\n' + line.replace(/"\s*\/\s*X$/, '')
+        break
       }
-      // Skip author name and handle links (Markdown format)
-      if (line.match(/^\[.*?\]\(https:\/\/(x\.com|twitter\.com)\//)) {
-        continue
-      }
-      // Once we hit real content (not a link, not empty), mark author as found
-      if (line && !line.startsWith('[') && !line.startsWith('http')) {
-        foundAuthor = true
-      } else {
-        continue
-      }
-    }
-    
-    // Stop at various markers
-    if (
-      line.includes('Translate post') ||
-      line.includes('翻译推文') ||
-      line.includes('pbs.twimg.com/media/') ||
-      line.includes('pbs.twimg.com/amplify_video_thumb/') ||
-      line.match(/^\d{1,2}:\d{2} (AM|PM)/) || // Timestamp
-      line.match(/^Read \d+ repl/i) ||
-      line.includes('New to') ||
-      line.includes('Sign up') ||
-      line.includes('Create account') ||
-      line.includes('Terms of Service')
-    ) {
-      break
-    }
-    
-    // Collect content lines (including empty lines for paragraph breaks)
-    if (foundAuthor) {
-      // Skip URLs, Image labels, emoji images, and Markdown images
-      if (line.startsWith('http://') || 
-          line.startsWith('https://') || 
-          line.match(/^Image \d+:/) ||
-          line.match(/^!\[Image \d+\]/) ||
-          line.includes('abs-0.twimg.com/emoji')) {
-        continue
-      }
-      // Include the line (even if empty, for paragraph breaks)
-      contentLines.push(line)
+      titleText += '\n' + line
     }
   }
   
-  tweetText = contentLines.join('\n').trim()
+  titleText = titleText.trim()
   
-  // Post-process: add line breaks for better readability
-  // Insert line breaks before bullet points and arrows to restore list structure
-  if (tweetText) {
-    tweetText = tweetText
-      // Add line break before bullet points (• or →) if not at start of line
-      .replace(/([^\n])([•→])/g, '$1\n$2')
-      // Add line break after colons followed by list items (for section headers)
-      .replace(/：\s*\n/g, '：\n')
-      // Clean up multiple consecutive line breaks
-      .replace(/\n{3,}/g, '\n\n')
+  // If Title text is substantial (> 100 chars), use it
+  if (titleText.length > 100) {
+    tweetText = titleText
+  } else {
+    // Fall back to Conversation section
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      
+      // Look for "Conversation" marker
+      if (line === 'Conversation' || line.includes('Conversation')) {
+        foundConversation = true
+        continue
+      }
+      
+      // Skip until we find the conversation section
+      if (!foundConversation) {
+        continue
+      }
+      
+      // Skip author info lines after Conversation
+      if (!foundAuthor) {
+        // Skip separator lines (= or -)
+        if (line.match(/^[=-]+$/)) {
+          continue
+        }
+        // Skip avatar/profile image links
+        if (line.includes('pbs.twimg.com/profile_images')) {
+          continue
+        }
+        // Skip author name and handle links (Markdown format)
+        if (line.match(/^\[.*?\]\(https:\/\/(x\.com|twitter\.com)\//)) {
+          continue
+        }
+        // Once we hit real content (not a link, not empty), mark author as found
+        if (line && !line.startsWith('[') && !line.startsWith('http')) {
+          foundAuthor = true
+        } else {
+          continue
+        }
+      }
+      
+      // Stop at various markers
+      if (
+        line.includes('Translate post') ||
+        line.includes('翻译推文') ||
+        line.includes('pbs.twimg.com/media/') ||
+        line.includes('pbs.twimg.com/amplify_video_thumb/') ||
+        line.match(/^\d{1,2}:\d{2} (AM|PM)/) || // Timestamp
+        line.match(/^Read \d+ repl/i) ||
+        line.includes('New to') ||
+        line.includes('Sign up') ||
+        line.includes('Create account') ||
+        line.includes('Terms of Service')
+      ) {
+        break
+      }
+      
+      // Collect content lines (including empty lines for paragraph breaks)
+      if (foundAuthor) {
+        // Skip URLs, Image labels, emoji images, and Markdown images
+        if (line.startsWith('http://') || 
+            line.startsWith('https://') || 
+            line.match(/^Image \d+:/) ||
+            line.match(/^!\[Image \d+\]/) ||
+            line.includes('abs-0.twimg.com/emoji')) {
+          continue
+        }
+        // Include the line (even if empty, for paragraph breaks)
+        contentLines.push(line)
+      }
+    }
+    
+    conversationText = contentLines.join('\n').trim()
+    
+    // Use conversation text and apply intelligent line breaks
+    tweetText = conversationText
+    if (tweetText) {
+      tweetText = tweetText
+        // Add line break before bullet points (• or →) if not at start of line
+        .replace(/([^\n])([•→])/g, '$1\n$2')
+        // Add line break after colons followed by list items (for section headers)
+        .replace(/：\s*\n/g, '：\n')
+        // Clean up multiple consecutive line breaks
+        .replace(/\n{3,}/g, '\n\n')
+    }
   }
 
   // Fallback: if no author info found, try to extract from URL
