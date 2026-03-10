@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { FileText, Loader2, AlertCircle } from './Icon'
 
 interface SourceContentViewerProps {
@@ -96,8 +98,31 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
             <FileText className="w-4 h-4 text-gray-600" />
             <h3 className="text-sm font-semibold text-gray-900">原文内容</h3>
           </div>
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {content}
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                img: ({ node, ...props }) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    {...props}
+                    alt={props.alt || ''}
+                    className="max-w-full h-auto rounded-lg"
+                    loading="lazy"
+                  />
+                ),
+                a: ({ node, ...props }) => (
+                  <a
+                    {...props}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700 underline"
+                  />
+                ),
+              }}
+            >
+              {content}
+            </ReactMarkdown>
           </div>
         </div>
       )}
