@@ -2,8 +2,9 @@
 
 import { ErrorBoundary } from './ErrorBoundary'
 import { ToastContainer } from './Toast'
+import { ProgressBar } from './ProgressBar'
 import { useToast } from '@/hooks/useToast'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, Suspense } from 'react'
 
 interface ToastContextType {
   success: (message: string, duration?: number) => string
@@ -28,6 +29,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ success, error, info, warning }}>
       <ErrorBoundary>
+        <Suspense fallback={null}>
+          <ProgressBar />
+        </Suspense>
         {children}
         <ToastContainer toasts={toasts} onClose={removeToast} />
       </ErrorBoundary>
