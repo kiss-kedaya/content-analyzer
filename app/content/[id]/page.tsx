@@ -1,9 +1,10 @@
 import { getContentById } from '@/lib/api'
 import { notFound } from 'next/navigation'
-import { ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/components/Icon'
+import { ExternalLink, FileText, Clock, User, Hash, Calendar, Image as ImageIcon } from '@/components/Icon'
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceContentViewer from '@/components/SourceContentViewer'
+import MediaThumbnail from '@/components/MediaThumbnail'
 
 export default async function ContentDetailPage({
   params
@@ -71,6 +72,19 @@ export default async function ContentDetailPage({
                 {content.score.toFixed(1)}
               </div>
               <div className="text-xs text-gray-500 mt-2">评分 / 10</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 媒体预览 */}
+        <div className="px-8 py-6 border-b border-gray-200">
+          <div className="flex items-center gap-2 mb-3">
+            <ImageIcon className="w-4 h-4 text-gray-600" />
+            <h2 className="text-sm font-semibold text-gray-900">媒体预览</h2>
+          </div>
+          <div className="relative w-full max-w-2xl mx-auto">
+            <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+              <MediaThumbnail url={content.url} className="w-full h-full" />
             </div>
           </div>
         </div>
