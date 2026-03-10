@@ -254,14 +254,21 @@ async function fetchFromJina(url) {
   }
 }
 
-// 使用 AI 生成标题
+// 使用 AI 生成标题（JSON 格式）
 async function generateTitleWithAI(content, url) {
-  const prompt = `请为以下内容生成一个简洁、准确的中文标题（不超过50个字）。只返回标题文本，不要添加引号或其他说明。
+  const prompt = `请为以下内容生成一个简洁的中文标题。
+
+要求：
+1. 标题不超过50字
+2. 准确概括主要内容
+3. 使用中文
+4. 以 JSON 格式返回
 
 内容：
 ${content.substring(0, 2000)}
 
-标题：`;
+请以以下 JSON 格式返回（不要添加其他文字）：
+{"title": "你的标题"}`;
 
   try {
     const messages = [
@@ -275,7 +282,18 @@ ${content.substring(0, 2000)}
       }
     ];
 
-    const title = await callCloudflareAI(messages);
+    const response = await callCloudflareAI(messages);
+    
+    // 提取 JSON（可能被包裹在代码块中）
+    let jsonStr = response;
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+    
+    // 解析 JSON
+    const parsed = JSON.parse(jsonStr);
+    const title = parsed.title || '';
     
     // 清理标题（移除引号、换行等）
     const cleanTitle = title
@@ -292,14 +310,21 @@ ${content.substring(0, 2000)}
   }
 }
 
-// 使用 AI 生成摘要
+// 使用 AI 生成摘要（JSON 格式）
 async function generateSummaryWithAI(content, url) {
-  const prompt = `请为以下内容生成一个简洁的中文摘要（100-200字）。摘要应该概括主要内容和关键信息。只返回摘要文本，不要添加"摘要："等前缀。
+  const prompt = `请为以下内容生成一个简洁的中文摘要。
+
+要求：
+1. 摘要长度 100-200字
+2. 概括主要内容和关键信息
+3. 使用中文
+4. 以 JSON 格式返回
 
 内容：
 ${content.substring(0, 3000)}
 
-摘要：`;
+请以以下 JSON 格式返回（不要添加其他文字）：
+{"summary": "你的摘要"}`;
 
   try {
     const messages = [
@@ -313,7 +338,18 @@ ${content.substring(0, 3000)}
       }
     ];
 
-    const summary = await callCloudflareAI(messages);
+    const response = await callCloudflareAI(messages);
+    
+    // 提取 JSON（可能被包裹在代码块中）
+    let jsonStr = response;
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+    
+    // 解析 JSON
+    const parsed = JSON.parse(jsonStr);
+    const summary = parsed.summary || '';
     
     // 清理摘要
     const cleanSummary = summary
