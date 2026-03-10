@@ -106,10 +106,23 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
               rehypePlugins={[rehypeRaw, rehypeSanitize]}
               components={{
                 img: ({ node, ...props }) => {
-                  // 过滤掉 emoji 图片（通常 alt 是单个 emoji 字符）
+                  // 检测是否是 emoji 图片（Twitter/Twemoji CDN）
+                  const src = typeof props.src === 'string' ? props.src : ''
+                  const isEmojiImage = src && (
+                    src.includes('twimg.com/emoji') ||
+                    src.includes('twemoji') ||
+                    src.includes('/emoji/v2/')
+                  )
+                  
+                  // 如果是 emoji 图片，直接显示 alt 中的 emoji 字符
+                  if (isEmojiImage && props.alt) {
+                    return <span className="inline-block">{props.alt}</span>
+                  }
+                  
+                  // 过滤掉其他可能的 emoji 图片（alt 是单个 emoji 字符）
                   const isEmoji = props.alt && props.alt.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(props.alt)
                   if (isEmoji) {
-                    return <span>{props.alt}</span>
+                    return <span className="inline-block">{props.alt}</span>
                   }
                   
                   return (
