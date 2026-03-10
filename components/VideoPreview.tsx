@@ -152,9 +152,17 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     if (!el) return
 
     const handleError = () => {
+      console.log('视频加载错误，当前状态:', {
+        url: active.url,
+        sourceUrl: active.sourceUrl,
+        expiresAt: active.expiresAt,
+        now: Math.floor(Date.now() / 1000),
+        expired: active.expiresAt ? active.expiresAt < Math.floor(Date.now() / 1000) : 'unknown'
+      })
+      
       // 如果有 sourceUrl，尝试切换到源地址
       if (active.sourceUrl && active.url !== active.sourceUrl) {
-        console.log('视频加载失败，切换到源地址:', active.sourceUrl)
+        console.log('切换到源地址:', active.sourceUrl)
         setItems(prevItems => 
           prevItems.map((item, idx) => 
             idx === activeIndex 
@@ -162,6 +170,11 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
               : item
           )
         )
+      } else {
+        console.log('无法切换:', {
+          hasSourceUrl: !!active.sourceUrl,
+          alreadyUsingSourceUrl: active.url === active.sourceUrl
+        })
       }
     }
 
@@ -188,9 +201,17 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
     
+    console.log('图片加载错误，当前状态:', {
+      url: active?.url,
+      sourceUrl: active?.sourceUrl,
+      expiresAt: active?.expiresAt,
+      now: Math.floor(Date.now() / 1000),
+      expired: active?.expiresAt ? active.expiresAt < Math.floor(Date.now() / 1000) : 'unknown'
+    })
+    
     // 如果有 sourceUrl 且当前不是 sourceUrl，尝试切换
     if (active?.sourceUrl && active.url !== active.sourceUrl) {
-      console.log('图片加载失败，切换到源地址:', active.sourceUrl)
+      console.log('切换到源地址:', active.sourceUrl)
       setItems(prevItems => 
         prevItems.map((item, idx) => 
           idx === activeIndex 
@@ -198,8 +219,13 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
             : item
         )
       )
+    } else {
+      console.log('无法切换:', {
+        hasSourceUrl: !!active?.sourceUrl,
+        alreadyUsingSourceUrl: active?.url === active?.sourceUrl
+      })
     }
-  }, [active?.sourceUrl, active?.url, activeIndex])
+  }, [active?.sourceUrl, active?.url, active?.expiresAt, activeIndex])
 
   const resetTouchState = () => {
     touchStartRef.current = null
