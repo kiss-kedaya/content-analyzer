@@ -66,14 +66,16 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
       }
     }
 
-    // Extract avatar URL
+    // Extract avatar URL (including from Markdown image syntax)
     if (line.includes('pbs.twimg.com/profile_images') && !authorAvatar) {
-      // Extract URL from Markdown syntax if present
-      const urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/profile_images\/[^\s)]+/)
+      // Try to extract from Markdown image syntax: [![Image X](URL)](link)
+      let urlMatch = line.match(/!\[.*?\]\((https:\/\/pbs\.twimg\.com\/profile_images\/[^\s)]+)\)/)
+      if (!urlMatch) {
+        // Try simple URL extraction
+        urlMatch = line.match(/https:\/\/pbs\.twimg\.com\/profile_images\/[^\s)]+/)
+      }
       if (urlMatch) {
-        authorAvatar = urlMatch[0]
-      } else {
-        authorAvatar = line
+        authorAvatar = urlMatch[1] || urlMatch[0]
       }
     }
 
@@ -196,6 +198,20 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   }
   
   tweetText = contentLines.join('\n').trim()
+  
+  // Post-process: add line breaks for better readability
+  // Insert line breaks after certain patterns to restore paragraph structure
+  if (tweetText) {
+    tweetText = tweetText
+      // Add line break after bullet points (• or →)
+      .replace(/([•→])\s+([^\s•→])/g, '$1 $2\n')
+      // Add line break before bullet points if not at start
+      .replace(/([^\n])\s+([•→])/g, '$1\n$2')
+      // Add line break after colons followed by list items
+      .replace(/：\s*([A-Za-z\u4e00-\u9fa5])/g, '：\n$1')
+      // Clean up multiple consecutive line breaks
+      .replace(/\n{3,}/g, '\n\n')
+  }
 
   // Fallback: if no author info found, try to extract from URL
   if (!authorName && url.includes('x.com/')) {
