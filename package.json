@@ -14,7 +14,8 @@
     "fix:summaries": "node scripts/fix-missing-fields.js --summary-only",
     "fix:tech": "node scripts/fix-missing-fields.js --tech-only",
     "fix:adult": "node scripts/fix-missing-fields.js --adult-only",
-    "fix:check": "node scripts/fix-missing-fields.js --dry-run"
+    "fix:check": "node scripts/fix-missing-fields.js --dry-run",
+    "test:source": "node test-source-normalization.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
