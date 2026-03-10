@@ -159,3 +159,6 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     }
   }
 }
+
+// Re-export types for convenience
+export type { ContentInput as AdultContentInput }

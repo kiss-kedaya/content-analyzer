@@ -74,21 +74,28 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
   }
   
   return (
-    <button
-      onClick={toggleFavorite}
-      disabled={loading}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-colors touch-manipulation ${
-        favorited
-          ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
-      } disabled:opacity-50 disabled:cursor-not-allowed`}
-    >
-      {loading ? (
-        <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" />
-      ) : (
-        <Heart className={`w-3 h-3 md:w-4 md:h-4 ${favorited ? 'fill-current' : ''}`} />
+    <div className="relative inline-block">
+      <button
+        onClick={toggleFavorite}
+        disabled={loading}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-colors touch-manipulation ${
+          favorited
+            ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {loading ? (
+          <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" />
+        ) : (
+          <Heart className={`w-3 h-3 md:w-4 md:h-4 ${favorited ? 'fill-current' : ''}`} />
+        )}
+        {favorited ? '已收藏' : '收藏'}
+      </button>
+      {error && (
+        <div className="absolute top-full left-0 mt-1 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-600 whitespace-nowrap z-10">
+          {error}
+        </div>
       )}
-      {favorited ? '已收藏' : '收藏'}
-    </button>
+    </div>
   )
 }

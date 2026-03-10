@@ -20,50 +20,64 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
   const { fetchMedia } = useMediaCache()
 
   useEffect(() => {
-    fetchThumbnail()
-  }, [url])
+    let isMounted = true
 
-  async function fetchThumbnail() {
-    setLoading(true)
-    setError(false)
+    async function fetchThumbnail() {
+      if (!isMounted) return
+      
+      setLoading(true)
+      setError(false)
 
-    try {
-      const data = await fetchMedia(url)
+      try {
+        const data = await fetchMedia(url)
 
-      if (!data) {
-        setError(true)
-        return
+        if (!isMounted) return
+
+        if (!data) {
+          setError(true)
+          return
+        }
+
+        const ordered = data.media || []
+        const videoCount = data.videos?.length || 0
+        const imageCount = data.images?.length || 0
+        const totalCount = ordered.length || (videoCount + imageCount)
+
+        if (ordered.length > 0) {
+          setThumbnailUrl(ordered[0].url)
+          setPrimaryMediaType(ordered[0].type)
+        } else {
+          setError(true)
+          return
+        }
+
+        if (videoCount > 0 && imageCount > 0) {
+          setMediaLabel('视频/图片')
+        } else if (videoCount > 0) {
+          setMediaLabel('视频')
+        } else {
+          setMediaLabel('图片')
+        }
+
+        setExtraCount(Math.max(totalCount - 1, 0))
+      } catch (err) {
+        console.error('Failed to fetch thumbnail:', err)
+        if (isMounted) {
+          setError(true)
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
       }
-
-      const ordered = data.media || []
-      const videoCount = data.videos?.length || 0
-      const imageCount = data.images?.length || 0
-      const totalCount = ordered.length || (videoCount + imageCount)
-
-      if (ordered.length > 0) {
-        setThumbnailUrl(ordered[0].url)
-        setPrimaryMediaType(ordered[0].type)
-      } else {
-        setError(true)
-        return
-      }
-
-      if (videoCount > 0 && imageCount > 0) {
-        setMediaLabel('视频/图片')
-      } else if (videoCount > 0) {
-        setMediaLabel('视频')
-      } else {
-        setMediaLabel('图片')
-      }
-
-      setExtraCount(Math.max(totalCount - 1, 0))
-    } catch (err) {
-      console.error('Failed to fetch thumbnail:', err)
-      setError(true)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchThumbnail()
+
+    return () => {
+      isMounted = false
+    }
+  }, [url, fetchMedia])
 
   const handleClick = () => {
     onPreview?.()

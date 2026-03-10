@@ -7,6 +7,7 @@ import VideoPreview from './VideoPreview'
 import FavoriteButton from './FavoriteButton'
 import HoverVideoPreview from './HoverVideoPreview'
 import MediaThumbnail from './MediaThumbnail'
+import ConfirmDialog from './ConfirmDialog'
 
 // 评分颜色阈值常量
 const SCORE_THRESHOLDS = {
@@ -53,6 +54,8 @@ export default function BaseContentTable<T extends BaseContent>({
   const [deleting, setDeleting] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [hoverPreviewUrl, setHoverPreviewUrl] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const getSourceBadge = useMemo(() => (source: string) => {
     return SOURCE_BADGE_STYLES[source.toLowerCase()] || 'bg-gray-50 text-gray-700 border-gray-200'
@@ -66,10 +69,12 @@ export default function BaseContentTable<T extends BaseContent>({
   }, [])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这条内容吗？')) return
     if (deleting) return
 
     setDeleting(id)
+    setDeleteError(null)
+    setConfirmDelete(null)
+    
     try {
       const response = await fetch(`/api/${type}/${id}`, {
         method: 'DELETE',
@@ -78,11 +83,13 @@ export default function BaseContentTable<T extends BaseContent>({
       if (response.ok) {
         onDelete?.(id)
       } else {
-        alert('删除失败')
+        setDeleteError('删除失败，请重试')
+        setTimeout(() => setDeleteError(null), 3000)
       }
     } catch (error) {
       console.error('Delete error:', error)
-      alert('删除失败')
+      setDeleteError('删除失败，请重试')
+      setTimeout(() => setDeleteError(null), 3000)
     } finally {
       setDeleting(null)
     }
@@ -207,7 +214,7 @@ export default function BaseContentTable<T extends BaseContent>({
                     详情
                   </Link>
                   <button
-                    onClick={() => handleDelete(content.id)}
+                    onClick={() => setConfirmDelete(content.id)}
                     disabled={deleting === content.id}
                     className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors disabled:opacity-50"
                   >
@@ -300,7 +307,7 @@ export default function BaseContentTable<T extends BaseContent>({
                   详情
                 </Link>
                 <button
-                  onClick={() => handleDelete(content.id)}
+                  onClick={() => setConfirmDelete(content.id)}
                   disabled={deleting === content.id}
                   className="flex items-center justify-center gap-1 px-4 py-2.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm font-medium transition-colors disabled:opacity-50"
                 >
@@ -320,6 +327,23 @@ export default function BaseContentTable<T extends BaseContent>({
       </div>
 
       {previewUrl && <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />}
+      
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="确认删除"
+        message="确定要删除这条内容吗？此操作无法撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        danger
+        onConfirm={() => confirmDelete && handleDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      {deleteError && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50">
+          {deleteError}
+        </div>
+      )}
     </>
   )
 }

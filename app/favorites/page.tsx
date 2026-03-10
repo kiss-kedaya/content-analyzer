@@ -20,8 +20,8 @@ export default async function FavoritesPage({
     getAllAdultContents('createdAt')
   ])
   
-  const favoritedTech = techContents.filter(c => c.favorited)
-  const favoritedAdult = adultContents.filter(c => c.favorited)
+  const favoritedTech = techContents.filter((c: { favorited: boolean }) => c.favorited)
+  const favoritedAdult = adultContents.filter((c: { favorited: boolean }) => c.favorited)
   
   const stats = {
     total: favoritedTech.length + favoritedAdult.length,

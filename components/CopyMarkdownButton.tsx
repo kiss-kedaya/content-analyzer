@@ -11,10 +11,12 @@ type Props = {
 export default function CopyMarkdownButton({ mdUrl, label = '复制 Markdown' }: Props) {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const onCopy = async () => {
     if (loading) return
     setLoading(true)
+    setError(null)
 
     try {
       const res = await fetch(mdUrl)
@@ -26,31 +28,39 @@ export default function CopyMarkdownButton({ mdUrl, label = '复制 Markdown' }:
       await navigator.clipboard.writeText(text)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // ignore
+    } catch (err) {
+      setError('复制失败')
+      setTimeout(() => setError(null), 3000)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={onCopy}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-60"
-      disabled={loading}
-    >
-      {copied ? (
-        <>
-          <Check className="w-4 h-4" />
-          已复制
-        </>
-      ) : (
-        <>
-          <Copy className="w-4 h-4" />
-          {loading ? '复制中...' : label}
-        </>
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={onCopy}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-60"
+        disabled={loading}
+      >
+        {copied ? (
+          <>
+            <Check className="w-4 h-4" />
+            已复制
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4" />
+            {loading ? '复制中...' : label}
+          </>
+        )}
+      </button>
+      {error && (
+        <div className="absolute top-full left-0 mt-1 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-600 whitespace-nowrap z-10">
+          {error}
+        </div>
       )}
-    </button>
+    </div>
   )
 }

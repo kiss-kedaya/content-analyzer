@@ -1,6 +1,7 @@
 import { createContentAPI, ContentInput, OrderBy, validateOrderBy } from './content-api-factory'
 
-export { ContentInput, OrderBy, validateOrderBy }
+export type { ContentInput, OrderBy }
+export { validateOrderBy }
 
 const contentAPI = createContentAPI('content', true)
 
