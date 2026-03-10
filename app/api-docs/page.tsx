@@ -115,6 +115,50 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
           </CodeBlock>
         </Section>
 
+        {/* Agent 调用 */}
+        <Section title="Agent 调用">
+          <p className="text-gray-600 mb-4">
+            Agent 侧推荐直接使用下列接口获取 Markdown 与按日期分页数据。鉴权模式不变，仍使用登录后得到的 <span className="font-mono">auth-token</span> Cookie。
+          </p>
+
+          <div className="space-y-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="text-sm font-semibold text-black mb-2">1) 单条内容 Markdown</div>
+              <CodeBlock>
+{`GET /api/agent/content/:id/md
+GET /api/agent/adult-content/:id/md`}
+              </CodeBlock>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="text-sm font-semibold text-black mb-2">2) 按日期分页（每页 10 条）</div>
+              <CodeBlock>
+{`GET /api/agent/content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt
+GET /api/agent/adult-content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt`}
+              </CodeBlock>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="text-sm font-semibold text-black mb-2">3) 按日期 Markdown 聚合</div>
+              <CodeBlock>
+{`GET /api/agent/content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt
+GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt`}
+              </CodeBlock>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="text-sm font-semibold text-black mb-2">4) 原文抓取与缓存（jina 优先，defuddle 备选）</div>
+              <CodeBlock>
+{`GET /api/source?url=<encoded-url>
+# 例如：/api/source?url=https%3A%2F%2Fexample.com`}
+              </CodeBlock>
+              <p className="text-sm text-gray-600 mt-2">
+                该接口会优先尝试 <span className="font-mono">r.jina.ai</span>，失败时 fallback 到 <span className="font-mono">defuddle.md</span>，并写入数据库缓存，避免重复抓取。
+              </p>
+            </div>
+          </div>
+        </Section>
+
         {/* 端点列表 */}
         <Section title="端点列表">
           <div className="space-y-8">
@@ -521,6 +565,37 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
 
 \`\`\`
 https://ca.kedaya.xyz
+\`\`\`
+
+## Agent 调用
+
+以下接口用于 Agent 读取 Markdown、按日期分页获取数据、抓取并缓存原文。鉴权方式保持不变，仍使用登录后得到的 auth-token Cookie。
+
+### 1) 单条内容 Markdown
+
+\`\`\`
+GET /api/agent/content/:id/md
+GET /api/agent/adult-content/:id/md
+\`\`\`
+
+### 2) 按日期分页（每页 10 条）
+
+\`\`\`
+GET /api/agent/content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt
+GET /api/agent/adult-content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt
+\`\`\`
+
+### 3) 按日期 Markdown 聚合
+
+\`\`\`
+GET /api/agent/content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt
+GET /api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt
+\`\`\`
+
+### 4) 原文抓取与缓存（jina 优先，defuddle 备选）
+
+\`\`\`
+GET /api/source?url=<encoded-url>
 \`\`\`
 
 ## 端点列表
