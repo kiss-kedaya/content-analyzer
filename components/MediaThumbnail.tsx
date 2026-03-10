@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Image as ImageIcon, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
+import { LazyImage } from './LazyImage'
 
 interface MediaThumbnailProps {
   url: string
@@ -128,10 +129,10 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
           />
         </>
       ) : (
-        <img
+        <LazyImage
           src={thumbnailUrl}
           alt="Thumbnail"
-          className="w-full h-full object-cover"
+          className="w-full h-full"
           onError={() => setError(true)}
         />
       )}
