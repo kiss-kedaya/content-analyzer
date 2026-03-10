@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "fix:fields": "node scripts/fix-missing-fields.js",
+    "fix:titles": "node scripts/fix-missing-fields.js --title-only",
+    "fix:summaries": "node scripts/fix-missing-fields.js --summary-only",
+    "fix:check": "node scripts/fix-missing-fields.js --dry-run"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
