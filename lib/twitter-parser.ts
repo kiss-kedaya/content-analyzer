@@ -144,11 +144,24 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     
     // Skip author info lines after Conversation
     if (!foundAuthor) {
-      if (line === authorHandle || line === authorName || line.startsWith('[') || line.includes('pbs.twimg.com/profile_images')) {
+      // Skip separator lines
+      if (line === '=' || line.match(/^=+$/)) {
         continue
       }
-      // Once we hit real content, mark author as found
-      foundAuthor = true
+      // Skip avatar/profile image links
+      if (line.includes('pbs.twimg.com/profile_images')) {
+        continue
+      }
+      // Skip author name and handle links (Markdown format)
+      if (line.match(/^\[.*?\]\(https:\/\/(x\.com|twitter\.com)\//)) {
+        continue
+      }
+      // Once we hit real content (not a link, not empty), mark author as found
+      if (line && !line.startsWith('[') && !line.startsWith('http')) {
+        foundAuthor = true
+      } else {
+        continue
+      }
     }
     
     // Stop at various markers
