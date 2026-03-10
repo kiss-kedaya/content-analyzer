@@ -26,3 +26,7 @@
 - File: lib/url-validate.ts | Risk: None | Note: normalizeAndValidateHttpUrl already enforces http/https, rejects credentials, private hostnames, and private IPv4. Prior SSRF finding is invalid.
 - File: app/api/agent/*/by-date/*.ts + md routes | Risk: P2 | Issue: includeRaw fetch lacks total time budget and cap on missing URLs; mapLimit=3 limits concurrency but not total duration. | Fix: add per-request maxMissing and global timeout, return partial rawStatus if exceeded.
 - File: lib/date.ts | Risk: None | Note: getShanghaiDayRange computes UTC instants for Asia/Shanghai day correctly (UTC+8, no DST).
+
+## [2026-03-10 12:11:36] Fixes applied
+- File: lib/source-cache.ts | Risk: P1 | Fix: add inflight dedupe for same URL and failed-cache cooldown (15 min) to prevent repeated failed re-fetches.
+- File: app/api/agent/*/by-date/*.ts + md routes | Risk: P1 | Fix: cap missing raw fetches (max 20) and enforce 10s time budget with per-request timeout to avoid unbounded waits.

@@ -11,6 +11,9 @@ type FetchResult = {
   rawResponse?: unknown
 }
 
+const FAILED_RETRY_TTL_MS = 15 * 60 * 1000
+const inflight = new Map<string, Promise<any>>()
+
 function normalizeUrl(url: string): string {
   const trimmed = url.trim()
   if (!trimmed) throw new Error('Missing url')
@@ -86,85 +89,104 @@ export async function getOrFetchSourceText(inputUrl: string, opts?: { force?: bo
     if (cached && cached.status === 'ok' && cached.text?.trim()) {
       return cached
     }
+
+    if (cached && cached.status === 'failed' && cached.lastFetchedAt) {
+      const last = new Date(cached.lastFetchedAt).getTime()
+      if (Date.now() - last < FAILED_RETRY_TTL_MS) {
+        return cached
+      }
+    }
   }
 
-  const now = new Date()
+  const existing = inflight.get(url)
+  if (existing) return existing
 
-  // Try jina first
-  try {
-    const jina = await fetchText(url, 'jina')
-    const textSha = sha256(jina.text)
-    return await prisma.sourceCache.upsert({
-      where: { url },
-      create: {
-        url,
-        provider: 'jina',
-        status: 'ok',
-        title: jina.title,
-        text: jina.text,
-        rawResponse: jina.rawResponse as any,
-        wordCount: approxWordCount(jina.text),
-        sha256: textSha,
-        lastFetchedAt: now,
-      },
-      update: {
-        provider: 'jina',
-        status: 'ok',
-        title: jina.title,
-        text: jina.text,
-        rawResponse: jina.rawResponse as any,
-        wordCount: approxWordCount(jina.text),
-        sha256: textSha,
-        lastFetchedAt: now,
-      }
-    })
-  } catch (e) {
-    // fallback
+  const task = (async () => {
+    const now = new Date()
+
+    // Try jina first
     try {
-      const def = await fetchText(url, 'defuddle')
-      const textSha = sha256(def.text)
+      const jina = await fetchText(url, 'jina')
+      const textSha = sha256(jina.text)
       return await prisma.sourceCache.upsert({
         where: { url },
         create: {
           url,
-          provider: 'defuddle',
+          provider: 'jina',
           status: 'ok',
-          title: def.title,
-          text: def.text,
-          rawResponse: def.rawResponse as any,
-          wordCount: approxWordCount(def.text),
+          title: jina.title,
+          text: jina.text,
+          rawResponse: jina.rawResponse as any,
+          wordCount: approxWordCount(jina.text),
           sha256: textSha,
           lastFetchedAt: now,
         },
         update: {
-          provider: 'defuddle',
+          provider: 'jina',
           status: 'ok',
-          title: def.title,
-          text: def.text,
-          rawResponse: def.rawResponse as any,
-          wordCount: approxWordCount(def.text),
+          title: jina.title,
+          text: jina.text,
+          rawResponse: jina.rawResponse as any,
+          wordCount: approxWordCount(jina.text),
           sha256: textSha,
           lastFetchedAt: now,
         }
       })
-    } catch (e2) {
-      const msg = e2 instanceof Error ? e2.message : String(e2)
-      // Save failed state (keep text minimal)
-      return await prisma.sourceCache.upsert({
-        where: { url },
-        create: {
-          url,
-          provider: 'defuddle',
-          status: 'failed',
-          text: msg,
-          lastFetchedAt: now,
-        },
-        update: {
-          status: 'failed',
-          text: msg,
-          lastFetchedAt: now,
-        }
-      })
+    } catch (e) {
+      // fallback
+      try {
+        const def = await fetchText(url, 'defuddle')
+        const textSha = sha256(def.text)
+        return await prisma.sourceCache.upsert({
+          where: { url },
+          create: {
+            url,
+            provider: 'defuddle',
+            status: 'ok',
+            title: def.title,
+            text: def.text,
+            rawResponse: def.rawResponse as any,
+            wordCount: approxWordCount(def.text),
+            sha256: textSha,
+            lastFetchedAt: now,
+          },
+          update: {
+            provider: 'defuddle',
+            status: 'ok',
+            title: def.title,
+            text: def.text,
+            rawResponse: def.rawResponse as any,
+            wordCount: approxWordCount(def.text),
+            sha256: textSha,
+            lastFetchedAt: now,
+          }
+        })
+      } catch (e2) {
+        const msg = e2 instanceof Error ? e2.message : String(e2)
+        // Save failed state (keep text minimal)
+        return await prisma.sourceCache.upsert({
+          where: { url },
+          create: {
+            url,
+            provider: 'defuddle',
+            status: 'failed',
+            text: msg,
+            lastFetchedAt: now,
+          },
+          update: {
+            status: 'failed',
+            text: msg,
+            lastFetchedAt: now,
+          }
+        })
+      }
     }
+  })()
+
+  inflight.set(url, task)
+  try {
+    return await task
+  } finally {
+    inflight.delete(url)
   }
 }

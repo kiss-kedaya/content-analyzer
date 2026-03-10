@@ -76,9 +76,19 @@ export async function GET(request: Request) {
       const { getOrFetchSourceText } = await import('@/lib/source-cache')
       const { mapLimit } = await import('@/lib/promise-pool')
 
-      await mapLimit(missing, 3, async (u) => {
+      const MAX_MISSING = 20
+      const TIME_BUDGET_MS = 10000
+      const capped = missing.slice(0, MAX_MISSING)
+      const deadline = Date.now() + TIME_BUDGET_MS
+
+      await mapLimit(capped, 3, async (u) => {
+        if (Date.now() > deadline) return
+        const remaining = Math.max(1, deadline - Date.now())
         try {
-          await getOrFetchSourceText(u)
+          await Promise.race([
+            getOrFetchSourceText(u),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), Math.min(8000, remaining)))
+          ])
         } catch {
           // ignore
         }
