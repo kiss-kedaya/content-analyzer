@@ -1,67 +1,211 @@
 const { PrismaClient } = require('@prisma/client');
 
 /**
- * 修复脚本：自动生成缺失的标题和摘要
+ * 修复脚本：使用 AI 自动生成缺失的标题和摘要
  * 
  * 使用方法：
- * node scripts/fix-missing-fields.js
+ * node scripts/fix-missing-fields-ai.js
  * 
  * 或者只修复特定字段：
- * node scripts/fix-missing-fields.js --title-only
- * node scripts/fix-missing-fields.js --summary-only
+ * node scripts/fix-missing-fields-ai.js --title-only
+ * node scripts/fix-missing-fields-ai.js --summary-only
  * 
- * 或者只修复特定表：
- * node scripts/fix-missing-fields.js --tech-only
- * node scripts/fix-missing-fields.js --adult-only
+ * 功能：
+ * - 优先使用 SourceCache 中的原文（避免重复请求）
+ * - 如果没有缓存，调用 jina.ai 获取原文
+ * - 使用 Cloudflare Workers AI (GLM-4.7-flash) 生成标题和摘要
  */
 
 const prisma = new PrismaClient();
 
-// 从文本中提取标题（取第一句话或前N个字符）
-function extractTitle(text, maxLength = 100) {
-  if (!text) return '';
-  
-  // 移除开头的项目名称模式（如 "bounty-hunter - "）
-  const cleanText = text.replace(/^[a-zA-Z0-9_-]+\s*-\s*/, '');
-  
-  // 取第一句话（以句号、问号、感叹号结尾）
-  const firstSentence = cleanText.match(/^[^。？！.?!]+[。？！.?!]?/);
-  let title = firstSentence ? firstSentence[0].trim() : cleanText.substring(0, 50).trim();
-  
-  // 如果标题太长，截断并添加省略号
-  if (title.length > maxLength) {
-    title = title.substring(0, maxLength - 3) + '...';
-  }
-  
-  return title;
-}
+// Cloudflare Workers AI 配置
+const CF_ACCOUNT_ID = '554575d3a47f5fd86b1f60fbbe8d9967';
+const CF_API_TOKEN = 'dJDdE5EF8Q8aATIJxoRqZPQngMpx4G1PWWRsbtiF';
+const CF_MODEL = '@cf/zai-org/glm-4.7-flash';
+const CF_API_URL = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${CF_MODEL}`;
 
-// 从文本中提取摘要（取前几句话或前N个字符）
-function extractSummary(text, maxLength = 200) {
-  if (!text) return '';
-  
-  // 移除 Markdown 标记
-  let cleanText = text
-    .replace(/^#+\s+/gm, '') // 移除标题标记
-    .replace(/\*\*(.+?)\*\*/g, '$1') // 移除粗体
-    .replace(/\*(.+?)\*/g, '$1') // 移除斜体
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1') // 移除链接，保留文本
-    .replace(/```[\s\S]*?```/g, '') // 移除代码块
-    .replace(/`(.+?)`/g, '$1') // 移除行内代码
-    .trim();
-  
-  // 取前几句话（最多3句）
-  const sentences = cleanText.match(/[^。？！.?!]+[。？！.?!]/g);
-  if (sentences && sentences.length > 0) {
-    const summary = sentences.slice(0, 3).join('');
-    if (summary.length <= maxLength) {
-      return summary;
+// 调用 Cloudflare Workers AI
+async function callCloudflareAI(messages, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(CF_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CF_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messages })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Cloudflare AI API error: ${response.status} ${error}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.result && data.result.response) {
+        return data.result.response;
+      }
+
+      throw new Error('Invalid response from Cloudflare AI');
+    } catch (error) {
+      console.error(`Attempt ${i + 1}/${retries} failed:`, error.message);
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-  
-  // 如果没有句子或太长，直接截断
-  const summary = cleanText.substring(0, maxLength).trim();
-  return summary.length < cleanText.length ? summary + '...' : summary;
+}
+
+// 从 SourceCache 获取原文
+async function getSourceContent(url) {
+  try {
+    const cached = await prisma.sourceCache.findUnique({
+      where: { url },
+      select: {
+        text: true,
+        status: true
+      }
+    });
+
+    if (cached && cached.status === 'ok' && cached.text) {
+      console.log(`  ✓ 使用缓存的原文 (${cached.text.length} 字符)`);
+      return cached.text;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('  ✕ 获取缓存失败:', error.message);
+    return null;
+  }
+}
+
+// 从 jina.ai 获取原文
+async function fetchFromJina(url) {
+  try {
+    console.log('  → 从 jina.ai 获取原文...');
+    const response = await fetch(`https://r.jina.ai/${url}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Return-Format': 'text'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Jina.ai error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.data && data.data.content) {
+      console.log(`  ✓ 获取成功 (${data.data.content.length} 字符)`);
+      
+      // 保存到缓存
+      try {
+        await prisma.sourceCache.upsert({
+          where: { url },
+          create: {
+            url,
+            provider: 'jina',
+            status: 'ok',
+            text: data.data.content,
+            title: data.data.title || null,
+            wordCount: data.data.content.split(/\s+/).length
+          },
+          update: {
+            text: data.data.content,
+            title: data.data.title || null,
+            wordCount: data.data.content.split(/\s+/).length,
+            lastFetchedAt: new Date()
+          }
+        });
+      } catch (cacheError) {
+        console.error('  ⚠ 保存缓存失败:', cacheError.message);
+      }
+      
+      return data.data.content;
+    }
+
+    throw new Error('No content in jina.ai response');
+  } catch (error) {
+    console.error('  ✕ Jina.ai 请求失败:', error.message);
+    return null;
+  }
+}
+
+// 使用 AI 生成标题
+async function generateTitleWithAI(content, url) {
+  const prompt = `请为以下内容生成一个简洁、准确的中文标题（不超过50个字）。只返回标题文本，不要添加引号或其他说明。
+
+内容：
+${content.substring(0, 2000)}
+
+标题：`;
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的标题。'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ];
+
+    const title = await callCloudflareAI(messages);
+    
+    // 清理标题（移除引号、换行等）
+    const cleanTitle = title
+      .replace(/^["'「『]|["'」』]$/g, '')
+      .replace(/\n/g, ' ')
+      .trim();
+    
+    // 限制长度
+    return cleanTitle.length > 100 ? cleanTitle.substring(0, 97) + '...' : cleanTitle;
+  } catch (error) {
+    console.error('  ✕ AI 生成标题失败:', error.message);
+    // Fallback: 使用简单提取
+    return content.substring(0, 50).trim() + '...';
+  }
+}
+
+// 使用 AI 生成摘要
+async function generateSummaryWithAI(content, url) {
+  const prompt = `请为以下内容生成一个简洁的中文摘要（100-200字）。摘要应该概括主要内容和关键信息。只返回摘要文本，不要添加"摘要："等前缀。
+
+内容：
+${content.substring(0, 3000)}
+
+摘要：`;
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: '你是一个专业的内容编辑，擅长为文章生成简洁准确的摘要。'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ];
+
+    const summary = await callCloudflareAI(messages);
+    
+    // 清理摘要
+    const cleanSummary = summary
+      .replace(/^(摘要：|Summary:|摘要:)/i, '')
+      .trim();
+    
+    // 限制长度
+    return cleanSummary.length > 300 ? cleanSummary.substring(0, 297) + '...' : cleanSummary;
+  } catch (error) {
+    console.error('  ✕ AI 生成摘要失败:', error.message);
+    // Fallback: 使用简单提取
+    return content.substring(0, 200).trim() + '...';
+  }
 }
 
 async function fixMissingTitles(tableName = 'content') {
@@ -69,9 +213,8 @@ async function fixMissingTitles(tableName = 'content') {
   const table = isAdult ? prisma.adultContent : prisma.content;
   const displayName = isAdult ? '成人内容' : '技术内容';
   
-  console.log(`\n=== 修复缺失的标题（${displayName}） ===\n`);
+  console.log(`\n=== 修复缺失的标题（使用 AI - ${displayName}） ===\n`);
   
-  // 查找所有没有标题的内容
   const contentsWithoutTitle = await table.findMany({
     where: {
       OR: [
@@ -88,7 +231,7 @@ async function fixMissingTitles(tableName = 'content') {
     }
   });
   
-  console.log(`找到 ${contentsWithoutTitle.length} 条没有标题的${displayName}`);
+  console.log(`找到 ${contentsWithoutTitle.length} 条没有标题的${displayName}\n`);
   
   if (contentsWithoutTitle.length === 0) {
     console.log(`✓ 所有${displayName}都有标题`);
@@ -98,34 +241,38 @@ async function fixMissingTitles(tableName = 'content') {
   let updated = 0;
   
   for (const item of contentsWithoutTitle) {
-    let title = '';
+    console.log(`\n[${updated + 1}/${contentsWithoutTitle.length}] 处理: ${item.url}`);
     
-    // 优先从 summary 中提取
-    if (item.summary) {
-      title = extractTitle(item.summary);
+    // 1. 获取原文（优先使用缓存）
+    let sourceContent = await getSourceContent(item.url);
+    
+    // 2. 如果没有缓存，从 jina.ai 获取
+    if (!sourceContent) {
+      sourceContent = await fetchFromJina(item.url);
     }
     
-    // 如果 summary 没有内容，尝试从 content 中提取
-    if (!title && item.content) {
-      const firstLine = item.content.split('\n').find(line => line.trim());
-      if (firstLine) {
-        title = extractTitle(firstLine);
-      }
+    // 3. 如果还是没有原文，使用现有的 content 或 summary
+    if (!sourceContent) {
+      sourceContent = item.content || item.summary || '';
     }
     
-    // 如果还是没有标题，使用 URL
-    if (!title) {
-      title = item.url;
+    if (!sourceContent) {
+      console.log('  ⚠ 无法获取内容，跳过');
+      continue;
     }
     
-    // 更新数据库
+    // 4. 使用 AI 生成标题
+    console.log('  → 使用 AI 生成标题...');
+    const title = await generateTitleWithAI(sourceContent, item.url);
+    
+    // 5. 更新数据库
     await table.update({
       where: { id: item.id },
       data: { title }
     });
     
     updated++;
-    console.log(`[${updated}/${contentsWithoutTitle.length}] 已生成标题: ${title.substring(0, 60)}${title.length > 60 ? '...' : ''}`);
+    console.log(`  ✓ 标题: ${title}`);
   }
   
   console.log(`\n✓ 成功修复 ${updated} 条${displayName}的标题\n`);
@@ -137,9 +284,8 @@ async function fixMissingSummaries(tableName = 'content') {
   const table = isAdult ? prisma.adultContent : prisma.content;
   const displayName = isAdult ? '成人内容' : '技术内容';
   
-  console.log(`\n=== 修复缺失的摘要（${displayName}） ===\n`);
+  console.log(`\n=== 修复缺失的摘要（使用 AI - ${displayName}） ===\n`);
   
-  // 查找所有没有摘要的内容
   const contentsWithoutSummary = await table.findMany({
     where: {
       summary: ''
@@ -153,7 +299,7 @@ async function fixMissingSummaries(tableName = 'content') {
     }
   });
   
-  console.log(`找到 ${contentsWithoutSummary.length} 条没有摘要的${displayName}`);
+  console.log(`找到 ${contentsWithoutSummary.length} 条没有摘要的${displayName}\n`);
   
   if (contentsWithoutSummary.length === 0) {
     console.log(`✓ 所有${displayName}都有摘要`);
@@ -163,31 +309,38 @@ async function fixMissingSummaries(tableName = 'content') {
   let updated = 0;
   
   for (const item of contentsWithoutSummary) {
-    let summary = '';
+    console.log(`\n[${updated + 1}/${contentsWithoutSummary.length}] 处理: ${item.url}`);
     
-    // 优先从 content 中提取
-    if (item.content) {
-      summary = extractSummary(item.content);
+    // 1. 获取原文（优先使用缓存）
+    let sourceContent = await getSourceContent(item.url);
+    
+    // 2. 如果没有缓存，从 jina.ai 获取
+    if (!sourceContent) {
+      sourceContent = await fetchFromJina(item.url);
     }
     
-    // 如果 content 没有内容，使用 title
-    if (!summary && item.title) {
-      summary = item.title;
+    // 3. 如果还是没有原文，使用现有的 content
+    if (!sourceContent) {
+      sourceContent = item.content || '';
     }
     
-    // 如果还是没有摘要，使用 URL
-    if (!summary) {
-      summary = `来源: ${item.url}`;
+    if (!sourceContent) {
+      console.log('  ⚠ 无法获取内容，跳过');
+      continue;
     }
     
-    // 更新数据库
+    // 4. 使用 AI 生成摘要
+    console.log('  → 使用 AI 生成摘要...');
+    const summary = await generateSummaryWithAI(sourceContent, item.url);
+    
+    // 5. 更新数据库
     await table.update({
       where: { id: item.id },
       data: { summary }
     });
     
     updated++;
-    console.log(`[${updated}/${contentsWithoutSummary.length}] 已生成摘要: ${summary.substring(0, 60)}${summary.length > 60 ? '...' : ''}`);
+    console.log(`  ✓ 摘要: ${summary.substring(0, 80)}...`);
   }
   
   console.log(`\n✓ 成功修复 ${updated} 条${displayName}的摘要\n`);
@@ -252,7 +405,8 @@ async function main() {
     const dryRun = args.includes('--dry-run');
     
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║     Content Analyzer - 字段修复脚本                        ║');
+    console.log('║     Content Analyzer - AI 字段修复脚本                     ║');
+    console.log('║     Powered by Cloudflare Workers AI (GLM-4.7-flash)      ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
     
     if (dryRun) {
