@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Calendar, Hash } from '@/components/Icon'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import MediaThumbnail from './MediaThumbnail'
 
 interface MobileContentCardProps {
   id: string
@@ -14,6 +15,7 @@ interface MobileContentCardProps {
   score: number
   analyzedAt: Date
   favorited: boolean
+  mediaUrls?: string[]
   onDelete?: (id: string) => void
   detailPath: string
 }
@@ -27,10 +29,12 @@ export function MobileContentCard({
   score,
   analyzedAt,
   favorited,
+  mediaUrls,
   onDelete,
   detailPath
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const hasMedia = mediaUrls && mediaUrls.length > 0
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'bg-green-100 text-green-700 border-green-200'
@@ -60,6 +64,13 @@ export function MobileContentCard({
           {score.toFixed(1)}
         </span>
       </div>
+
+      {/* 媒体预览 */}
+      {hasMedia && (
+        <div className="relative w-full h-48 rounded-lg overflow-hidden">
+          <MediaThumbnail url={mediaUrls[0]} className="w-full h-full" />
+        </div>
+      )}
 
       {/* 标题 */}
       <div>

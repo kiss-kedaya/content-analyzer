@@ -343,13 +343,18 @@ export default function ContentList({
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-4">
           {/* 标题和控制栏 */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col gap-4">
+            {/* 第一行：标题和 Tab */}
             <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
               <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
               <TabSelector 
                 currentTab={state.activeTab} 
                 onTabChange={actions.setTab}
               />
+            </div>
+
+            {/* 第二行：日期选择和排序（移动端同一行，桌面端分开）*/}
+            <div className="flex items-center gap-3">
               <DatePicker
                 value={dateFilter}
                 onChange={(next) => {
@@ -357,12 +362,12 @@ export default function ContentList({
                   actions.resetPagination()
                 }}
               />
+              <SortSelector 
+                value={state.orderBy} 
+                currentTab={state.activeTab}
+                onSortChange={actions.setOrderBy}
+              />
             </div>
-            <SortSelector 
-              value={state.orderBy} 
-              currentTab={state.activeTab}
-              onSortChange={actions.setOrderBy}
-            />
           </div>
 
           {/* 搜索栏 */}
