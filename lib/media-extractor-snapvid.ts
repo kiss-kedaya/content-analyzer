@@ -5,9 +5,44 @@
 
 import { isValidTwitterUrl } from './twitter-url-utils'
 
+function base64UrlToUtf8(input: string): string {
+  const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+  return Buffer.from(padded, 'base64').toString('utf8')
+}
+
+function tryDecodeSnapcdnTokenUrl(url: string): { sourceUrl?: string; expiresAt?: number } {
+  try {
+    const u = new URL(url)
+    if (u.hostname !== 'dl.snapcdn.app') return {}
+    const token = u.searchParams.get('token')
+    if (!token) return {}
+
+    const parts = token.split('.')
+    if (parts.length !== 3) return {}
+
+    const payloadJson = base64UrlToUtf8(parts[1])
+    const payload = JSON.parse(payloadJson) as any
+
+    const sourceUrl = typeof payload.url === 'string' ? payload.url : undefined
+    const expiresAt = typeof payload.exp === 'number' ? payload.exp : undefined
+
+    return { sourceUrl, expiresAt }
+  } catch {
+    return {}
+  }
+}
+
 export interface MediaInfo {
   type: 'image' | 'video'
+  // snapcdn token URL or direct media URL
   url: string
+  // extracted from snapcdn token payload when available (e.g. video.twimg.com/...mp4)
+  sourceUrl?: string
+  // token expiration time (epoch seconds) when the url is a snapcdn token URL
+  expiresAt?: number
+  // original snapcdn token URL (kept when we decide to return sourceUrl)
+  fallbackUrl?: string
   thumbnail?: string
   width?: number
   height?: number
@@ -158,12 +193,19 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
     const blockVideoRegex = /href="(https:\/\/dl\.snapcdn\.app\/get\?token=[^"]+)"[^>]*>.*?下载 MP4 \((\d+)p\)/gs
     let match: RegExpExecArray | null
     while ((match = blockVideoRegex.exec(block)) !== null) {
-      blockVideos.push({
-        type: 'video',
-        url: match[1],
-        quality: match[2] + 'p',
-        format: 'mp4',
-      })
+      {
+        const tokenUrl = match[1]
+        const decoded = tryDecodeSnapcdnTokenUrl(tokenUrl)
+        blockVideos.push({
+          type: 'video',
+          url: tokenUrl,
+          fallbackUrl: tokenUrl,
+          sourceUrl: decoded.sourceUrl,
+          expiresAt: decoded.expiresAt,
+          quality: match[2] + 'p',
+          format: 'mp4',
+        })
+      }
     }
 
     blockVideos.sort((a, b) => (qualityOrder[b.quality || 'unknown'] || -1) - (qualityOrder[a.quality || 'unknown'] || -1))
@@ -194,13 +236,19 @@ function extractVideoUrlsFromHtml(html: string): MediaInfo[] {
       continue
     }
 
-    segments.push({
-      index: imageMatch.index,
-      media: {
-        type: 'image',
-        url,
-      }
-    })
+    {
+      const decoded = tryDecodeSnapcdnTokenUrl(url)
+      segments.push({
+        index: imageMatch.index,
+        media: {
+          type: 'image',
+          url,
+          fallbackUrl: url,
+          sourceUrl: decoded.sourceUrl,
+          expiresAt: decoded.expiresAt,
+        }
+      })
+    }
   }
 
   segments.sort((a, b) => a.index - b.index)

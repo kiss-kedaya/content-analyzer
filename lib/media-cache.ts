@@ -2,7 +2,15 @@ import prisma from './db'
 
 export interface CachedMediaItem {
   type: 'video' | 'image'
+  // Primary URL returned to the client.
   url: string
+  // Optional source URL (e.g. video.twimg.com) extracted from snapcdn token payload.
+  // Used when snapcdn token URL expires.
+  sourceUrl?: string
+  // Optional expiration time (epoch seconds) extracted from snapcdn token payload.
+  expiresAt?: number
+  // Optional original provider URL (e.g. snapcdn token URL) kept for refresh/debug.
+  fallbackUrl?: string
   quality?: string
   format?: string
 }
@@ -41,6 +49,9 @@ export function normalizeCachedMedia(input: unknown): CachedMediaItem[] {
       return {
         type: entry.type,
         url: entry.url,
+        sourceUrl: typeof entry.sourceUrl === 'string' ? entry.sourceUrl : undefined,
+        expiresAt: typeof entry.expiresAt === 'number' ? entry.expiresAt : undefined,
+        fallbackUrl: typeof entry.fallbackUrl === 'string' ? entry.fallbackUrl : undefined,
         quality: typeof entry.quality === 'string' ? entry.quality : undefined,
         format: typeof entry.format === 'string' ? entry.format : undefined,
       } as CachedMediaItem

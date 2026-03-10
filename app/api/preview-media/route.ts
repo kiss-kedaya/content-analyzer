@@ -11,23 +11,61 @@ function isAllowedMediaHost(hostname: string): boolean {
   return ALLOWED_MEDIA_HOSTS.some((host) => lower === host || lower.endsWith(`.${host}`))
 }
 
+function applyExpiryPolicy(media: ReturnType<typeof normalizeCachedMedia>) {
+  const nowSec = Math.floor(Date.now() / 1000)
+  return media.map((item) => {
+    if (item.type !== 'video') return item
+
+    const isSnapcdn = (() => {
+      try {
+        return new URL(item.url).hostname === 'dl.snapcdn.app'
+      } catch {
+        return false
+      }
+    })()
+
+    const expired = typeof item.expiresAt === 'number' ? item.expiresAt <= nowSec : false
+
+    // If snapcdn token URL is expired, prefer sourceUrl first (video.twimg.com).
+    if (isSnapcdn && expired && item.sourceUrl) {
+      return {
+        ...item,
+        url: item.sourceUrl,
+        fallbackUrl: item.fallbackUrl || item.url,
+      }
+    }
+
+    return item
+  })
+}
+
 function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMedia>, raw?: unknown) {
+  const fixed = applyExpiryPolicy(media)
+  const nowSec = Math.floor(Date.now() / 1000)
+
   return NextResponse.json({
     success: true,
     url,
-    media,
-    videos: media.filter(item => item.type === 'video').map(item => ({
+    media: fixed,
+    videos: fixed.filter(item => item.type === 'video').map(item => ({
       url: item.url,
+      fallbackUrl: item.fallbackUrl,
+      sourceUrl: item.sourceUrl,
+      expiresAt: item.expiresAt,
+      expired: typeof item.expiresAt === 'number' ? item.expiresAt <= nowSec : false,
       quality: item.quality,
       format: item.format,
     })),
-    images: media.filter(item => item.type === 'image').map(item => ({
+    images: fixed.filter(item => item.type === 'image').map(item => ({
       url: item.url,
+      fallbackUrl: item.fallbackUrl,
+      sourceUrl: item.sourceUrl,
+      expiresAt: item.expiresAt,
     })),
     count: {
-      videos: media.filter(item => item.type === 'video').length,
-      images: media.filter(item => item.type === 'image').length,
-      total: media.length,
+      videos: fixed.filter(item => item.type === 'video').length,
+      images: fixed.filter(item => item.type === 'image').length,
+      total: fixed.length,
     },
     raw,
   }, {
@@ -67,8 +105,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const force = searchParams.get('force') === '1'
+
     const cached = await getMediaCache(normalizedUrl)
-    if (cached?.status === 'success') {
+    if (!force && cached?.status === 'success') {
       const media = normalizeCachedMedia(cached.parsedMedia)
       if (media.length > 0) {
         return formatResponse(normalizedUrl, media, cached.rawResponse)
