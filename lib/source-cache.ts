@@ -62,15 +62,35 @@ async function fetchText(url: string, provider: SourceProvider, timeoutMs = 2500
       throw new Error(`${provider} returned empty text`)
     }
 
-    // Light title extraction: defuddle has YAML frontmatter; jina often includes "Title:" line.
+    // Extract title based on provider
     let title: string | undefined
-    const jinaTitle = cleaned.match(/^Title:\s*(.+)$/m)?.[1]
-    if (jinaTitle) title = jinaTitle.trim()
+    let content = cleaned
+
+    if (provider === 'defuddle') {
+      // Parse YAML frontmatter
+      const frontmatterMatch = cleaned.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/)
+      if (frontmatterMatch) {
+        const frontmatter = frontmatterMatch[1]
+        content = frontmatterMatch[2].trim()
+        
+        // Extract title from frontmatter
+        const titleMatch = frontmatter.match(/^title:\s*["']?(.+?)["']?\s*$/m)
+        if (titleMatch) {
+          title = titleMatch[1].trim()
+        }
+      }
+    } else {
+      // Jina: extract title from "Title:" line
+      const jinaTitle = cleaned.match(/^Title:\s*(.+)$/m)?.[1]
+      if (jinaTitle) {
+        title = jinaTitle.trim()
+      }
+    }
 
     return {
       provider,
       title,
-      text: cleaned,
+      text: content || cleaned,
       rawResponse: {
         status: res.status,
         contentType: res.headers.get('content-type')
