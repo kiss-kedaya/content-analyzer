@@ -4,6 +4,7 @@ import { ExternalLink, FileText, Clock, User, Hash, Calendar } from '@/component
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceModalLauncher from '@/components/SourceModalLauncher'
+import SourceContentViewer from '@/components/SourceContentViewer'
 
 export default async function ContentDetailPage({
   params
@@ -86,15 +87,9 @@ export default async function ContentDetailPage({
           </p>
         </div>
 
-        {/* 完整内容 */}
+        {/* 原文内容查看器 */}
         <div className="px-8 py-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-4 h-4 text-gray-600" />
-            <h2 className="text-sm font-semibold text-gray-900">完整内容</h2>
-          </div>
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {content.content}
-          </div>
+          <SourceContentViewer url={content.url} />
         </div>
 
         {/* 原文与 Markdown */}

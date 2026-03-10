@@ -5,6 +5,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceModalLauncher from '@/components/SourceModalLauncher'
+import SourceContentViewer from '@/components/SourceContentViewer'
 
 export default async function AdultContentDetailPage({
   params
@@ -94,15 +95,9 @@ export default async function AdultContentDetailPage({
           </p>
         </div>
 
-        {/* 完整内容 */}
+        {/* 原文内容查看器 */}
         <div className="px-4 md:px-8 py-4 md:py-6">
-          <div className="flex items-center gap-2 mb-3 md:mb-4">
-            <FileText className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />
-            <h2 className="text-sm md:text-base font-semibold text-gray-900">完整内容</h2>
-          </div>
-          <div className="prose prose-sm max-w-none text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {content.content}
-          </div>
+          <SourceContentViewer url={content.url} />
         </div>
 
         {/* 原文与 Markdown */}
