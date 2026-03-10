@@ -15,3 +15,9 @@
 - File: next.config.js | Risk: P3 | Issue: Next.js warns about workspace root due to multiple lockfiles; can affect output tracing. | Fix: set outputFileTracingRoot or remove extra lockfile outside repo if not needed.
 ## [2026-03-10 11:40:08] Findings (auth env validation)
 - File: lib/env.ts | Risk: P1 | Issue: ACCESS_PASSWORD requires min length 8. Required login password is kedaya (6 chars) causing env validation failure in middleware and /api/auth/login returns 404. UI shows network error. | Fix: reduce minimum length to 6 or update password and documentation to an 8+ char value, and ensure env validation does not crash middleware.
+
+## [2026-03-10 11:47:22] Findings (by-date + md routes)
+- File: app/api/agent/content/by-date/route.ts + app/api/agent/adult-content/by-date/route.ts | Risk: P1 | Issue: includeRaw missing cache fetch is sequential without concurrency or total time budget; large missing lists can stall requests. | Fix: cap missing URLs per request, add total timeout and concurrency-limited pool, return partial rawStatus.
+- File: app/api/agent/content/by-date/md/route.ts + app/api/agent/adult-content/by-date/md/route.ts | Risk: P1 | Issue: missing raw cache fetch is sequential and unbounded, could block markdown responses under high miss rate. | Fix: same as above; consider fetch on-demand per item and mark missing.
+- File: lib/source-cache.ts + app/api/source/route.ts | Risk: P1 | Issue: URL validation only trims/min length; no scheme check or private network guard. Enables SSRF-style fetch via third-party fetchers. | Fix: enforce http/https, reject localhost/private IPs, optional allowlist.
+- File: lib/md.ts | Risk: P2 | Issue: mdEscape only normalizes newlines; text fields can include markdown or HTML. Output is plain markdown but could be rendered unsafely elsewhere. | Fix: escape markdown special chars or ensure renderer uses safe mode and strips HTML.

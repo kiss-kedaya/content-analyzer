@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getOrFetchSourceText } from '@/lib/source-cache'
+import { HttpUrlSchema } from '@/lib/url-validate'
 
 const QuerySchema = z.object({
-  url: z.string().min(1),
+  url: HttpUrlSchema,
   force: z.string().optional(),
 })
 

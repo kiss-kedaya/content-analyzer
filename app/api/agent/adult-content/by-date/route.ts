@@ -74,13 +74,15 @@ export async function GET(request: Request) {
     const missing = urls.filter(url => !raws.some(r => r.url === url))
     if (missing.length) {
       const { getOrFetchSourceText } = await import('@/lib/source-cache')
-      for (const url of missing) {
+      const { mapLimit } = await import('@/lib/promise-pool')
+
+      await mapLimit(missing, 3, async (u) => {
         try {
-          await getOrFetchSourceText(url)
+          await getOrFetchSourceText(u)
         } catch {
           // ignore
         }
-      }
+      })
     }
 
     const updated = await prisma.sourceCache.findMany({

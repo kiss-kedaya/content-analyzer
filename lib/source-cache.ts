@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { prisma } from './db'
+import { normalizeAndValidateHttpUrl } from './url-validate'
 
 export type SourceProvider = 'jina' | 'defuddle'
 
@@ -78,7 +79,7 @@ async function fetchText(url: string, provider: SourceProvider, timeoutMs = 2500
 }
 
 export async function getOrFetchSourceText(inputUrl: string, opts?: { force?: boolean }) {
-  const url = normalizeUrl(inputUrl)
+  const url = normalizeAndValidateHttpUrl(normalizeUrl(inputUrl))
 
   if (!opts?.force) {
     const cached = await prisma.sourceCache.findUnique({ where: { url } })
