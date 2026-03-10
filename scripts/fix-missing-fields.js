@@ -164,26 +164,9 @@ async function callCloudflareAI(messages, retries = 3) {
 
       const data = await response.json();
       
-      // 调试：打印响应结构（仅第一次）
-      if (i === 0) {
-        console.log('  [DEBUG] API Response:', JSON.stringify(data).substring(0, 200));
-      }
-      
-      // 尝试多种可能的响应格式
-      if (data.result && data.result.response) {
-        return data.result.response;
-      }
-      
-      if (data.result && typeof data.result === 'string') {
-        return data.result;
-      }
-      
-      if (data.response) {
-        return data.response;
-      }
-      
-      if (typeof data === 'string') {
-        return data;
+      // 正确的响应格式：data.result.choices[0].message.content
+      if (data.result && data.result.choices && data.result.choices[0] && data.result.choices[0].message) {
+        return data.result.choices[0].message.content;
       }
 
       throw new Error(`Invalid response format: ${JSON.stringify(data).substring(0, 100)}`);
