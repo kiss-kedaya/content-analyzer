@@ -370,7 +370,7 @@ export default function ContentList({
     if (state.orderBy !== initialOrderBy || dateFilter !== (initialDate ?? null)) {
       fetchSortedData()
     }
-  }, [state.orderBy, state.activeTab, dateFilter, actions, initialDate, initialOrderBy])
+  }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy])
 
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
