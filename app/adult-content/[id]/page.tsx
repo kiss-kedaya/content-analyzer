@@ -112,7 +112,7 @@ export default async function AdultContentDetailPage({
               打开链接
             </a>
             <div className="md:ml-auto">
-              <CopyMarkdownButton mdUrl={`/api/agent/adult-content/${content.id}/md`} />
+              <CopyMarkdownButton url={content.url} />
             </div>
           </div>
         </div>

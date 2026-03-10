@@ -104,7 +104,7 @@ export default async function ContentDetailPage({
               打开链接
             </a>
             <div className="md:ml-auto">
-              <CopyMarkdownButton mdUrl={`/api/agent/content/${content.id}/md`} />
+              <CopyMarkdownButton url={content.url} />
             </div>
           </div>
         </div>

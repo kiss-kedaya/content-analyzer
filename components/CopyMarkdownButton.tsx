@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { Copy, Check } from '@/components/Icon'
 
 type Props = {
-  mdUrl: string
+  url: string
   label?: string
 }
 
-export default function CopyMarkdownButton({ mdUrl, label = '复制 Markdown' }: Props) {
+export default function CopyMarkdownButton({ url, label = '复制原文' }: Props) {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,13 +19,17 @@ export default function CopyMarkdownButton({ mdUrl, label = '复制 Markdown' }:
     setError(null)
 
     try {
-      const res = await fetch(mdUrl)
+      const res = await fetch(`/api/source?url=${encodeURIComponent(url)}`)
       if (!res.ok) {
-        throw new Error('Failed to fetch markdown')
+        throw new Error('Failed to fetch source')
       }
 
-      const text = await res.text()
-      await navigator.clipboard.writeText(text)
+      const data = await res.json()
+      if (!data.success || !data.data?.text) {
+        throw new Error(data.error?.message || '原文内容为空')
+      }
+
+      await navigator.clipboard.writeText(data.data.text)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
