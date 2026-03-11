@@ -1,4 +1,4 @@
-const DEFAULT_SAME_ORIGIN_PROXY_PATH = '/api/media-proxy'
+const HARD_CODED_MEDIA_PROXY_BASE_URL = 'https://media.kedaya.xyz'
 
 export function shouldProxyMediaUrl(rawUrl: string): boolean {
   try {
@@ -10,25 +10,6 @@ export function shouldProxyMediaUrl(rawUrl: string): boolean {
   }
 }
 
-function getProxyBase(): string {
-  // Must be NEXT_PUBLIC so client components can read it.
-  const base = process.env.NEXT_PUBLIC_MEDIA_PROXY_BASE_URL
-
-  if (!base) {
-    return DEFAULT_SAME_ORIGIN_PROXY_PATH
-  }
-
-  return base.replace(/\/+$/, '')
-}
-
 export function toMediaProxyUrl(rawUrl: string): string {
-  const base = getProxyBase()
-
-  // If base is same-origin path (/api/media-proxy), keep existing behavior.
-  if (base.startsWith('/')) {
-    return `${base}?url=${encodeURIComponent(rawUrl)}`
-  }
-
-  // External base, e.g. https://media.kedaya.xyz
-  return `${base}/?url=${encodeURIComponent(rawUrl)}`
+  return `${HARD_CODED_MEDIA_PROXY_BASE_URL}/?url=${encodeURIComponent(rawUrl)}`
 }
