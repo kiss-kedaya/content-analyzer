@@ -425,7 +425,6 @@ async function processOne(item) {
           create: {
             source: item.source,
             url,
-            mediaUrls: Array.isArray(item.mediaUrls) ? item.mediaUrls : [],
             favorited: !!item.favorited,
             favoritedAt: item.favoritedAt || null,
             ...updates,
