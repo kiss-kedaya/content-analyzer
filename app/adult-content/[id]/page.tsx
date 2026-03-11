@@ -5,7 +5,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceContentViewer from '@/components/SourceContentViewer'
-import MediaThumbnail from '@/components/MediaThumbnail'
+import DetailMediaPreview from '@/components/DetailMediaPreview'
 
 export default async function AdultContentDetailPage({
   params
@@ -87,19 +87,11 @@ export default async function AdultContentDetailPage({
         {/* 内容区域 - 单栏布局 */}
         <div className="px-4 md:px-10 py-6 md:py-8 border-b border-gray-200">
           <div className="space-y-6 md:space-y-8">
-            {/* 媒体预览 */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-gray-600" />
-                <h2 className="text-sm md:text-base font-semibold text-gray-900">媒体预览</h2>
-              </div>
-              <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                <MediaThumbnail 
-                  url={content.mediaUrls && content.mediaUrls.length > 0 ? content.mediaUrls[0] : content.url} 
-                  className="w-full h-full" 
-                />
-              </div>
-            </section>
+            <DetailMediaPreview
+              url={content.url}
+              mediaUrls={(content as any).mediaUrls || []}
+              title={content.title || undefined}
+            />
 
             {/* 摘要 */}
             <section className="space-y-3 bg-blue-50 p-5 md:p-6 rounded-lg">
