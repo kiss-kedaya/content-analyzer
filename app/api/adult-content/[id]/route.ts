@@ -34,9 +34,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    await deleteAdultContent(id)
-    
-    return NextResponse.json({ success: true })
+    const result = await deleteAdultContent(id)
+
+    // Idempotent: deleting a non-existent record is treated as success
+    return NextResponse.json({ success: true, deleted: result?.deleted ?? false })
   } catch (error) {
     console.error('Error deleting adult content:', error)
     return NextResponse.json(

@@ -142,12 +142,20 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     },
 
     /**
-     * 删除内容
+     * 删除内容（幂等）
+     * 
+     * Prisma delete() will throw P2025 if the record does not exist.
+     * For UX (seamless delete) we want idempotent deletes.
      */
     async delete(id: string) {
-      return await (delegate as any).delete({
+      const result = await (delegate as any).deleteMany({
         where: { id }
       })
+
+      return {
+        deleted: Number(result?.count || 0) > 0,
+        count: Number(result?.count || 0),
+      }
     },
 
     /**
