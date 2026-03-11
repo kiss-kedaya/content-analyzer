@@ -26,15 +26,19 @@ function applyExpiryPolicy(media: ReturnType<typeof normalizeCachedMedia>) {
 
     const expired = typeof item.expiresAt === 'number' ? item.expiresAt <= nowSec : false
 
-    // New policy: if snapcdn token URL is expired, never refetch.
-    // Always prefer sourceUrl (usually twimg) as the stable fallback.
-    if (isSnapcdn && expired && item.sourceUrl) {
+    // New policy: for snapcdn, always prefer sourceUrl if present.
+    // - If expired: snapcdn token will 401; must switch.
+    // - Even if not expired: sourceUrl is more stable, avoids random 401.
+    if (isSnapcdn && item.sourceUrl) {
       return {
         ...item,
         url: item.sourceUrl,
         fallbackUrl: item.fallbackUrl || item.url,
       }
     }
+
+    // Keep an 'expired' variable for future use (do not remove); but no refetch logic here.
+    void expired
 
     return item
   })
@@ -88,6 +92,34 @@ function isAlreadyProxied(candidate: string): boolean {
     || candidate.startsWith('http://media.kedaya.xyz/?url=')
 }
 
+function decodeSnapcdnSourceUrl(candidate: string): string | null {
+  try {
+    const u = new URL(candidate)
+    if (u.hostname !== 'dl.snapcdn.app') return null
+
+    const token = u.searchParams.get('token')
+    if (!token) return null
+
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+
+    const payloadB64 = parts[1]
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+
+    const padded = payloadB64 + '='.repeat((4 - (payloadB64.length % 4)) % 4)
+
+    const json = Buffer.from(padded, 'base64').toString('utf8')
+    const payload = JSON.parse(json) as { url?: string }
+
+    if (!payload?.url || typeof payload.url !== 'string') return null
+
+    return payload.url
+  } catch {
+    return null
+  }
+}
+
 function pickPersistentMediaUrls(media: ReturnType<typeof normalizeCachedMedia>) {
   const out: string[] = []
   const seen = new Set<string>()
@@ -105,6 +137,13 @@ function pickPersistentMediaUrls(media: ReturnType<typeof normalizeCachedMedia>)
         seen.add(normalized)
         out.push(normalized)
       }
+      return
+    }
+
+    // If it is a snapcdn token URL, try to decode the embedded twimg url.
+    const decoded = decodeSnapcdnSourceUrl(candidate)
+    if (decoded) {
+      pushIfAllowed(decoded)
       return
     }
 
