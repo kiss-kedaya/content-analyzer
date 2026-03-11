@@ -25,7 +25,7 @@ export function LazyImage({
   const [isLoaded, setIsLoaded] = useState(false)
   const [isInView, setIsInView] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
@@ -36,8 +36,8 @@ export function LazyImage({
           if (entry.isIntersecting) {
             setIsInView(true)
             // 一旦进入视口就停止观察
-            if (observerRef.current && imgRef.current) {
-              observerRef.current.unobserve(imgRef.current)
+            if (observerRef.current && containerRef.current) {
+              observerRef.current.unobserve(containerRef.current)
             }
           }
         })
@@ -49,8 +49,8 @@ export function LazyImage({
     )
 
     // 开始观察
-    if (imgRef.current) {
-      observerRef.current.observe(imgRef.current)
+    if (containerRef.current) {
+      observerRef.current.observe(containerRef.current)
     }
 
     // 清理
@@ -73,6 +73,7 @@ export function LazyImage({
 
   return (
     <div
+      ref={containerRef}
       className={`relative overflow-hidden ${className}`}
       style={{ width, height }}
     >
@@ -106,7 +107,6 @@ export function LazyImage({
       {/* 实际图片 */}
       {isInView && !hasError && (
         <img
-          ref={imgRef}
           src={src}
           alt={alt}
           className={`w-full h-full object-cover transition-opacity duration-300 ${

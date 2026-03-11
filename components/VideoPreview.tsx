@@ -262,10 +262,10 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         aria-modal="true"
         aria-label="媒体预览"
         tabIndex={-1}
-        className="relative w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden outline-none"
+        className="relative w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden outline-none flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 shrink-0">
           <h2 className="text-lg md:text-xl font-semibold text-black">媒体预览</h2>
           <button
             onClick={handleClose}
@@ -276,7 +276,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
           </button>
         </div>
 
-        <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(100vh-60px)] md:max-h-[calc(90vh-80px)]">
+        <div className="p-4 md:p-6 overflow-y-auto flex-1">
           {loading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
@@ -372,9 +372,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     playsInline
                     autoPlay
                     preload="metadata"
-
-                    className="w-full rounded-lg bg-black"
-                    style={{ maxHeight: '70vh' }}
+                    className="max-w-full max-h-[calc(100dvh-180px)] w-auto h-auto rounded-lg bg-black"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* Do not force type; let browser sniff actual media type */}
@@ -387,8 +385,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     src={active.url}
                     alt={`媒体 ${activeIndex + 1}`}
                     onError={handleImageError}
-                    className="w-full rounded-lg bg-black object-contain"
-                    style={{ maxHeight: '70vh' }}
+                    className="max-w-full max-h-[calc(100dvh-180px)] w-auto h-auto rounded-lg bg-black object-contain"
                     onClick={(e) => e.stopPropagation()}
                   />
                 )}
