@@ -181,13 +181,30 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
                     return <span className="inline-block">{props.alt}</span>
                   }
                   
+                  const rawSrc = typeof props.src === 'string' ? props.src : ''
+                  const toAbsolute = (s: string) => (s.startsWith('//') ? `https:${s}` : s)
+
+                  const proxiedSrc = (() => {
+                    if (!rawSrc) return rawSrc
+                    try {
+                      const u = new URL(toAbsolute(rawSrc))
+                      const host = u.hostname.toLowerCase()
+                      const isTwimg = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
+                      if (!isTwimg) return rawSrc
+
+                      return `//media.kedaya.xyz/?url=${encodeURIComponent(rawSrc)}`
+                    } catch {
+                      return rawSrc
+                    }
+                  })()
+
                   return (
                     <button
                       type="button"
                       className="block w-full text-left"
                       onClick={() => {
-                        if (props.src) {
-                          setPreviewUrl(String(props.src))
+                        if (proxiedSrc) {
+                          setPreviewUrl(String(proxiedSrc))
                         }
                       }}
                       aria-label={props.alt || '查看图片'}
@@ -195,6 +212,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         {...props}
+                        src={proxiedSrc}
                         alt={props.alt || ''}
                         className="max-w-full h-auto rounded-lg shadow-md my-4 cursor-zoom-in"
                         loading="lazy"

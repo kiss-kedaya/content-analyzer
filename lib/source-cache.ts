@@ -106,7 +106,7 @@ export async function getOrFetchSourceText(
   opts?: { force?: boolean; preferProvider?: SourceProvider }
 ) {
   const url = normalizeAndValidateHttpUrl(normalizeUrl(inputUrl))
-  const preferProvider = opts?.preferProvider || 'jina'
+  const preferProvider = opts?.preferProvider || 'defuddle'
 
   if (!opts?.force) {
     const cached = await prisma.sourceCache.findUnique({ where: { url } })
