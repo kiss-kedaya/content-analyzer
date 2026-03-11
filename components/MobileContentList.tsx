@@ -44,10 +44,37 @@ export function MobileContentCard({
   const mediaUrl = useMemo(() => {
     if (!isX) return null
 
-    if (mediaUrls && mediaUrls.length > 0) {
-      return mediaUrls[0]
+    const firstStableFromMediaUrls = (() => {
+      if (!mediaUrls || mediaUrls.length === 0) return null
+
+      for (const candidate of mediaUrls) {
+        if (!candidate || typeof candidate !== 'string') continue
+
+        const abs = candidate.startsWith('//') ? `https:${candidate}` : candidate
+        try {
+          const u = new URL(abs)
+          const host = u.hostname.toLowerCase()
+
+          // Skip snapcdn token URLs (they expire and may 401).
+          if (host === 'dl.snapcdn.app') continue
+
+          // Prefer our proxy or direct twimg.
+          if (host === 'media.kedaya.xyz' || host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')) {
+            return candidate
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      return null
+    })()
+
+    if (firstStableFromMediaUrls) {
+      return firstStableFromMediaUrls
     }
 
+    // Fallback: only allow tweet page URLs (x.com/twitter.com) so preview-media can extract and persist.
     try {
       const u = new URL(url)
       const host = u.hostname.toLowerCase()
@@ -99,7 +126,7 @@ export function MobileContentCard({
             url={mediaUrl}
             className="w-full h-full"
             onPreview={() => onPreview?.(url)}
-            persist={mediaUrls && mediaUrls.length > 0 ? undefined : { kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
+            persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
 
           <button
