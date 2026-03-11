@@ -46,6 +46,52 @@ const DEFAULT_SUCCESS_TTL_MS = 5 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 10 * 1000
 const EMPTY_MEDIA_DATA: MediaData = { videos: [], images: [], media: [] }
 
+function toAbsoluteUrl(input: string): string {
+  return input.startsWith('//') ? `https:${input}` : input
+}
+
+function detectMediaTypeByPathname(pathname: string): 'video' | 'image' | null {
+  const lower = pathname.toLowerCase()
+  if (lower.endsWith('.mp4') || lower.endsWith('.m3u8') || lower.endsWith('.mov')) return 'video'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp') || lower.endsWith('.gif')) return 'image'
+  return null
+}
+
+function tryBuildDirectMediaData(inputUrl: string): MediaData | null {
+  try {
+    const abs = toAbsoluteUrl(inputUrl)
+    const u = new URL(abs)
+
+    // If already proxied through media.kedaya.xyz, just treat it as final media URL.
+    const host = u.hostname.toLowerCase()
+    const isProxy = host === 'media.kedaya.xyz'
+
+    if (isProxy) {
+      // If url param exists, we can detect type from it; otherwise fallback to path.
+      const raw = u.searchParams.get('url') || abs
+      const rawAbs = toAbsoluteUrl(raw)
+      const rawUrl = new URL(rawAbs)
+      const t = detectMediaTypeByPathname(rawUrl.pathname) || detectMediaTypeByPathname(u.pathname)
+      if (!t) return null
+
+      const item: MediaItem = { type: t, url: inputUrl }
+      return { videos: t === 'video' ? [{ url: inputUrl, quality: '', format: '' }] : [], images: t === 'image' ? [{ url: inputUrl }] : [], media: [item] }
+    }
+
+    // Direct media hosts (twimg)
+    const isTwimg = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
+    if (!isTwimg) return null
+
+    const t = detectMediaTypeByPathname(u.pathname)
+    if (!t) return null
+
+    const item: MediaItem = { type: t, url: inputUrl }
+    return { videos: t === 'video' ? [{ url: inputUrl, quality: '', format: '' }] : [], images: t === 'image' ? [{ url: inputUrl }] : [], media: [item] }
+  } catch {
+    return null
+  }
+}
+
 interface FetchOptions {
   force?: boolean
   failedTtlMs?: number
@@ -87,7 +133,19 @@ export function useMediaCache() {
   const fetchMedia = useCallback(async (url: string, options: FetchOptions = {}): Promise<MediaData | null> => {
     const wantPersist = Boolean(options.persistKind && options.persistId)
 
+    // Short-circuit: if input is already a direct media URL (twimg) or media proxy URL,
+    // do NOT call /api/preview-media.
     if (!options.force) {
+      const direct = tryBuildDirectMediaData(url)
+      if (direct) {
+        mediaCache.set(url, {
+          data: direct,
+          timestamp: Date.now(),
+          isFailed: direct.media.length === 0,
+        })
+        return direct
+      }
+
       const cachedData = getCachedMedia(url, options)
       if (cachedData) {
         // If caller wants persistence, still issue a best-effort background request
