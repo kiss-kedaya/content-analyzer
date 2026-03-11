@@ -162,43 +162,50 @@ function buildAiPrompt(text) {
   return `你是专业的中文内容分析员。请根据输入正文生成标题、摘要并重新评分。\n\n评分体系（总分 0-10，保留 1 位小数）：\n- 信息密度 density: 0-3\n- 可用性/可操作性 actionability: 0-3\n- 可信度线索 credibility: 0-2\n- 表达质量 clarity: 0-2\n总分 = 四项相加。\n\n硬约束：\n- 如果正文主要是登录/注册/年龄限制提示/导航模板等无实际内容，总分封顶 2.0，并在 flags 加入 login_wall 或 adult_restricted。\n- 如果正文为空或过短（<${MIN_TEXT_LEN} 字符）且无法补齐，总分封顶 1.0，并在 flags 加入 too_short。\n\n输出要求：只返回 JSON，不要添加其他文字，不要使用代码块。\nJSON 格式：\n{\n  \\\"title\\\": string,\n  \\\"summary\\\": string,\n  \\\"score\\\": number,\n  \\\"score_breakdown\\\": { \\\"density\\\": number, \\\"actionability\\\": number, \\\"credibility\\\": number, \\\"clarity\\\": number },\n  \\\"flags\\\": string[]\n}\n\n正文：\n${clipped}\n`
 }
 
-async function callCloudflareAi(prompt) {
-  // Hardcoded Cloudflare Workers AI credentials (user requested)
-  const accountId = '554575d3a47f5fd86b1f60fbbe8d9967'
-  const apiToken = 'dJDdE5EF8Q8aATIJxoRqZPQngMpx4G1PWWRsbtiF'
-  const model = '@cf/zai-org/glm-4.7-flash'
+async function callCpaAi(prompt) {
+  // CPA local AI endpoint (user requested)
+  const baseUrl = 'http://localhost:8317'
+  const apiKey = 'sk-codex-proxy-key-1'
+  const model = 'gpt-5.2'
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${encodeURIComponent(model)}`
+  const url = `${baseUrl}/v1/messages`
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiToken}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      model,
+      max_tokens: 8192,
+      // "anthropic-messages" style
+      system: 'You are a helpful assistant.',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: prompt },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: prompt }],
+        },
       ],
     }),
   })
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
-    throw new Error(`CF AI HTTP ${res.status}: ${errText}`)
+    throw new Error(`CPA AI HTTP ${res.status}: ${errText}`)
   }
 
   const data = await res.json()
-  const output = data?.result?.response || data?.result || data
 
-  // Try to find a JSON string
-  const raw = typeof output === 'string' ? output : JSON.stringify(output)
+  // Expected: { content: [{type:'text', text:'...'}], ... }
+  const text = Array.isArray(data?.content)
+    ? data.content.map((c) => (typeof c?.text === 'string' ? c.text : '')).join('\n')
+    : (typeof data?.text === 'string' ? data.text : '')
+
+  const raw = String(text || '')
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
   const jsonStr = jsonMatch ? jsonMatch[0] : raw
-
-  const parsed = JSON.parse(jsonStr)
-  return parsed
+  return JSON.parse(jsonStr)
 }
 
 function normalizeAiResult(parsed) {
@@ -293,7 +300,7 @@ async function processOne(item) {
 
   // AI analyze
   const prompt = buildAiPrompt(body)
-  const aiParsed = await withRetries(() => callCloudflareAi(prompt), { retries: 3 })
+  const aiParsed = await withRetries(() => callCpaAi(prompt), { retries: 3 })
   const ai = normalizeAiResult(aiParsed)
 
   const username = isXStatusUrl(url) ? extractXUsername(url) : null

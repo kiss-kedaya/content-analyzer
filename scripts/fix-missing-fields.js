@@ -138,38 +138,45 @@ async function fetchFromDefuddle(url) {
   }
 }
 
-// Cloudflare Workers AI 配置
-const CF_ACCOUNT_ID = '554575d3a47f5fd86b1f60fbbe8d9967';
-const CF_API_TOKEN = 'dJDdE5EF8Q8aATIJxoRqZPQngMpx4G1PWWRsbtiF';
-const CF_MODEL = '@cf/zai-org/glm-4.7-flash';
-const CF_API_URL = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${CF_MODEL}`;
+// CPA 本地 AI 配置（优先使用）
+const CPA_BASE_URL = 'http://localhost:8317';
+const CPA_API_KEY = 'sk-codex-proxy-key-1';
+const CPA_MODEL = 'gpt-5.2';
 
-// 调用 Cloudflare Workers AI
-async function callCloudflareAI(messages, retries = 3) {
+// 调用 CPA 本地 AI（anthropic-messages /v1/messages）
+async function callCPAAI(messages, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(CF_API_URL, {
+      const response = await fetch(`${CPA_BASE_URL}/v1/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${CF_API_TOKEN}`,
+          'Authorization': `Bearer ${CPA_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ messages })
+        body: JSON.stringify({
+          model: CPA_MODEL,
+          max_tokens: 8192,
+          system: 'You are a friendly assistant',
+          messages: messages.map(m => ({
+            role: m.role,
+            content: [{ type: 'text', text: m.content }]
+          }))
+        })
       });
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(`Cloudflare AI API error: ${response.status} ${error}`);
+        throw new Error(`CPA AI API error: ${response.status} ${error}`);
       }
 
       const data = await response.json();
-      
-      // 正确的响应格式：data.result.choices[0].message.content
-      if (data.result && data.result.choices && data.result.choices[0] && data.result.choices[0].message) {
-        return data.result.choices[0].message.content;
+
+      // { content: [{type:'text', text:'...'}] }
+      if (Array.isArray(data.content)) {
+        return data.content.map(c => c && c.text ? c.text : '').join('\n');
       }
 
-      throw new Error(`Invalid response format: ${JSON.stringify(data).substring(0, 100)}`);
+      throw new Error(`Invalid response format: ${JSON.stringify(data).substring(0, 120)}`);
     } catch (error) {
       console.error(`  Attempt ${i + 1}/${retries} failed:`, error.message);
       if (i === retries - 1) throw error;
@@ -256,6 +263,8 @@ async function fetchFromJina(url) {
 
 // 使用 AI 生成标题（JSON 格式）
 async function generateTitleWithAI(sourceContent, url, existingSummary = '', existingContent = '') {
+  // callCPAAI is used as the primary model backend (CPA local endpoint)
+
   // 构建综合内容
   let combinedContent = '';
   
@@ -298,7 +307,7 @@ ${combinedContent}
       }
     ];
 
-    const response = await callCloudflareAI(messages);
+    const response = await callCPAAI(messages);
     
     // 提取 JSON（可能被包裹在代码块中）
     let jsonStr = response;
@@ -370,7 +379,7 @@ ${combinedContent}
       }
     ];
 
-    const response = await callCloudflareAI(messages);
+    const response = await callCPAAI(messages);
     
     // 提取 JSON（可能被包裹在代码块中）
     let jsonStr = response;
