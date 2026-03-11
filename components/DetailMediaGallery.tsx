@@ -147,6 +147,11 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
 
   const active = items[activeIndex]
 
+  // If there is no media and we are not even going to fetch, hide the whole block.
+  if (items.length === 0 && !loading && !error && !shouldFetchOnce) {
+    return null
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -166,41 +171,35 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
         )}
       </div>
 
-      <div
-        className={`relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black ${expanded ? 'h-[min(92dvh,900px)]' : 'h-64 md:h-96'}`}
-      >
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-sm">
-            加载中...
-          </div>
-        )}
-
-        {error && !loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-sm">
-            {error}
-          </div>
-        )}
-
-        {!loading && !error && active && (
-          active.type === 'video' ? (
-            <video
-              key={active.url}
-              src={active.url}
-              controls
-              playsInline
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={active.url}
-              src={active.url}
-              alt="media"
-              className="w-full h-full object-contain"
-            />
-          )
-        )}
-      </div>
+      {items.length > 0 ? (
+        <div
+          className={`relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black ${expanded ? 'h-[min(92dvh,900px)]' : 'h-64 md:h-96'}`}
+        >
+          {active && (
+            active.type === 'video' ? (
+              <video
+                key={active.url}
+                src={active.url}
+                controls
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={active.url}
+                src={active.url}
+                alt="media"
+                className="w-full h-full object-contain"
+              />
+            )
+          )}
+        </div>
+      ) : (
+        <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+          {loading ? '加载中...' : (error ? `媒体加载失败：${error}` : '暂无媒体')}
+        </div>
+      )}
 
       {items.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
