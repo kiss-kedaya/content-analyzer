@@ -387,29 +387,30 @@ export default function ContentList({
               />
             </div>
 
-            {/* 第二行：日期选择和排序（移动端同一行，桌面端分开）*/}
-            <div className="flex items-center gap-3">
-              <DatePicker
-                value={dateFilter}
-                onChange={(next) => {
-                  setDateFilter(next)
-                  actions.resetPagination()
-                }}
-              />
-              <SortSelector 
-                value={state.orderBy} 
-                currentTab={state.activeTab}
-                onSortChange={actions.setOrderBy}
+            {/* 第二行：筛选（桌面端同一行：日期 + 排序 + 搜索；移动端：日期+排序同行，搜索单独一行） */}
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div className="flex items-center gap-3 md:flex-none">
+                <DatePicker
+                  value={dateFilter}
+                  onChange={(next) => {
+                    setDateFilter(next)
+                    actions.resetPagination()
+                  }}
+                />
+                <SortSelector 
+                  value={state.orderBy} 
+                  currentTab={state.activeTab}
+                  onSortChange={actions.setOrderBy}
+                />
+              </div>
+
+              <SearchBar
+                onSearch={handleSearch}
+                placeholder="搜索标题、摘要或来源..."
+                className="w-full md:w-96 md:ml-auto"
               />
             </div>
           </div>
-
-          {/* 搜索栏 */}
-          <SearchBar
-            onSearch={handleSearch}
-            placeholder="搜索标题、摘要或来源..."
-            className="w-full md:w-96"
-          />
 
           {/* 搜索结果提示 */}
           {searchQuery && (

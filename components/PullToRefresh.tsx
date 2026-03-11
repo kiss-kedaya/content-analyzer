@@ -139,7 +139,10 @@ export function PullToRefresh({ onRefresh, children, disabled = false }: PullToR
       {/* 内容 */}
       <div
         style={{
-          transform: `translateY(${pullDistance}px)`,
+          // IMPORTANT: any non-none transform creates a containing block and will break
+          // fixed-position modals (they become centered relative to this container).
+          // Only apply transform while actually pulling.
+          transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : 'none',
           transition: isRefreshing || pullDistance === 0 ? 'transform 0.2s ease-out' : 'none'
         }}
       >
