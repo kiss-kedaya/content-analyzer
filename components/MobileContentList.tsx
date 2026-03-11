@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Trash2, Calendar, Hash, Play } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
@@ -36,9 +36,32 @@ export function MobileContentCard({
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // 对于成人内容，使用 mediaUrls；对于普通内容，使用 URL 本身
-  const hasMedia = (mediaUrls && mediaUrls.length > 0) || url
-  const mediaUrl = mediaUrls && mediaUrls.length > 0 ? mediaUrls[0] : url
+  // 统一媒体策略：
+  // - source == 'X' 才显示媒体预览
+  // - 优先使用已回填的 mediaUrls[0]（twimg/pbs 直链）；否则回退到原文 url（仅当其本身就是 x.com/twitter.com）
+  const isX = source === 'X'
+
+  const mediaUrl = useMemo(() => {
+    if (!isX) return null
+
+    if (mediaUrls && mediaUrls.length > 0) {
+      return mediaUrls[0]
+    }
+
+    try {
+      const u = new URL(url)
+      const host = u.hostname.toLowerCase()
+      if (host === 'x.com' || host.endsWith('.x.com') || host === 'twitter.com' || host.endsWith('.twitter.com')) {
+        return url
+      }
+    } catch {
+      // ignore
+    }
+
+    return null
+  }, [isX, mediaUrls, url])
+
+  const hasMedia = Boolean(mediaUrl)
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'bg-green-100 text-green-700 border-green-200'
@@ -69,8 +92,8 @@ export function MobileContentCard({
         </span>
       </div>
 
-      {/* 媒体预览 */}
-      {hasMedia && (
+      {/* 媒体预览（仅 X） */}
+      {hasMedia && mediaUrl && (
         <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
           <MediaThumbnail
             url={mediaUrl}
