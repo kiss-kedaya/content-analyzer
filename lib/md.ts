@@ -31,7 +31,7 @@ export function renderContentMarkdown(item: AnyContent, raw?: SourceCache | null
   lines.push(`- 来源: ${item.source}`)
   lines.push(`- 评分: ${Number(item.score).toFixed(1)} / 10`)
   lines.push(`- 分析时间: ${new Date(item.analyzedAt).toLocaleString('zh-CN')}`)
-  if (item.analyzedBy) lines.push(`- 分析者: ${mdEscape(item.analyzedBy)}`)
+  if (item.analyzedBy) lines.push(`- 用户名: ${mdEscape(item.analyzedBy)}`)
   lines.push(`- 原文链接: ${item.url}`)
   if (typeof item.favorited === 'boolean') lines.push(`- 收藏: ${item.favorited ? '是' : '否'}`)
 
@@ -98,7 +98,7 @@ export function renderListMarkdown(
     lines.push(`- 来源: ${item.source}`)
     lines.push(`- 评分: ${Number(item.score).toFixed(1)} / 10`)
     lines.push(`- 分析时间: ${new Date(item.analyzedAt).toLocaleString('zh-CN')}`)
-    if (item.analyzedBy) lines.push(`- 分析者: ${mdEscape(item.analyzedBy)}`)
+    if (item.analyzedBy) lines.push(`- 用户名: ${mdEscape(item.analyzedBy)}`)
     lines.push(`- 原文链接: ${item.url}`)
     if (raw && raw.status === 'ok') {
       lines.push(`- 原文缓存: 是 (${raw.provider})`)

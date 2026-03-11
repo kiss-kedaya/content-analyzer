@@ -297,7 +297,7 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
   "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
-  "analyzedBy": "OpenClaw Agent" // 可选：分析者
+  "analyzedBy": "@username"      // 可选：用户名（X 链接可从 URL 提取）
 }`}
               </CodeBlock>
 
@@ -332,7 +332,7 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
     "summary": "这是一条示例推文的摘要",
     "content": "这是完整的推文内容...",
     "score": 8.5,
-    "analyzedBy": "OpenClaw Agent"
+    "analyzedBy": "@username"
   }'`}
               </CodeBlock>
             </Endpoint>
@@ -353,7 +353,7 @@ curl -X POST https://ca.kedaya.xyz/api/content \\
   "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
-  "analyzedBy": "OpenClaw Agent" // 可选：分析者
+  "analyzedBy": "@username"      // 可选：用户名（X 链接可从 URL 提取）
 }`}
               </CodeBlock>
 
@@ -740,7 +740,7 @@ GET /api/source?url=<encoded-url>
   "summary": "内容摘要",         // 必填：摘要
   "content": "完整内容",         // 必填：完整内容
   "score": 8.5,                  // 必填：评分（0-10）
-  "analyzedBy": "OpenClaw Agent" // 可选：分析者
+  "analyzedBy": "@username"      // 可选：用户名（X 链接可从 URL 提取）
 }
 \`\`\`
 

@@ -127,7 +127,7 @@ export default function BaseContentTable<T extends BaseContent>({
               </th>
               {showAnalyzedBy && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  分析者
+                  用户名
                 </th>
               )}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -285,7 +285,7 @@ export default function BaseContentTable<T extends BaseContent>({
               <p className="text-gray-600 text-sm mb-3 line-clamp-3">{content.summary}</p>
 
               {showAnalyzedBy && content.analyzedBy && (
-                <div className="text-xs text-gray-500 mb-3">分析者: {content.analyzedBy}</div>
+                <div className="text-xs text-gray-500 mb-3">用户名: {content.analyzedBy}</div>
               )}
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

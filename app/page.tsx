@@ -107,7 +107,7 @@ export default async function Home({
   "summary": "摘要",
   "content": "完整内容",
   "score": 8.5,
-  "analyzedBy": "OpenClaw Agent"
+  "analyzedBy": "@username"
 }`}
           </pre>
           <div className="pt-2">
