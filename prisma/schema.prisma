@@ -24,6 +24,11 @@ model Content {
   updatedAt  DateTime @updatedAt
   favorited  Boolean  @default(false)  // 收藏状态
   favoritedAt DateTime?  // 收藏时间
+
+  // 统一媒体结构：仅对 source=X 回填并使用
+  mediaUrls  String[] @default([])
+  mediaFetchedAt DateTime?
+  mediaSourceUrl String?
   
   @@index([source])
   @@index([score])
@@ -46,6 +51,11 @@ model AdultContent {
   updatedAt  DateTime @updatedAt
   favorited  Boolean  @default(false)  // 收藏状态
   favoritedAt DateTime?  // 收藏时间
+
+  // 统一媒体结构：目前主要用于 source=X
+  mediaUrls  String[] @default([])
+  mediaFetchedAt DateTime?
+  mediaSourceUrl String?
   
   @@index([source])
   @@index([score])
