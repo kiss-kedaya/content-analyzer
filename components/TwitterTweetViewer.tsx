@@ -75,7 +75,16 @@ export default function TwitterTweetViewer({ data }: Props) {
               onClick={() => setSelectedImage(img)}
             >
               <img
-                src={img}
+                src={(() => {
+                  try {
+                    const u = new URL(img)
+                    const host = u.hostname.toLowerCase()
+                    const isTwimg = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
+                    return isTwimg ? `//media.kedaya.xyz/?url=${encodeURIComponent(img)}` : img
+                  } catch {
+                    return img
+                  }
+                })()}
                 alt={`Image ${idx + 1}`}
                 className="w-full h-full object-cover"
               />
