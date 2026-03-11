@@ -57,6 +57,29 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   let bookmarks = 0
   let views = 0
 
+  function stripMarkdownInline(input: string): string {
+    if (!input) return input
+
+    // ![alt](url) -> alt
+    let out = input.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+
+    // [text](url) -> text
+    out = out.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+
+    // **bold** / __bold__ -> bold
+    out = out.replace(/\*\*([^*]+)\*\*/g, '$1')
+    out = out.replace(/__([^_]+)__/g, '$1')
+
+    // *italic* / _italic_ -> italic
+    out = out.replace(/\*([^*]+)\*/g, '$1')
+    out = out.replace(/_([^_]+)_/g, '$1')
+
+    // Inline code `x`
+    out = out.replace(/`([^`]+)`/g, '$1')
+
+    return out.trim()
+  }
+
   // First pass: extract metadata
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -65,7 +88,7 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     if (!authorHandle) {
       const inlineHandle = line.match(/^(.+?)\s+(@[A-Za-z0-9_]{1,15})$/)
       if (inlineHandle) {
-        authorName = inlineHandle[1].trim()
+        authorName = stripMarkdownInline(inlineHandle[1].trim())
         authorHandle = inlineHandle[2]
       }
     }

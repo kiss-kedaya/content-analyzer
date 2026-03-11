@@ -16,9 +16,9 @@ export default function TwitterTweetViewer({ data }: Props) {
       <article className="bg-white border border-gray-200 rounded-xl p-4 max-w-2xl">
       {/* Author Header */}
       <div className="flex items-start gap-3 mb-3">
-        {/* Avatar */}
-        <div className="flex-shrink-0">
-          {author.avatar ? (
+        {/* Avatar (optional) */}
+        {author.avatar ? (
+          <div className="flex-shrink-0">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
               <img
                 src={author.avatar}
@@ -26,12 +26,8 @@ export default function TwitterTweetViewer({ data }: Props) {
                 className="w-full h-full object-cover"
               />
             </div>
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold">
-              {author.name[0]?.toUpperCase() || '?'}
-            </div>
-          )}
-        </div>
+          </div>
+        ) : null}
 
         {/* Author Info */}
         <div className="flex-1 min-w-0">
