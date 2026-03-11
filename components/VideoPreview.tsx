@@ -191,7 +191,9 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     }
   }, [active, activeIndex, fetchMediaUrls])
 
-  // 处理视频加载错误（包括 206 状态码）
+  // 处理视频加载错误
+  // Note: HTTP 206 (Partial Content) is normal for ranged video streaming.
+  // Do NOT switch URLs purely based on 206.
   useEffect(() => {
     if (active?.type !== 'video') return
 
@@ -199,19 +201,9 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
     if (!el) return
 
     const handleError = () => {
-      // 先尝试强制重新提取（只尝试 1 次），仍失败再降级到 sourceUrl
+      // Only attempt a forced refresh for snapcdn token URLs.
+      // Do not auto-switch URLs for normal ranged streaming (206 is expected).
       refreshActiveOnce()
-
-      // fallback: if we already have sourceUrl and it isn't used, switch immediately
-      if (active.sourceUrl && active.url !== active.sourceUrl) {
-        setItems(prevItems =>
-          prevItems.map((item, idx) =>
-            idx === activeIndex
-              ? { ...item, url: item.sourceUrl || item.url }
-              : item
-          )
-        )
-      }
     }
 
     el.addEventListener('error', handleError)
@@ -377,10 +369,13 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     playsInline
                     autoPlay
                     preload="metadata"
+                    crossOrigin="anonymous"
                     className="w-full rounded-lg bg-black"
                     style={{ maxHeight: '70vh' }}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <source src={active.url} type="video/mp4" />
+                    {/* Do not force type; let browser sniff actual media type */}
+                    <source src={active.url} />
                     您的浏览器不支持视频播放
                   </video>
                 ) : (
@@ -391,6 +386,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     onError={handleImageError}
                     className="w-full rounded-lg bg-black object-contain"
                     style={{ maxHeight: '70vh' }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 )}
               </div>
