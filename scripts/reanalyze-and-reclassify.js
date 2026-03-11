@@ -113,7 +113,21 @@ async function fetchFromJina(originalUrl) {
   if (!res.ok) {
     return { success: false, provider: 'jina', text: '', status: res.status }
   }
+
   const text = String(res.text || '').trim()
+
+  // If upstream returns an error page (common for twitter.com), treat as failure so we can retry/fallback.
+  const lower = text.toLowerCase()
+  const looksLikeErrorPage =
+    lower.includes('http error 500') ||
+    lower.includes('internal server error') ||
+    lower.includes('502 bad gateway') ||
+    lower.includes('error 500')
+
+  if (looksLikeErrorPage) {
+    return { success: false, provider: 'jina', text: '', status: 500 }
+  }
+
   return { success: true, provider: 'jina', text, status: res.status, rawResponse: res.text }
 }
 
@@ -304,7 +318,7 @@ async function processOne(item) {
   const url = item.url
 
   // Fetch content using provider policy
-  const jina = await withRetries(() => fetchFromJina(url), { retries: 3 })
+  const jina = await withRetries(() => fetchFromJina(url), { retries: 5 })
 
   let chosen = jina
   let usedDefuddle = false
@@ -316,7 +330,7 @@ async function processOne(item) {
   const jinaFailed = !jina.success || !jinaText
 
   if (jinaFailed || jinaTooShort || jinaRestricted) {
-    const def = await withRetries(() => fetchFromDefuddle(url), { retries: 3 })
+    const def = await withRetries(() => fetchFromDefuddle(url), { retries: 5 })
     chosen = def
     usedDefuddle = true
     restricted = jinaRestricted
@@ -332,7 +346,7 @@ async function processOne(item) {
 
   // AI analyze
   const prompt = buildAiPrompt(body)
-  const aiParsed = await withRetries(() => callCpaAi(prompt), { retries: 3 })
+  const aiParsed = await withRetries(() => callCpaAi(prompt), { retries: 5 })
   const ai = normalizeAiResult(aiParsed)
 
   const username = isXStatusUrl(url) ? extractXUsername(url) : null
