@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import { normalizeSource } from '@/lib/normalize-source'
 import { extractWithSnapvidDetailed } from '@/lib/media-extractor-snapvid'
 import { getMediaCache, normalizeCachedMedia, saveMediaCache } from '@/lib/media-cache'
 import { logApiError } from '@/lib/logger'
@@ -75,6 +77,96 @@ function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMed
   })
 }
 
+function pickPersistentMediaUrls(media: ReturnType<typeof normalizeCachedMedia>) {
+  const out: string[] = []
+  const seen = new Set<string>()
+
+  const pushIfAllowed = (candidate?: string) => {
+    if (!candidate) return
+    try {
+      const u = new URL(candidate)
+      const host = u.hostname.toLowerCase()
+      const allowed = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
+      if (!allowed) return
+
+      if (!seen.has(candidate)) {
+        seen.add(candidate)
+        out.push(candidate)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const item of media) {
+    if (!item) continue
+
+    // Prefer sourceUrl if present (more stable than snapcdn token)
+    pushIfAllowed(item.sourceUrl)
+    pushIfAllowed(item.url)
+
+    if (out.length >= 10) break
+  }
+
+  return out
+}
+
+async function persistMediaUrls(params: {
+  persistKind: 'content' | 'adultContent'
+  persistId: string
+  normalizedUrl: string
+  media: ReturnType<typeof normalizeCachedMedia>
+}) {
+  const urls = pickPersistentMediaUrls(params.media)
+  if (urls.length === 0) return
+
+  const now = new Date()
+
+  if (params.persistKind === 'content') {
+    const row = await prisma.content.findUnique({
+      where: { id: params.persistId },
+      select: { id: true, source: true, mediaUrls: true },
+    })
+
+    if (!row) return
+    if (normalizeSource(row.source) !== 'X') return
+
+    const merged = Array.from(new Set([...(row.mediaUrls || []), ...urls])).slice(0, 20)
+
+    await prisma.content.update({
+      where: { id: row.id },
+      data: {
+        mediaUrls: merged,
+        mediaFetchedAt: now,
+        mediaSourceUrl: params.normalizedUrl,
+      },
+    })
+
+    return
+  }
+
+  if (params.persistKind === 'adultContent') {
+    const row = await prisma.adultContent.findUnique({
+      where: { id: params.persistId },
+      select: { id: true, source: true, mediaUrls: true },
+    })
+
+    if (!row) return
+    if (normalizeSource(row.source) !== 'X') return
+
+    const merged = Array.from(new Set([...(row.mediaUrls || []), ...urls])).slice(0, 20)
+
+    await prisma.adultContent.update({
+      where: { id: row.id },
+      data: {
+        mediaUrls: merged,
+        mediaFetchedAt: now,
+        mediaSourceUrl: params.normalizedUrl,
+      },
+    })
+  }
+}
+
 // GET /api/preview-media?url=https://x.com/user/status/123
 export async function GET(request: NextRequest) {
   try {
@@ -107,10 +199,25 @@ export async function GET(request: NextRequest) {
 
     const force = searchParams.get('force') === '1'
 
+    const persistKindRaw = searchParams.get('persistKind')
+    const persistId = searchParams.get('persistId')
+    const persistKind = (persistKindRaw === 'content' || persistKindRaw === 'adultContent') ? persistKindRaw : null
+    const wantPersist = Boolean(persistKind && persistId)
+
     const cached = await getMediaCache(normalizedUrl)
     if (!force && cached?.status === 'success') {
       const media = normalizeCachedMedia(cached.parsedMedia)
       if (media.length > 0) {
+        if (wantPersist && persistKind && persistId) {
+          // best-effort; do not block response
+          persistMediaUrls({
+            persistKind,
+            persistId,
+            normalizedUrl,
+            media,
+          }).catch(() => {})
+        }
+
         return formatResponse(normalizedUrl, media, cached.rawResponse)
       }
     }
@@ -129,6 +236,15 @@ export async function GET(request: NextRequest) {
 
       if (media.length > 0) {
         await saveMediaCache(normalizedUrl, extraction.rawResponse, media)
+
+        if (wantPersist && persistKind && persistId) {
+          await persistMediaUrls({
+            persistKind,
+            persistId,
+            normalizedUrl,
+            media: normalizeCachedMedia(media as any),
+          })
+        }
       }
 
       return formatResponse(normalizedUrl, media, extraction.rawResponse)

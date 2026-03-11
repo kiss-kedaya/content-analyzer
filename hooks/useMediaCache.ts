@@ -37,6 +37,10 @@ interface CacheEntry {
 const mediaCache = new Map<string, CacheEntry>()
 const inFlightRequests = new Map<string, Promise<MediaData | null>>()
 
+// Avoid spamming persist writes when cached media is used repeatedly.
+const persistRequests = new Map<string, number>()
+const PERSIST_TTL_MS = 5 * 60 * 1000
+
 const DEFAULT_FAILED_TTL_MS = 30 * 1000
 const DEFAULT_SUCCESS_TTL_MS = 5 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 10 * 1000
@@ -46,6 +50,8 @@ interface FetchOptions {
   force?: boolean
   failedTtlMs?: number
   successTtlMs?: number
+  persistKind?: 'content' | 'adultContent'
+  persistId?: string
 }
 
 function getCachedMedia(url: string, options: FetchOptions): MediaData | null {
@@ -79,9 +85,26 @@ export function useMediaCache() {
   }, [])
 
   const fetchMedia = useCallback(async (url: string, options: FetchOptions = {}): Promise<MediaData | null> => {
+    const wantPersist = Boolean(options.persistKind && options.persistId)
+
     if (!options.force) {
       const cachedData = getCachedMedia(url, options)
       if (cachedData) {
+        // If caller wants persistence, still issue a best-effort background request
+        // (throttled) to allow server to write back mediaUrls.
+        if (wantPersist) {
+          const persistKey = `${options.persistKind}:${options.persistId}:${url}`
+          const last = persistRequests.get(persistKey) || 0
+          if (Date.now() - last > PERSIST_TTL_MS) {
+            persistRequests.set(persistKey, Date.now())
+            fetch(`/api/preview-media?${new URLSearchParams({
+              url,
+              persistKind: options.persistKind as string,
+              persistId: options.persistId as string,
+            }).toString()}`, { cache: 'no-store' }).catch(() => {})
+          }
+        }
+
         return cachedData
       }
     } else {
@@ -102,8 +125,20 @@ export function useMediaCache() {
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
       try {
-        const forceParam = options.force ? '&force=1' : ''
-        const response = await fetch(`/api/preview-media?url=${encodeURIComponent(url)}${forceParam}`, {
+        const params = new URLSearchParams({
+          url,
+        })
+
+        if (options.force) {
+          params.set('force', '1')
+        }
+
+        if (options.persistKind && options.persistId) {
+          params.set('persistKind', options.persistKind)
+          params.set('persistId', options.persistId)
+        }
+
+        const response = await fetch(`/api/preview-media?${params.toString()}`, {
           signal: controller.signal,
           cache: 'no-store'
         })

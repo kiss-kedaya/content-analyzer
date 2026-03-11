@@ -10,9 +10,13 @@ interface MediaThumbnailProps {
   url: string
   className?: string
   onPreview?: () => void
+  persist?: {
+    kind: 'content' | 'adultContent'
+    id: string
+  }
 }
 
-export default function MediaThumbnail({ url, className = '', onPreview }: MediaThumbnailProps) {
+export default function MediaThumbnail({ url, className = '', onPreview, persist }: MediaThumbnailProps) {
   const [loading, setLoading] = useState(false)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [primaryMediaType, setPrimaryMediaType] = useState<'video' | 'image' | null>(null)
@@ -45,7 +49,10 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
           setError(false)
 
           try {
-            const data = await fetchMedia(url)
+            const data = await fetchMedia(url, {
+              persistKind: persist?.kind,
+              persistId: persist?.id,
+            })
 
             if (!isMounted) return
 

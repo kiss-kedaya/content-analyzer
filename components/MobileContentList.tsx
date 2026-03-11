@@ -99,6 +99,7 @@ export function MobileContentCard({
             url={mediaUrl}
             className="w-full h-full"
             onPreview={() => onPreview?.(url)}
+            persist={mediaUrls && mediaUrls.length > 0 ? undefined : { kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
 
           <button
