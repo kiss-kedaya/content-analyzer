@@ -163,13 +163,10 @@ function buildAiPrompt(text) {
 }
 
 async function callCloudflareAi(prompt) {
-  const accountId = process.env.CF_ACCOUNT_ID
-  const apiToken = process.env.CF_API_TOKEN
-  const model = process.env.CF_MODEL || '@cf/zai-org/glm-4.7-flash'
-
-  if (!accountId || !apiToken) {
-    throw new Error('Missing CF_ACCOUNT_ID or CF_API_TOKEN')
-  }
+  // Hardcoded Cloudflare Workers AI credentials (user requested)
+  const accountId = '554575d3a47f5fd86b1f60fbbe8d9967'
+  const apiToken = 'dJDdE5EF8Q8aATIJxoRqZPQngMpx4G1PWWRsbtiF'
+  const model = '@cf/zai-org/glm-4.7-flash'
 
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${encodeURIComponent(model)}`
 
