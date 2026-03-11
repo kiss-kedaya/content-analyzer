@@ -156,8 +156,10 @@ async function callCPAAI(messages, retries = 3) {
         body: JSON.stringify({
           model: CPA_MODEL,
           max_tokens: 8192,
-          system: 'You are a friendly assistant',
-          messages: messages.map(m => ({
+          // CPA proxy: system messages are not allowed; embed any system guidance into user prompt if needed
+          messages: messages
+            .filter(m => m && m.role !== 'system')
+            .map(m => ({
             role: m.role,
             content: [{ type: 'text', text: m.content }]
           }))

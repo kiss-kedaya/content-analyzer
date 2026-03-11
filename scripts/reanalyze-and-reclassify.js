@@ -179,8 +179,7 @@ async function callCpaAi(prompt) {
     body: JSON.stringify({
       model,
       max_tokens: 8192,
-      // "anthropic-messages" style
-      system: 'You are a helpful assistant.',
+      // "anthropic-messages" style (CPA proxy: system messages not allowed)
       messages: [
         {
           role: 'user',
