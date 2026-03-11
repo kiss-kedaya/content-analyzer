@@ -86,6 +86,20 @@ function containsRestrictedText(text) {
   return RESTRICTED_KEYWORDS.some((kw) => t.includes(kw))
 }
 
+function normalizeUrlForFetch(originalUrl) {
+  try {
+    const u = new URL(originalUrl)
+    const host = u.hostname.toLowerCase()
+    if (host === 'twitter.com' || host.endsWith('.twitter.com')) {
+      u.hostname = 'x.com'
+      return u.toString()
+    }
+    return originalUrl
+  } catch {
+    return originalUrl
+  }
+}
+
 async function fetchText(url, options) {
   const controller = new AbortController()
   const timeoutMs = options?.timeoutMs ?? 15000
@@ -328,13 +342,14 @@ async function createBackup() {
 
 async function processOne(item) {
   const url = item.url
+  const fetchUrl = normalizeUrlForFetch(url)
 
   // Fetch content using provider policy
   // Step 1: try jina first, and retry on retryable failures (e.g. HTTP ERROR 500 pages)
   let jina
   try {
     jina = await withRetries(async (attempt) => {
-      const r = await fetchFromJina(url)
+      const r = await fetchFromJina(fetchUrl)
       if (!r.success && r.retryable) {
         if (DEBUG) {
           console.log(`[debug] jina retryable failure attempt=${attempt} status=${r.status} url=${url}`)
@@ -359,7 +374,7 @@ async function processOne(item) {
 
   // Step 2: fallback to defuddle only when jina truly fails / too short / restricted
   if (jinaFailed || jinaTooShort || jinaRestricted) {
-    const def = await withRetries(() => fetchFromDefuddle(url), { retries: 5 })
+    const def = await withRetries(() => fetchFromDefuddle(fetchUrl), { retries: 5 })
     chosen = def
     usedDefuddle = true
     restricted = jinaRestricted
