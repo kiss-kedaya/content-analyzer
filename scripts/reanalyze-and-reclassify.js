@@ -199,7 +199,7 @@ async function upsertSourceCache(originalUrl, payload) {
 function buildAiPrompt(text) {
   const clipped = String(text || '').slice(0, 6000)
 
-  return `你是专业的中文内容分析员。请根据输入正文生成标题、摘要并重新评分。\n\n评分体系（总分 0-10，保留 1 位小数）：\n- 信息密度 density: 0-3\n- 可用性/可操作性 actionability: 0-3\n- 可信度线索 credibility: 0-2\n- 表达质量 clarity: 0-2\n总分 = 四项相加。\n\n硬约束：\n- 如果正文主要是登录/注册/年龄限制提示/导航模板等无实际内容，总分封顶 2.0，并在 flags 加入 login_wall 或 adult_restricted。\n- 如果正文为空或过短（<${MIN_TEXT_LEN} 字符）且无法补齐，总分封顶 1.0，并在 flags 加入 too_short。\n\n输出要求：只返回 JSON，不要添加其他文字，不要使用代码块。\nJSON 格式：\n{\n  \\\"title\\\": string,\n  \\\"summary\\\": string,\n  \\\"score\\\": number,\n  \\\"score_breakdown\\\": { \\\"density\\\": number, \\\"actionability\\\": number, \\\"credibility\\\": number, \\\"clarity\\\": number },\n  \\\"flags\\\": string[]\n}\n\n正文：\n${clipped}\n`
+  return `你是专业的中文内容分析员。请根据输入正文生成标题、摘要并重新评分。\n\n评分体系（总分 0-10，保留 1 位小数）：\n- 信息密度 density: 0-3\n- 可用性/可操作性 actionability: 0-3\n- 可信度线索 credibility: 0-2\n- 表达质量 clarity: 0-2\n总分 = 四项相加。\n\n硬约束：\n- 如果正文主要是登录/注册/年龄限制提示/导航模板等无实际内容，总分封顶 2.0，并在 flags 加入 login_wall 或 adult_restricted。\n- 如果正文为空或过短（<${MIN_TEXT_LEN} 字符）且无法补齐，总分封顶 1.0，并在 flags 加入 too_short。\n\n输出要求：只返回 JSON，不要添加其他文字，不要使用代码块。\n\n请同时判断该内容是否为成人内容（adult/NSFW）。\n- isAdult: boolean\n- adultConfidence: 0-1（越高越确定）\n- adultReason: 简短理由（不超过30字）\n\nJSON 格式：\n{\n  \\\"title\\\": string,\n  \\\"summary\\\": string,\n  \\\"score\\\": number,\n  \\\"score_breakdown\\\": { \\\"density\\\": number, \\\"actionability\\\": number, \\\"credibility\\\": number, \\\"clarity\\\": number },\n  \\\"flags\\\": string[],\n  \\\"isAdult\\\": boolean,\n  \\\"adultConfidence\\\": number,\n  \\\"adultReason\\\": string\n}\n\n正文：\n${clipped}\n`
 }
 
 async function callCpaAi(prompt) {
@@ -261,11 +261,19 @@ function normalizeAiResult(parsed) {
 
   const safeScore = Number.isFinite(score) ? Math.max(0, Math.min(10, score)) : 0
 
+  const isAdult = Boolean(parsed?.isAdult)
+  const adultConfidenceNum = Number(parsed?.adultConfidence)
+  const adultConfidence = Number.isFinite(adultConfidenceNum) ? Math.max(0, Math.min(1, adultConfidenceNum)) : 0
+  const adultReason = String(parsed?.adultReason || '').trim()
+
   return {
     title: title || '(无标题)',
     summary: summary || '',
     score: Math.round(safeScore * 10) / 10,
     flags: Array.isArray(parsed?.flags) ? parsed.flags.map(String) : [],
+    isAdult,
+    adultConfidence,
+    adultReason,
   }
 }
 
@@ -377,7 +385,9 @@ async function processOne(item) {
 
   let migrated = false
 
-  if (item.__table === 'content' && usedDefuddle && restricted) {
+  const shouldMigrateByAI = item.__table === 'content' && ai.isAdult && ai.adultConfidence >= 0.8
+
+  if (shouldMigrateByAI) {
     migrated = true
 
     if (!DRY_RUN) {
@@ -399,7 +409,7 @@ async function processOne(item) {
       })
     }
 
-    return { ok: true, migrated, provider: chosen.provider, flags: ai.flags, tooShort }
+    return { ok: true, migrated, provider: chosen.provider, flags: ai.flags, tooShort, isAdult: ai.isAdult, adultConfidence: ai.adultConfidence }
   }
 
   // Update in-place
@@ -411,7 +421,7 @@ async function processOne(item) {
     }
   }
 
-  return { ok: true, migrated, provider: chosen.provider, flags: ai.flags, tooShort }
+  return { ok: true, migrated, provider: chosen.provider, flags: ai.flags, tooShort, isAdult: ai.isAdult, adultConfidence: ai.adultConfidence }
 }
 
 async function runPool(items, concurrency) {
