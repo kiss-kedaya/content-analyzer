@@ -37,7 +37,7 @@ interface ContentListProps {
   initialDate?: string | null
 }
 
-const DEFAULT_PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 10
 const DATE_PAGE_SIZE = 10
 
 export default function ContentList({
@@ -240,6 +240,57 @@ export default function ContentList({
     router.replace(next, { scroll: false })
   }, [state.activeTab, state.orderBy, dateFilter, pathname, router, searchParams])
 
+  // 切换 tab 时，如果目标 tab 内容为空，则拉取第一页
+  useEffect(() => {
+    const isTech = state.activeTab === 'tech'
+    const currentContents = isTech ? state.techContents : state.adultContents
+    
+    // 如果当前 tab 内容为空且不在加载中，则拉取
+    if (currentContents.length === 0 && !state.loading) {
+      const fetchTabData = async () => {
+        actions.setLoading(true)
+
+        try {
+          const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
+          const endpoint = dateFilter
+            ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
+            : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
+
+          const url = dateFilter
+            ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+            : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
+
+          const response = await fetch(url)
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch tab data')
+          }
+
+          const data = await response.json()
+          if (!data.success || !data.data) {
+            throw new Error(data.error?.message || 'Failed to fetch tab data')
+          }
+
+          if (isTech) {
+            actions.setTechContents(data.data)
+            actions.setTechPage(1)
+            actions.setTechHasMore(data.pagination?.hasMore ?? false)
+          } else {
+            actions.setAdultContents(data.data)
+            actions.setAdultPage(1)
+            actions.setAdultHasMore(data.pagination?.hasMore ?? false)
+          }
+        } catch (error) {
+          console.error('Failed to fetch tab data:', error)
+        } finally {
+          actions.setLoading(false)
+        }
+      }
+
+      fetchTabData()
+    }
+  }, [state.activeTab, state.techContents.length, state.adultContents.length, state.loading, dateFilter, state.orderBy, actions])
+
   const loadMore = useCallback(async () => {
     if (state.loading) return
 
@@ -379,7 +430,10 @@ export default function ContentList({
               <h2 className="text-xl md:text-2xl font-semibold text-black">内容列表</h2>
               <TabSelector 
                 currentTab={state.activeTab} 
-                onTabChange={actions.setTab}
+                onTabChange={(nextTab) => {
+                  actions.setTab(nextTab)
+                  actions.resetPagination()
+                }}
               />
             </div>
 
@@ -421,24 +475,20 @@ export default function ContentList({
           )}
         </div>
 
-        {/* 全端统一：卡片列表 */}
-        <>
-          <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
-            <MobileContentList
-              contents={filteredTechContents}
-              onDelete={handleDeleteTech}
-              detailPathPrefix="/content"
-            />
-          </div>
-
-          <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
-            <MobileContentList
-              contents={filteredAdultContents}
-              onDelete={handleDeleteAdult}
-              detailPathPrefix="/adult-content"
-            />
-          </div>
-        </>
+        {/* 全端统一：卡片列表（只挂载活跃 tab，避免隐藏列表触发媒体加载） */}
+        {state.activeTab === 'tech' ? (
+          <MobileContentList
+            contents={filteredTechContents}
+            onDelete={handleDeleteTech}
+            detailPathPrefix="/content"
+          />
+        ) : (
+          <MobileContentList
+            contents={filteredAdultContents}
+            onDelete={handleDeleteAdult}
+            detailPathPrefix="/adult-content"
+          />
+        )}
 
         <div ref={loadMoreRef} className="py-8">
           {state.loading && (

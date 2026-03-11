@@ -20,19 +20,26 @@ export default async function Home({
   const page = Number(params.page || '1') > 0 ? Number(params.page) : 1
   const date = params.date || null
 
-  const pageSize = date ? 10 : 20
+  const pageSize = 10
 
-  const [techContents, adultContents, techTotal, adultTotal, techStats, adultStats] = await Promise.all([
-    date ? getContentsByDate(date, orderBy, tab === 'tech' ? page : 1, pageSize) : getAllContents(orderBy, tab === 'tech' ? page : 1, pageSize),
-    date ? getAdultContentsByDate(date, orderBy, tab === 'adult' ? page : 1, pageSize) : getAllAdultContents(orderBy, tab === 'adult' ? page : 1, pageSize),
-    date ? getContentsCountByDate(date) : getContentsCount(),
-    date ? getAdultContentsCountByDate(date) : getAdultContentsCount(),
-    date ? getStatsByDate(date) : getStats(),
-    date ? getAdultStatsByDate(date) : getAdultContentStats()
+  const isTech = tab === 'tech'
+
+  const [techContents, adultContents, total, rawStats] = await Promise.all([
+    isTech
+      ? (date ? getContentsByDate(date, orderBy, page, pageSize) : getAllContents(orderBy, page, pageSize))
+      : Promise.resolve([]),
+    !isTech
+      ? (date ? getAdultContentsByDate(date, orderBy, page, pageSize) : getAllAdultContents(orderBy, page, pageSize))
+      : Promise.resolve([]),
+    isTech
+      ? (date ? getContentsCountByDate(date) : getContentsCount())
+      : (date ? getAdultContentsCountByDate(date) : getAdultContentsCount()),
+    isTech
+      ? (date ? getStatsByDate(date) : getStats())
+      : (date ? getAdultStatsByDate(date) : getAdultContentStats())
   ])
 
-  const total = tab === 'tech' ? techTotal : adultTotal
-  const sourceStats = tab === 'tech' ? techStats.bySource : adultStats.bySource
+  const sourceStats = rawStats.bySource
 
   const stats = {
     total,
