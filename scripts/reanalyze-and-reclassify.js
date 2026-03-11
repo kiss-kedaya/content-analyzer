@@ -199,7 +199,7 @@ async function upsertSourceCache(originalUrl, payload) {
 function buildAiPrompt(text) {
   const clipped = String(text || '').slice(0, 6000)
 
-  return `你是专业的中文内容分析员。请根据输入正文生成标题、摘要并重新评分。\n\n评分体系（总分 0-10，保留 1 位小数）：\n- 信息密度 density: 0-3\n- 可用性/可操作性 actionability: 0-3\n- 可信度线索 credibility: 0-2\n- 表达质量 clarity: 0-2\n总分 = 四项相加。\n\n硬约束：\n- 如果正文主要是登录/注册/年龄限制提示/导航模板等无实际内容，总分封顶 2.0，并在 flags 加入 login_wall 或 adult_restricted。\n- 如果正文为空或过短（<${MIN_TEXT_LEN} 字符）且无法补齐，总分封顶 1.0，并在 flags 加入 too_short。\n\n输出要求：只返回 JSON，不要添加其他文字，不要使用代码块。\n\n请同时判断该内容是否为成人内容（adult/NSFW）。\n- isAdult: boolean\n- adultConfidence: 0-1（越高越确定）\n- adultReason: 简短理由（不超过30字）\n\nJSON 格式：\n{\n  \\\"title\\\": string,\n  \\\"summary\\\": string,\n  \\\"score\\\": number,\n  \\\"score_breakdown\\\": { \\\"density\\\": number, \\\"actionability\\\": number, \\\"credibility\\\": number, \\\"clarity\\\": number },\n  \\\"flags\\\": string[],\n  \\\"isAdult\\\": boolean,\n  \\\"adultConfidence\\\": number,\n  \\\"adultReason\\\": string\n}\n\n正文：\n${clipped}\n`
+  return `你是专业的中文内容分析员。请根据输入正文生成标题、摘要并重新评分。\n\n评分体系（总分 0-10，保留 1 位小数）：\n- 信息密度 density: 0-3\n- 可用性/可操作性 actionability: 0-3\n- 可信度线索 credibility: 0-2\n- 表达质量 clarity: 0-2\n总分 = 四项相加。\n\n硬约束：\n- 如果正文主要是登录/注册/年龄限制提示/导航模板等无实际内容，总分封顶 2.0，并在 flags 加入 login_wall 或 adult_restricted。\n- 如果正文为空或过短（<${MIN_TEXT_LEN} 字符）且无法补齐，总分封顶 1.0，并在 flags 加入 too_short。\n\n输出要求：只返回 JSON，不要添加其他文字，不要使用代码块。\n\n请同时判断该内容是否为成人内容（adult/NSFW）。\n- isAdult: boolean\n- adultConfidence: 0-1，表示为成人内容的概率\n- adultReason: 简短理由（不超过30字）\n\n一致性要求：\n- 如果 adultConfidence >= 0.5，则 isAdult 必须为 true\n- 如果 adultConfidence < 0.5，则 isAdult 必须为 false\n\nJSON 格式：\n{\n  \\\"title\\\": string,\n  \\\"summary\\\": string,\n  \\\"score\\\": number,\n  \\\"score_breakdown\\\": { \\\"density\\\": number, \\\"actionability\\\": number, \\\"credibility\\\": number, \\\"clarity\\\": number },\n  \\\"flags\\\": string[],\n  \\\"isAdult\\\": boolean,\n  \\\"adultConfidence\\\": number,\n  \\\"adultReason\\\": string\n}\n\n正文：\n${clipped}\n`
 }
 
 async function callCpaAi(prompt) {
@@ -331,16 +331,22 @@ async function processOne(item) {
 
   // Fetch content using provider policy
   // Step 1: try jina first, and retry on retryable failures (e.g. HTTP ERROR 500 pages)
-  const jina = await withRetries(async (attempt) => {
-    const r = await fetchFromJina(url)
-    if (!r.success && r.retryable) {
-      if (DEBUG) {
-        console.log(`[debug] jina retryable failure attempt=${attempt} status=${r.status} url=${url}`)
+  let jina
+  try {
+    jina = await withRetries(async (attempt) => {
+      const r = await fetchFromJina(url)
+      if (!r.success && r.retryable) {
+        if (DEBUG) {
+          console.log(`[debug] jina retryable failure attempt=${attempt} status=${r.status} url=${url}`)
+        }
+        throw new Error(`jina retryable failure status=${r.status}`)
       }
-      throw new Error(`jina retryable failure status=${r.status}`)
-    }
-    return r
-  }, { retries: 2 })
+      return r
+    }, { retries: 2 })
+  } catch (e) {
+    // If jina keeps failing with retryable errors, treat as a normal failure so we can fallback.
+    jina = { success: false, provider: 'jina', text: '', status: 0 }
+  }
 
   let chosen = jina
   let usedDefuddle = false
