@@ -39,6 +39,33 @@
 
 ---
 
+## Data Repair & Re-Analysis（P0 - 紧急）
+
+### Hover 预览体验优化
+- [ ] HoverVideoPreview 预计算定位（首帧即在屏内，无闪跳）
+  - [ ] 计算 anchorRect（getBoundingClientRect）
+  - [ ] 预设 tooltip 尺寸（按媒体类型）
+  - [ ] viewport clamp（含 padding）
+  - [ ] 位置计算完成前不渲染 tooltip
+
+### 成人内容误分类纠正 + 全量重算
+- [ ] 新脚本：全量重抓正文 + AI 重算（5 并发）
+  - [ ] 覆盖 Content + AdultContent 两表
+  - [ ] Provider 策略：jina → defuddle（失败/受限关键词触发）
+  - [ ] 受限关键词判定（English，确定性）
+  - [ ] X 用户名提取：url -> @username，写入 analyzedBy
+  - [ ] AI 输出 JSON：title/summary/score + breakdown + flags
+  - [ ] 新评分体系：density/actionability/credibility/clarity + hard caps
+  - [ ] 自动迁移：Content -> AdultContent（命中受限且 defuddle 生效时）
+  - [ ] 运行前备份（复用现有备份策略）
+  - [ ] 产出报告（迁移数、fallback 数、AI 成功率、耗时）
+
+### UI 字段语义调整
+- [ ] 列名："分析者" -> "用户名"
+- [ ] Content/AdultContent 列显示 analyzedBy（@username）
+
+---
+
 ## 本周计划（P1）
 
 ### 性能优化
