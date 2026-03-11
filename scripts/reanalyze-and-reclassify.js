@@ -7,6 +7,9 @@ const prisma = new PrismaClient()
 
 const CONCURRENCY = Number(process.env.CONCURRENCY || 5)
 const DRY_RUN = process.argv.includes('--dry-run')
+const DEBUG = process.argv.includes('--debug') || process.env.DEBUG === '1'
+const DEBUG_AI = process.argv.includes('--debug-ai') || process.env.DEBUG_AI === '1'
+
 const LIMIT = (() => {
   const idx = process.argv.indexOf('--limit')
   if (idx >= 0) return Number(process.argv[idx + 1] || 0) || 0
@@ -202,6 +205,13 @@ async function callCpaAi(prompt) {
     : (typeof data?.text === 'string' ? data.text : '')
 
   const raw = String(text || '')
+
+  if (DEBUG_AI) {
+    const preview = raw.length > 1200 ? raw.slice(0, 1200) + '\n...[truncated]' : raw
+    console.log('\n[debug-ai] raw response (first 1200 chars):')
+    console.log(preview)
+  }
+
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
   const jsonStr = jsonMatch ? jsonMatch[0] : raw
   return JSON.parse(jsonStr)
@@ -355,25 +365,51 @@ async function processOne(item) {
 async function runPool(items, concurrency) {
   const results = []
   let i = 0
+  let done = 0
 
-  async function worker() {
+  const startedAt = Date.now()
+  const progressTimer = setInterval(() => {
+    const elapsedMs = Date.now() - startedAt
+    const perItem = done > 0 ? elapsedMs / done : 0
+    const remaining = items.length - done
+    const etaMs = perItem * remaining
+
+    const pct = items.length ? ((done / items.length) * 100).toFixed(1) : '0.0'
+
+    console.log(`[progress] ${done}/${items.length} (${pct}%) elapsed=${Math.round(elapsedMs/1000)}s eta=${Math.round(etaMs/1000)}s`)
+  }, 3000)
+
+  async function worker(workerId) {
     while (true) {
       const idx = i++
       if (idx >= items.length) return
       const item = items[idx]
 
       try {
+        if (DEBUG) {
+          console.log(`[debug] #${idx + 1}/${items.length} table=${item.__table} url=${item.url}`)
+        }
+
         const r = await processOne(item)
         results[idx] = { ok: true, ...r }
       } catch (e) {
         results[idx] = { ok: false, error: e instanceof Error ? e.message : String(e) }
+        if (DEBUG) {
+          console.log(`[debug] #${idx + 1} failed: ${results[idx].error}`)
+        }
+      } finally {
+        done++
       }
     }
   }
 
-  const workers = Array.from({ length: concurrency }, () => worker())
-  await Promise.all(workers)
-  return results
+  try {
+    const workers = Array.from({ length: concurrency }, (_, n) => worker(n + 1))
+    await Promise.all(workers)
+    return results
+  } finally {
+    clearInterval(progressTimer)
+  }
 }
 
 async function main() {
