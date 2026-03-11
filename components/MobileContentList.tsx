@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash, Play } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Calendar, Hash } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
 import { ConfirmDialog } from './ConfirmDialog'
-import { VideoPreview } from './DynamicMedia'
 
 interface MobileContentCardProps {
   id: string
@@ -18,7 +17,6 @@ interface MobileContentCardProps {
   mediaUrls?: string[]
   onDelete?: (id: string) => void
   detailPath: string
-  onPreview?: (url: string) => void
 }
 
 export function MobileContentCard({
@@ -31,8 +29,7 @@ export function MobileContentCard({
   analyzedAt,
   mediaUrls,
   onDelete,
-  detailPath,
-  onPreview
+  detailPath
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -119,26 +116,23 @@ export function MobileContentCard({
         </span>
       </div>
 
-      {/* 媒体预览（仅 X） */}
+      {/* 媒体预览（仅 X，列表不做弹窗预览，点击进入详情页） */}
       {hasMedia && mediaUrl && (
-        <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+        <Link
+          href={detailPath}
+          className="relative block w-full h-48 rounded-lg overflow-hidden bg-gray-100"
+          aria-label="查看详情"
+        >
           <MediaThumbnail
             url={mediaUrl}
             className="w-full h-full"
-            onPreview={() => onPreview?.(url)}
             persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
 
-          <button
-            type="button"
-            onClick={() => onPreview?.(url)}
-            className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm hover:bg-white"
-            aria-label="完整预览"
-          >
-            <Play className="w-3.5 h-3.5" />
-            完整预览
-          </button>
-        </div>
+          <span className="absolute bottom-3 left-3 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
+            查看详情
+          </span>
+        </Link>
       )}
 
       {/* 标题 */}
@@ -223,7 +217,6 @@ export function MobileContentList({
   onDelete,
   detailPathPrefix
 }: MobileContentListProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const isGrid = true
@@ -236,13 +229,10 @@ export function MobileContentList({
             key={content.id}
             {...content}
             onDelete={onDelete ? () => setConfirmDelete(content.id) : undefined}
-            onPreview={(url) => setPreviewUrl(url)}
             detailPath={`${detailPathPrefix}/${content.id}`}
           />
         ))}
       </div>
-
-      {previewUrl && <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />}
 
       <ConfirmDialog
         isOpen={confirmDelete !== null}
