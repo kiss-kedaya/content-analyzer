@@ -23,6 +23,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
   const [error, setError] = useState<string | null>(null)
   const [items, setItems] = useState<MediaItem[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
+  const [expanded, setExpanded] = useState(false)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -124,6 +125,8 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   useEffect(() => {
     dialogRef.current?.focus()
+    // reset expanded state when switching items
+    setExpanded(false)
   }, [activeIndex, loading, error])
 
   useEffect(() => {
@@ -253,18 +256,31 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         aria-modal="true"
         aria-label="媒体预览"
         tabIndex={-1}
-        className="relative w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh] bg-white md:rounded-lg shadow-2xl overflow-hidden outline-none flex flex-col"
+        className={`relative bg-white md:rounded-lg shadow-2xl overflow-hidden outline-none flex flex-col ${expanded ? 'w-[min(96vw,1400px)] h-[min(92dvh,900px)] md:max-w-none md:max-h-none' : 'w-full h-full md:h-auto md:max-w-5xl md:max-h-[90vh]'}`}
+
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 shrink-0">
           <h2 className="text-lg md:text-xl font-semibold text-black">媒体预览</h2>
-          <button
-            onClick={handleClose}
-            aria-label="关闭预览"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-          >
-            <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
-          </button>
+          <div className="flex items-center gap-2">
+            {active?.type === 'image' && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-label={expanded ? '还原大小' : '放大查看'}
+                className="px-3 py-2 text-xs md:text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {expanded ? '还原' : '放大'}
+              </button>
+            )}
+            <button
+              onClick={handleClose}
+              aria-label="关闭预览"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+            >
+              <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 md:p-6 overflow-y-auto flex-1">
