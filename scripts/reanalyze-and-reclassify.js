@@ -6,14 +6,34 @@ const crypto = require('crypto')
 const prisma = new PrismaClient()
 
 const CONCURRENCY = Number(process.env.CONCURRENCY || 5)
-const DRY_RUN = process.argv.includes('--dry-run')
+
+function readArgValue(flag) {
+  const idx = process.argv.indexOf(flag)
+  if (idx >= 0) {
+    const v = process.argv[idx + 1]
+    if (v && !String(v).startsWith('-')) return v
+  }
+  return null
+}
+
+function readFirstPositionalNumber() {
+  // npm on Windows may append positional args differently; accept a single numeric arg as limit.
+  const maybe = process.argv.slice(2).find((x) => /^\d+$/.test(String(x)))
+  return maybe ? Number(maybe) : 0
+}
+
+const DRY_RUN = process.argv.includes('--dry-run') || process.env.DRY_RUN === '1'
 const DEBUG = process.argv.includes('--debug') || process.env.DEBUG === '1'
 const DEBUG_AI = process.argv.includes('--debug-ai') || process.env.DEBUG_AI === '1'
 
 const LIMIT = (() => {
-  const idx = process.argv.indexOf('--limit')
-  if (idx >= 0) return Number(process.argv[idx + 1] || 0) || 0
-  return 0
+  const fromFlag = readArgValue('--limit')
+  if (fromFlag) return Number(fromFlag) || 0
+
+  if (process.env.LIMIT) return Number(process.env.LIMIT) || 0
+
+  const fromPositional = readFirstPositionalNumber()
+  return Number(fromPositional) || 0
 })()
 
 const MIN_TEXT_LEN = Number(process.env.MIN_TEXT_LEN || 120)
@@ -94,7 +114,7 @@ async function fetchFromJina(originalUrl) {
     return { success: false, provider: 'jina', text: '', status: res.status }
   }
   const text = String(res.text || '').trim()
-  return { success: true, provider: 'jina', text, status: res.status }
+  return { success: true, provider: 'jina', text, status: res.status, rawResponse: res.text }
 }
 
 function stripYamlFrontmatter(markdown) {
@@ -124,7 +144,7 @@ async function fetchFromDefuddle(originalUrl) {
   const text = String(parsed.text || '').trim()
   const title = parsed.title
 
-  return { success: true, provider: 'defuddle', text, title, status: res.status }
+  return { success: true, provider: 'defuddle', text, title, status: res.status, rawResponse: raw }
 }
 
 async function upsertSourceCache(originalUrl, payload) {
@@ -133,14 +153,17 @@ async function upsertSourceCache(originalUrl, payload) {
   const provider = payload.provider
   const digest = sha256(text)
 
+  const status = payload.success ? 'ok' : 'failed'
+  const rawResponse = payload.rawResponse ? payload.rawResponse : null
+
   return prisma.sourceCache.upsert({
     where: { url: originalUrl },
     update: {
       provider,
-      status: payload.success ? 'ok' : 'error',
+      status,
+      rawResponse,
       title,
       text,
-      errorText: payload.success ? null : `provider=${provider}, status=${payload.status}`,
       wordCount: text ? text.split(/\s+/).filter(Boolean).length : 0,
       sha256: digest,
       lastFetchedAt: new Date(),
@@ -148,10 +171,10 @@ async function upsertSourceCache(originalUrl, payload) {
     create: {
       url: originalUrl,
       provider,
-      status: payload.success ? 'ok' : 'error',
+      status,
+      rawResponse,
       title,
       text,
-      errorText: payload.success ? null : `provider=${provider}, status=${payload.status}`,
       wordCount: text ? text.split(/\s+/).filter(Boolean).length : 0,
       sha256: digest,
       lastFetchedAt: new Date(),

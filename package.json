@@ -17,7 +17,10 @@
     "fix:check": "node scripts/fix-missing-fields.js --dry-run",
     "test:source": "node test-source-normalization.js",
     "reanalyze:all": "node scripts/reanalyze-and-reclassify.js",
-    "reanalyze:dry": "node scripts/reanalyze-and-reclassify.js --dry-run"
+    "reanalyze:dry": "node scripts/reanalyze-and-reclassify.js --dry-run",
+    "reanalyze:debug": "set DEBUG=1 && node scripts/reanalyze-and-reclassify.js",
+    "reanalyze:debug-ai": "set DEBUG_AI=1 && node scripts/reanalyze-and-reclassify.js",
+    "reanalyze:sample": "set DEBUG_AI=1 && set LIMIT=3 && node scripts/reanalyze-and-reclassify.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
