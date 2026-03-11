@@ -18,6 +18,7 @@ const HOVER_FAILED_TTL_MS = 8 * 1000
 export default function HoverVideoPreview({ url, anchorRect, onMouseEnter, onMouseLeave }: HoverVideoPreviewProps) {
   const [loading, setLoading] = useState(true)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [position, setPosition] = useState<'right' | 'left'>('right')
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const [retryToken, setRetryToken] = useState(0)
@@ -98,6 +99,12 @@ export default function HoverVideoPreview({ url, anchorRect, onMouseEnter, onMou
       } else {
         setVideoUrl(null)
       }
+
+      if (!data?.videos?.length && data?.images?.length) {
+        setImageUrl(data.images[0].url)
+      } else {
+        setImageUrl(null)
+      }
     } catch (err) {
       if (requestIdRef.current === requestId) {
         setVideoUrl(null)
@@ -133,6 +140,7 @@ export default function HoverVideoPreview({ url, anchorRect, onMouseEnter, onMou
     cancelClose()
     setShouldRender(true)
     setVideoUrl(null)
+    setImageUrl(null)
     setLoading(true)
     setCoords(null)
 
@@ -208,13 +216,22 @@ export default function HoverVideoPreview({ url, anchorRect, onMouseEnter, onMou
           className="w-full"
           style={{ maxHeight: '300px' }}
         >
-          <source src={videoUrl} type="video/mp4" />
+          <source src={videoUrl} />
         </video>
       )}
 
-      {!loading && !videoUrl && (
+      {!loading && !videoUrl && imageUrl && (
+        <img
+          src={imageUrl}
+          alt="预览图片"
+          className="w-full object-contain bg-black"
+          style={{ maxHeight: '300px' }}
+        />
+      )}
+
+      {!loading && !videoUrl && !imageUrl && (
         <div className="p-4 text-center text-gray-500 text-sm space-y-3">
-          <div>无视频预览</div>
+          <div>无可用预览</div>
           <button
             type="button"
             onClick={handleRetry}
