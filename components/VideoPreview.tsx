@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
+import { shouldProxyMediaUrl, toMediaProxyUrl } from '@/lib/media-proxy'
 
 type MediaItem = {
   type: 'video' | 'image'
@@ -80,10 +81,12 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
           effectiveUrl = item.sourceUrl
         }
 
+        const maybeProxiedUrl = shouldProxyMediaUrl(effectiveUrl) ? toMediaProxyUrl(effectiveUrl) : effectiveUrl
+
         acc.push({
           type: item.type,
-          url: effectiveUrl,
-          sourceUrl: item.sourceUrl,
+          url: maybeProxiedUrl,
+          sourceUrl: item.sourceUrl || effectiveUrl,
           expiresAt: item.expiresAt,
           fallbackUrl: item.fallbackUrl,
         })

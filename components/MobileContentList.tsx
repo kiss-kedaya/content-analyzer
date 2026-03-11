@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash } from '@/components/Icon'
-import { useIsMobile } from '@/hooks/useMediaQuery'
+import { ExternalLink, Eye, Trash2, Calendar, Hash, Play } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
+import { ConfirmDialog } from './ConfirmDialog'
+import { VideoPreview } from './DynamicMedia'
 
 interface MobileContentCardProps {
   id: string
@@ -14,10 +15,10 @@ interface MobileContentCardProps {
   summary: string
   score: number
   analyzedAt: Date
-  favorited: boolean
   mediaUrls?: string[]
   onDelete?: (id: string) => void
   detailPath: string
+  onPreview?: (url: string) => void
 }
 
 export function MobileContentCard({
@@ -28,13 +29,13 @@ export function MobileContentCard({
   summary,
   score,
   analyzedAt,
-  favorited,
   mediaUrls,
   onDelete,
-  detailPath
+  detailPath,
+  onPreview
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  
+
   // 对于成人内容，使用 mediaUrls；对于普通内容，使用 URL 本身
   const hasMedia = (mediaUrls && mediaUrls.length > 0) || url
   const mediaUrl = mediaUrls && mediaUrls.length > 0 ? mediaUrls[0] : url
@@ -71,7 +72,21 @@ export function MobileContentCard({
       {/* 媒体预览 */}
       {hasMedia && (
         <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
-          <MediaThumbnail url={mediaUrl} className="w-full h-full" />
+          <MediaThumbnail
+            url={mediaUrl}
+            className="w-full h-full"
+            onPreview={() => onPreview?.(url)}
+          />
+
+          <button
+            type="button"
+            onClick={() => onPreview?.(url)}
+            className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm hover:bg-white"
+            aria-label="完整预览"
+          >
+            <Play className="w-3.5 h-3.5" />
+            完整预览
+          </button>
         </div>
       )}
 
@@ -157,20 +172,39 @@ export function MobileContentList({
   onDelete,
   detailPathPrefix
 }: MobileContentListProps) {
-  const isMobile = useIsMobile()
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  if (!isMobile) return null
+  const isGrid = true
 
   return (
-    <div className="space-y-3">
-      {contents.map((content) => (
-        <MobileContentCard
-          key={content.id}
-          {...content}
-          onDelete={onDelete}
-          detailPath={`${detailPathPrefix}/${content.id}`}
-        />
-      ))}
-    </div>
+    <>
+      <div className={isGrid ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4' : 'space-y-3'}>
+        {contents.map((content) => (
+          <MobileContentCard
+            key={content.id}
+            {...content}
+            onDelete={onDelete ? () => setConfirmDelete(content.id) : undefined}
+            onPreview={(url) => setPreviewUrl(url)}
+            detailPath={`${detailPathPrefix}/${content.id}`}
+          />
+        ))}
+      </div>
+
+      {previewUrl && <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />}
+
+      <ConfirmDialog
+        isOpen={confirmDelete !== null}
+        title="确认删除"
+        message="确定要删除这条内容吗？此操作无法撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={() => {
+          if (confirmDelete) onDelete?.(confirmDelete)
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </>
   )
 }

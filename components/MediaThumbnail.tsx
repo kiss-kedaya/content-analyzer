@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Image as ImageIcon, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 import { LazyImage } from './LazyImage'
+import { shouldProxyMediaUrl, toMediaProxyUrl } from '@/lib/media-proxy'
 
 interface MediaThumbnailProps {
   url: string
@@ -45,8 +46,10 @@ export default function MediaThumbnail({ url, className = '', onPreview }: Media
         const totalCount = ordered.length || (videoCount + imageCount)
 
         if (ordered.length > 0) {
-          setThumbnailUrl(ordered[0].url)
-          setPrimaryMediaType(ordered[0].type)
+          const first = ordered[0]
+          const nextUrl = shouldProxyMediaUrl(first.url) ? toMediaProxyUrl(first.url) : first.url
+          setThumbnailUrl(nextUrl)
+          setPrimaryMediaType(first.type)
         } else {
           setError(true)
           return

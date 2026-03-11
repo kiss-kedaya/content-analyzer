@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import ContentTable from './ContentTable'
-import AdultContentTable from './AdultContentTable'
 import { MobileContentList } from './MobileContentList'
 import { PullToRefresh } from './PullToRefresh'
 import { SearchBar } from './SearchBar'
@@ -12,7 +10,6 @@ import SortSelector from './SortSelector'
 import DatePicker from './DatePicker'
 import { Loader2 } from './Icon'
 import { useContentListState } from '@/hooks/useContentListState'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useToastContext } from './ClientLayout'
 
 interface Content {
@@ -66,7 +63,6 @@ export default function ContentList({
   const [searchQuery, setSearchQuery] = useState('')
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const isMobile = useIsMobile()
   const toast = useToastContext()
 
   const handleDeleteTech = async (id: string) => {
@@ -373,7 +369,7 @@ export default function ContentList({
   }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy])
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
+    <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-4">
           {/* 标题和控制栏 */}
@@ -425,39 +421,24 @@ export default function ContentList({
           )}
         </div>
 
-        {/* 桌面端：表格 */}
-        {!isMobile && (
-          <>
-            <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
-              <ContentTable contents={filteredTechContents} onDelete={handleDeleteTech} />
-            </div>
+        {/* 全端统一：卡片列表 */}
+        <>
+          <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
+            <MobileContentList
+              contents={filteredTechContents}
+              onDelete={handleDeleteTech}
+              detailPathPrefix="/content"
+            />
+          </div>
 
-            <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
-              <AdultContentTable contents={filteredAdultContents} onDelete={handleDeleteAdult} />
-            </div>
-          </>
-        )}
-
-        {/* 移动端：卡片 */}
-        {isMobile && (
-          <>
-            <div className={state.activeTab === 'tech' ? 'block' : 'hidden'}>
-              <MobileContentList
-                contents={filteredTechContents}
-                onDelete={handleDeleteTech}
-                detailPathPrefix="/content"
-              />
-            </div>
-
-            <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
-              <MobileContentList
-                contents={filteredAdultContents}
-                onDelete={handleDeleteAdult}
-                detailPathPrefix="/adult-content"
-              />
-            </div>
-          </>
-        )}
+          <div className={state.activeTab === 'adult' ? 'block' : 'hidden'}>
+            <MobileContentList
+              contents={filteredAdultContents}
+              onDelete={handleDeleteAdult}
+              detailPathPrefix="/adult-content"
+            />
+          </div>
+        </>
 
         <div ref={loadMoreRef} className="py-8">
           {state.loading && (
