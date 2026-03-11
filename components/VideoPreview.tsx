@@ -163,36 +163,27 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
 
   const refreshActiveOnce = useCallback(async () => {
     if (!active) return
-    const isSnapcdn = (() => {
+
+    const parsed = (() => {
       try {
-        return new URL(active.url).hostname === 'dl.snapcdn.app'
+        const u = new URL(active.url)
+        return { host: u.hostname, u }
       } catch {
-        return false
+        return null
       }
     })()
 
+    const isSnapcdn = parsed?.host === 'dl.snapcdn.app'
     if (!isSnapcdn) return
 
-    // Prefer to refetch once, then fallback to sourceUrl.
-    const key = active.fallbackUrl || active.url
-    if (refreshAttemptsRef.current.has(key)) {
-      if (active.sourceUrl && active.url !== active.sourceUrl) {
-        setItems(prev => prev.map((it, idx) => (idx === activeIndex ? { ...it, url: active.sourceUrl || it.url } : it)))
+    // New policy: never refetch for snapcdn expiry. Always switch to sourceUrl.
+    if (active.sourceUrl) {
+      const next = shouldProxyMediaUrl(active.sourceUrl) ? toMediaProxyUrl(active.sourceUrl) : active.sourceUrl
+      if (active.url !== next) {
+        setItems(prev => prev.map((it, idx) => (idx === activeIndex ? { ...it, url: next } : it)))
       }
-      return
     }
-
-    if (refreshInFlightRef.current) return
-
-    refreshAttemptsRef.current.add(key)
-    refreshInFlightRef.current = true
-
-    try {
-      await fetchMediaUrls({ force: true, keepActiveKey: active.sourceUrl || active.fallbackUrl || active.url })
-    } finally {
-      refreshInFlightRef.current = false
-    }
-  }, [active, activeIndex, fetchMediaUrls])
+  }, [active, activeIndex])
 
   // 处理视频加载错误
   // Note: HTTP 206 (Partial Content) is normal for ranged video streaming.

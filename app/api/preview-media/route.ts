@@ -16,8 +16,6 @@ function isAllowedMediaHost(hostname: string): boolean {
 function applyExpiryPolicy(media: ReturnType<typeof normalizeCachedMedia>) {
   const nowSec = Math.floor(Date.now() / 1000)
   return media.map((item) => {
-    if (item.type !== 'video') return item
-
     const isSnapcdn = (() => {
       try {
         return new URL(item.url).hostname === 'dl.snapcdn.app'
@@ -28,7 +26,8 @@ function applyExpiryPolicy(media: ReturnType<typeof normalizeCachedMedia>) {
 
     const expired = typeof item.expiresAt === 'number' ? item.expiresAt <= nowSec : false
 
-    // If snapcdn token URL is expired, prefer sourceUrl first (video.twimg.com).
+    // New policy: if snapcdn token URL is expired, never refetch.
+    // Always prefer sourceUrl (usually twimg) as the stable fallback.
     if (isSnapcdn && expired && item.sourceUrl) {
       return {
         ...item,
