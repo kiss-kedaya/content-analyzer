@@ -369,7 +369,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
                     playsInline
                     autoPlay
                     preload="metadata"
-                    crossOrigin="anonymous"
+
                     className="w-full rounded-lg bg-black"
                     style={{ maxHeight: '70vh' }}
                     onClick={(e) => e.stopPropagation()}
