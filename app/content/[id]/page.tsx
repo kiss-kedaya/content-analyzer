@@ -4,7 +4,7 @@ import { ExternalLink, FileText, Clock, User, Hash, Calendar, Image as ImageIcon
 import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceContentViewer from '@/components/SourceContentViewer'
-import DetailMediaPreview from '@/components/DetailMediaPreview'
+import DetailMediaGallery from '@/components/DetailMediaGallery'
 
 export default async function ContentDetailPage({
   params
@@ -79,10 +79,12 @@ export default async function ContentDetailPage({
         {/* 内容区域 - 单栏布局 */}
         <div className="px-4 md:px-10 py-6 md:py-8 border-b border-gray-200">
           <div className="space-y-6 md:space-y-8">
-            <DetailMediaPreview
+            <DetailMediaGallery
+              kind="content"
+              id={content.id}
+              source={content.source}
               url={content.url}
               mediaUrls={(content as any).mediaUrls || []}
-              title={content.title || undefined}
             />
 
             {/* 摘要 */}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { VideoPreview } from './DynamicMedia'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -22,7 +21,6 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
   const [error, setError] = useState<string | null>(null)
   const [twitterData, setTwitterData] = useState<ReturnType<typeof parseTwitterContent>>(null)
   const [showDebug, setShowDebug] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const fetchContent = async () => {
     if (content) {
@@ -111,7 +109,6 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
       {/* 内容展示 */}
       {isOpen && content && (
         <div className="space-y-4">
-          {previewUrl && <VideoPreview url={previewUrl} onClose={() => setPreviewUrl(null)} />}
           {/* Debug 按钮 */}
           {twitterData && (
             <button
@@ -199,14 +196,11 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
                   })()
 
                   return (
-                    <button
-                      type="button"
-                      className="block w-full text-left"
-                      onClick={() => {
-                        if (proxiedSrc) {
-                          setPreviewUrl(String(proxiedSrc))
-                        }
-                      }}
+                    <a
+                      href={proxiedSrc}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full"
                       aria-label={props.alt || '查看图片'}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -217,7 +211,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
                         className="max-w-full h-auto rounded-lg shadow-md my-4 cursor-zoom-in"
                         loading="lazy"
                       />
-                    </button>
+                    </a>
                   )
                 },
                 a: ({ node, ...props }) => (
