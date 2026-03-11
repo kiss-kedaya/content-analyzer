@@ -76,21 +76,49 @@ function formatResponse(url: string, media: ReturnType<typeof normalizeCachedMed
   })
 }
 
+const MEDIA_PROXY_BASE_PROTOCOL_RELATIVE = '//media.kedaya.xyz'
+
+function toProtocolRelativeMediaProxyUrl(rawUrl: string): string {
+  return `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=${encodeURIComponent(rawUrl)}`
+}
+
+function isAlreadyProxied(candidate: string): boolean {
+  return candidate.startsWith(`${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
+    || candidate.startsWith('https://media.kedaya.xyz/?url=')
+    || candidate.startsWith('http://media.kedaya.xyz/?url=')
+}
+
 function pickPersistentMediaUrls(media: ReturnType<typeof normalizeCachedMedia>) {
   const out: string[] = []
   const seen = new Set<string>()
 
   const pushIfAllowed = (candidate?: string) => {
     if (!candidate) return
+
+    // If it is already proxied, accept as-is (normalize to protocol-relative).
+    if (isAlreadyProxied(candidate)) {
+      const normalized = candidate
+        .replace(/^https:\/\/media\.kedaya\.xyz\/?\?url=/, `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
+        .replace(/^http:\/\/media\.kedaya\.xyz\/?\?url=/, `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
+
+      if (!seen.has(normalized)) {
+        seen.add(normalized)
+        out.push(normalized)
+      }
+      return
+    }
+
     try {
       const u = new URL(candidate)
       const host = u.hostname.toLowerCase()
       const allowed = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
       if (!allowed) return
 
-      if (!seen.has(candidate)) {
-        seen.add(candidate)
-        out.push(candidate)
+      const proxied = toProtocolRelativeMediaProxyUrl(candidate)
+
+      if (!seen.has(proxied)) {
+        seen.add(proxied)
+        out.push(proxied)
       }
     } catch {
       // ignore
