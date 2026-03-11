@@ -26,14 +26,19 @@ function applyExpiryPolicy(media: ReturnType<typeof normalizeCachedMedia>) {
 
     const expired = typeof item.expiresAt === 'number' ? item.expiresAt <= nowSec : false
 
-    // New policy: for snapcdn, always prefer sourceUrl if present.
-    // - If expired: snapcdn token will 401; must switch.
-    // - Even if not expired: sourceUrl is more stable, avoids random 401.
-    if (isSnapcdn && item.sourceUrl) {
-      return {
-        ...item,
-        url: item.sourceUrl,
-        fallbackUrl: item.fallbackUrl || item.url,
+    // New policy: for snapcdn, always eliminate snapcdn token URLs.
+    // Prefer item.sourceUrl; if missing, decode the snapcdn JWT payload url.
+    if (isSnapcdn) {
+      const decoded = decodeSnapcdnSourceUrl(item.url)
+      const fallback = item.sourceUrl || decoded
+
+      if (fallback) {
+        return {
+          ...item,
+          url: fallback,
+          fallbackUrl: item.fallbackUrl || item.url,
+          sourceUrl: item.sourceUrl || fallback,
+        }
       }
     }
 
