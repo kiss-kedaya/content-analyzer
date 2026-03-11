@@ -111,12 +111,12 @@ async function fetchFromJina(originalUrl) {
   const target = `https://r.jina.ai/http://${originalUrl.replace(/^https?:\/\//, '')}`
   const res = await fetchText(target)
   if (!res.ok) {
-    return { success: false, provider: 'jina', text: '', status: res.status }
+    return { success: false, provider: 'jina', text: '', status: res.status, retryable: true }
   }
 
   const text = String(res.text || '').trim()
 
-  // If upstream returns an error page (common for twitter.com), treat as failure so we can retry/fallback.
+  // If upstream returns an error page (common for twitter.com), treat as retryable failure.
   const lower = text.toLowerCase()
   const looksLikeErrorPage =
     lower.includes('http error 500') ||
@@ -125,10 +125,10 @@ async function fetchFromJina(originalUrl) {
     lower.includes('error 500')
 
   if (looksLikeErrorPage) {
-    return { success: false, provider: 'jina', text: '', status: 500 }
+    return { success: false, provider: 'jina', text: '', status: 500, retryable: true }
   }
 
-  return { success: true, provider: 'jina', text, status: res.status, rawResponse: res.text }
+  return { success: true, provider: 'jina', text, status: res.status, rawResponse: res.text, retryable: false }
 }
 
 function stripYamlFrontmatter(markdown) {
@@ -269,16 +269,20 @@ function normalizeAiResult(parsed) {
   }
 }
 
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 async function withRetries(fn, opts) {
   const retries = opts?.retries ?? 3
   let lastErr
   for (let i = 0; i < retries; i++) {
     try {
-      return await fn()
+      return await fn(i + 1)
     } catch (e) {
       lastErr = e
       const delay = Math.min(1000 * Math.pow(2, i), 5000)
-      await new Promise((r) => setTimeout(r, delay))
+      await sleep(delay)
     }
   }
   throw lastErr
@@ -318,7 +322,17 @@ async function processOne(item) {
   const url = item.url
 
   // Fetch content using provider policy
-  const jina = await withRetries(() => fetchFromJina(url), { retries: 5 })
+  // Step 1: try jina first, and retry on retryable failures (e.g. HTTP ERROR 500 pages)
+  const jina = await withRetries(async (attempt) => {
+    const r = await fetchFromJina(url)
+    if (!r.success && r.retryable) {
+      if (DEBUG) {
+        console.log(`[debug] jina retryable failure attempt=${attempt} status=${r.status} url=${url}`)
+      }
+      throw new Error(`jina retryable failure status=${r.status}`)
+    }
+    return r
+  }, { retries: 5 })
 
   let chosen = jina
   let usedDefuddle = false
@@ -329,6 +343,7 @@ async function processOne(item) {
   const jinaRestricted = jina.success && containsRestrictedText(jinaText)
   const jinaFailed = !jina.success || !jinaText
 
+  // Step 2: fallback to defuddle only when jina truly fails / too short / restricted
   if (jinaFailed || jinaTooShort || jinaRestricted) {
     const def = await withRetries(() => fetchFromDefuddle(url), { retries: 5 })
     chosen = def
