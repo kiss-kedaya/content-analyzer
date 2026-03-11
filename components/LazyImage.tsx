@@ -7,6 +7,7 @@ interface LazyImageProps {
   src: string
   alt: string
   className?: string
+  fit?: 'cover' | 'contain'
   width?: number
   height?: number
   onLoad?: () => void
@@ -17,6 +18,7 @@ export function LazyImage({
   src,
   alt,
   className = '',
+  fit = 'cover',
   width,
   height,
   onLoad,
@@ -109,7 +111,7 @@ export function LazyImage({
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${
+          className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'} transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           onLoad={handleLoad}

@@ -10,13 +10,14 @@ interface MediaThumbnailProps {
   url: string
   className?: string
   onPreview?: () => void
+  fit?: 'cover' | 'contain'
   persist?: {
     kind: 'content' | 'adultContent'
     id: string
   }
 }
 
-export default function MediaThumbnail({ url, className = '', onPreview, persist }: MediaThumbnailProps) {
+export default function MediaThumbnail({ url, className = '', onPreview, fit = 'cover', persist }: MediaThumbnailProps) {
   const [loading, setLoading] = useState(false)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [primaryMediaType, setPrimaryMediaType] = useState<'video' | 'image' | null>(null)
@@ -147,7 +148,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, persist
           {primaryMediaType === 'video' ? (
             <video
               src={thumbnailUrl}
-              className="w-full h-full object-cover"
+              className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
               muted
               playsInline
               loop
@@ -158,7 +159,8 @@ export default function MediaThumbnail({ url, className = '', onPreview, persist
             <LazyImage
               src={thumbnailUrl}
               alt="Thumbnail"
-              className="w-full h-full"
+              fit={fit}
+              className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
               onError={() => setError(true)}
             />
           )}

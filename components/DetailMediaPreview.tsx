@@ -52,7 +52,7 @@ export default function DetailMediaPreview({ title, url, mediaUrls }: Props) {
         className="relative block w-full aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors"
         aria-label={label}
       >
-        <MediaThumbnail url={thumbnailUrl} className="w-full h-full" />
+        <MediaThumbnail url={thumbnailUrl} fit="contain" className="w-full h-full" />
 
         <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
           <Play className="w-3.5 h-3.5" />
