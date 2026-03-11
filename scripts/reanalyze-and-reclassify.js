@@ -340,7 +340,7 @@ async function processOne(item) {
       throw new Error(`jina retryable failure status=${r.status}`)
     }
     return r
-  }, { retries: 5 })
+  }, { retries: 2 })
 
   let chosen = jina
   let usedDefuddle = false
@@ -359,11 +359,17 @@ async function processOne(item) {
     restricted = jinaRestricted
   }
 
-  const body = String(chosen.text || '').trim()
+  let body = String(chosen.text || '').trim()
+
+  // If fetch failed entirely, fall back to existing DB fields to avoid wiping data.
+  if (!body) {
+    body = String(item.content || item.summary || '').trim()
+  }
+
   const tooShort = body.length > 0 && body.length < MIN_TEXT_LEN
 
-  // Save SourceCache
-  if (!DRY_RUN) {
+  // Save SourceCache only when we actually fetched something
+  if (!DRY_RUN && chosen && chosen.success && String(chosen.text || '').trim()) {
     await upsertSourceCache(url, chosen)
   }
 
