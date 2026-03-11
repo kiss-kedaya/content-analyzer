@@ -61,6 +61,15 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
 
+    // Extract author name + handle from defuddle-style first line: "Name @handle"
+    if (!authorHandle) {
+      const inlineHandle = line.match(/^(.+?)\s+(@[A-Za-z0-9_]{1,15})$/)
+      if (inlineHandle) {
+        authorName = inlineHandle[1].trim()
+        authorHandle = inlineHandle[2]
+      }
+    }
+
     // Extract author handle (@username)
     if (line.startsWith('@') && line.length < 30 && !authorHandle) {
       authorHandle = line
@@ -377,6 +386,60 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     return null
   }
 
+  function extractDefuddlePlainTweet(linesInput: string[]): string {
+    // For defuddle/jina plain text, try to take everything after the author line,
+    // stopping before the first image markdown or obvious metadata.
+    const stopPatterns: RegExp[] = [
+      /^!\[\]\(/,                       // markdown image
+      /^\[!\[.*\]\(/,                  // linked image
+      /^https?:\/\//,                    // url block
+      /^Read \d+ repl/i,                  // read replies
+      /^Translate post/i,
+      /^翻译推文/, 
+      /\b(replies|retweets|likes|views)\b/i,
+      /\b(回复|转帖|喜欢|查看)\b/,
+    ]
+
+    const isStop = (l: string) => stopPatterns.some((re) => re.test(l))
+
+    // Find author line index.
+    let start = -1
+    for (let i = 0; i < linesInput.length; i++) {
+      const l = linesInput[i]
+      if (!l) continue
+      if (authorHandle && l.includes(authorHandle)) {
+        start = i + 1
+        break
+      }
+      if (l.match(/^.+?\s+@[A-Za-z0-9_]{1,15}$/)) {
+        start = i + 1
+        break
+      }
+      if (l.startsWith('@') && l.length < 30) {
+        start = i + 1
+        break
+      }
+    }
+
+    if (start < 0) return ''
+
+    const out: string[] = []
+    for (let i = start; i < linesInput.length; i++) {
+      const l = linesInput[i]
+      if (!l) {
+        // keep paragraph breaks but avoid leading blanks
+        if (out.length > 0 && out[out.length - 1] !== '') out.push('')
+        continue
+      }
+
+      if (isStop(l)) break
+
+      out.push(l)
+    }
+
+    return out.join('\n').trim()
+  }
+
   // If we have handle but no text, try to extract from the full text
   if (!tweetText && authorHandle) {
     // Look for any substantial text block
@@ -389,6 +452,19 @@ export function parseTwitterContent(text: string, url: string): TwitterTweetData
     )
     if (textBlocks.length > 0) {
       tweetText = textBlocks[0].trim()
+    }
+
+    // Additional fallback for defuddle plain format
+    if (!tweetText) {
+      tweetText = extractDefuddlePlainTweet(lines)
+    }
+  }
+
+  // If tweetText exists but is suspiciously short, try to use defuddle plain format.
+  if (tweetText && tweetText.length < 120) {
+    const candidate = extractDefuddlePlainTweet(lines)
+    if (candidate && candidate.length > tweetText.length * 2) {
+      tweetText = candidate
     }
   }
 

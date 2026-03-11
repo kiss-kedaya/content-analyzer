@@ -69,7 +69,7 @@ export default function TwitterTweetViewer({ data }: Props) {
           {content.images.map((img, idx) => (
             <div
               key={idx}
-              className={`relative bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity ${
+              className={`relative bg-black cursor-pointer hover:opacity-90 transition-opacity ${
                 content.images.length === 1 ? 'aspect-video' : 'aspect-square'
               }`}
               onClick={() => setSelectedImage(img)}
@@ -86,7 +86,7 @@ export default function TwitterTweetViewer({ data }: Props) {
                   }
                 })()}
                 alt={`Image ${idx + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           ))}
