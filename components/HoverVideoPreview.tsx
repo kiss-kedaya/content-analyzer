@@ -6,6 +6,7 @@ import { useMediaCache } from '@/hooks/useMediaCache'
 
 interface HoverVideoPreviewProps {
   url: string
+  anchorRect?: DOMRect
   onMouseEnter?: () => void
   onMouseLeave?: () => void
 }
@@ -14,10 +15,11 @@ const PREVIEW_OPEN_DELAY_MS = 180
 const PREVIEW_CLOSE_GRACE_MS = 160
 const HOVER_FAILED_TTL_MS = 8 * 1000
 
-export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: HoverVideoPreviewProps) {
+export default function HoverVideoPreview({ url, anchorRect, onMouseEnter, onMouseLeave }: HoverVideoPreviewProps) {
   const [loading, setLoading] = useState(true)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [position, setPosition] = useState<'right' | 'left'>('right')
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const [retryToken, setRetryToken] = useState(0)
   const [shouldRender, setShouldRender] = useState(true)
   const [isRetrying, setIsRetrying] = useState(false)
@@ -43,17 +45,38 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
   }, [cancelClose])
 
   const calculatePosition = useCallback(() => {
-    if (!containerRef.current) {
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    const previewWidth = 400
+    const previewHeight = 300
+    const padding = 12
+    const gap = 8
+
+    const rect = anchorRect
+
+    if (!rect) {
+      // Fallback to existing behavior
+      if (!containerRef.current) return
+      const fallback = containerRef.current.getBoundingClientRect()
+      const spaceOnRight = viewportWidth - fallback.right
+      setPosition(spaceOnRight < previewWidth + 20 ? 'left' : 'right')
       return
     }
 
-    const rect = containerRef.current.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
-    const previewWidth = 400
     const spaceOnRight = viewportWidth - rect.right
+    const nextPosition: 'right' | 'left' = spaceOnRight < previewWidth + padding + gap ? 'left' : 'right'
+    setPosition(nextPosition)
 
-    setPosition(spaceOnRight < previewWidth + 20 ? 'left' : 'right')
-  }, [])
+    // Compute coords so first render is already clamped within viewport
+    const unclampedLeft = nextPosition === 'right' ? rect.right + gap : rect.left - gap - previewWidth
+    const unclampedTop = rect.top
+
+    const left = Math.min(Math.max(unclampedLeft, padding), viewportWidth - previewWidth - padding)
+    const top = Math.min(Math.max(unclampedTop, padding), viewportHeight - previewHeight - padding)
+
+    setCoords({ top, left })
+  }, [anchorRect])
 
   const fetchVideoUrl = useCallback(async (force = false) => {
     const requestId = requestIdRef.current + 1
@@ -111,6 +134,7 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
     setShouldRender(true)
     setVideoUrl(null)
     setLoading(true)
+    setCoords(null)
 
     if (retryToken === 0) {
       setIsRetrying(false)
@@ -150,11 +174,22 @@ export default function HoverVideoPreview({ url, onMouseEnter, onMouseLeave }: H
     return null
   }
 
+  // If anchorRect is provided, we wait until coords are computed to avoid off-screen first paint.
+  if (anchorRect && !coords) {
+    return null
+  }
+
   return (
     <div
       ref={containerRef}
-      className={`absolute ${position === 'right' ? 'left-full ml-2' : 'right-full mr-2'} top-0 z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden`}
-      style={{ width: '400px', maxWidth: '90vw' }}
+      className={`z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl overflow-hidden`}
+      style={{
+        position: 'fixed',
+        width: '400px',
+        maxWidth: '90vw',
+        top: coords?.top,
+        left: coords?.left,
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

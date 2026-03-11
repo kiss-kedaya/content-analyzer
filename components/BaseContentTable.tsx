@@ -191,7 +191,12 @@ export default function BaseContentTable<T extends BaseContent>({
                   <div className="relative inline-block">
                     <button
                       onClick={() => setPreviewUrl(content.url)}
-                      onMouseEnter={() => setHoverPreviewUrl(content.url)}
+                      onMouseEnter={(e) => {
+                        const anchor = e.currentTarget
+                        const rect = anchor.getBoundingClientRect()
+                        ;(window as any).__hoverPreviewAnchorRect = rect
+                        setHoverPreviewUrl(content.url)
+                      }}
                       onMouseLeave={() => setHoverPreviewUrl(null)}
                       className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                     >
@@ -201,6 +206,7 @@ export default function BaseContentTable<T extends BaseContent>({
                     {hoverPreviewUrl === content.url && (
                       <HoverVideoPreview
                         url={content.url}
+                        anchorRect={(window as any).__hoverPreviewAnchorRect}
                         onMouseEnter={() => setHoverPreviewUrl(content.url)}
                         onMouseLeave={() => setHoverPreviewUrl(null)}
                       />
