@@ -83,8 +83,8 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     authRequired: true,
     curl: `curl -X POST ${BASE_URLS.prod}/api/content \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"source":"X","url":"https://x.com/user/status/123","summary":"...","content":"...","score":8.5}'`,
     details: {
-      body: '{"source":"X","url":"...","summary":"...","content":"...","score":8.5,"title":"...","analyzedBy":"..."}',
-      notes: 'source 会被 normalize（twitter/Twitter/x 等统一为 X）。',
+      body: '{"source":"X","url":"...","summary":"...","content":"...","score":8.5,"title":"...","analyzedBy":"...","sourceTime":1710000000000}',
+      notes: 'source 会被 normalize（twitter/Twitter/x 等统一为 X）。sourceTime 为毫秒时间戳（可选）。',
     },
   },
   {

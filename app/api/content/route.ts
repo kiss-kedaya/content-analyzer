@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    if (body.sourceTime !== undefined && typeof body.sourceTime !== 'number') {
+      return NextResponse.json(
+        { error: 'sourceTime must be a number (timestamp ms)' },
+        { status: 400 }
+      )
+    }
     
     const content = await createContent({
       source: normalizeSource(body.source), // 规范化 source
@@ -30,7 +37,8 @@ export async function POST(request: NextRequest) {
       summary: body.summary,
       content: body.content,
       score: body.score,
-      analyzedBy: body.analyzedBy
+      analyzedBy: body.analyzedBy,
+      sourceTime: typeof body.sourceTime === 'number' ? body.sourceTime : undefined
     })
     
     return NextResponse.json(content, { status: 201 })

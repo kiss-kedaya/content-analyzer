@@ -24,6 +24,7 @@ export interface ContentInput {
   content: string
   score: number
   analyzedBy?: string
+  sourceTime?: number
 }
 
 /**
@@ -63,7 +64,8 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
         content: data.content,
         score: data.score,
         analyzedBy: data.analyzedBy,
-        analyzedAt: new Date()
+        analyzedAt: new Date(),
+        sourceTime: data.sourceTime ? new Date(data.sourceTime) : undefined
       }
 
       if (useUpsert) {

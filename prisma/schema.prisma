@@ -20,6 +20,7 @@ model Content {
   score      Float
   analyzedBy String?  // 分析者（Agent 名称）
   analyzedAt DateTime @default(now())
+  sourceTime DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   favorited  Boolean  @default(false)  // 收藏状态

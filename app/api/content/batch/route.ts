@@ -10,6 +10,7 @@ interface ContentInput {
   content: string
   score: number
   analyzedBy?: string
+  sourceTime?: number
 }
 
 interface BatchResult {
@@ -81,6 +82,10 @@ export async function POST(request: NextRequest) {
           throw new Error('Score must be between 0 and 10')
         }
 
+        if (item.sourceTime !== undefined && typeof item.sourceTime !== 'number') {
+          throw new Error('sourceTime must be a number (timestamp ms)')
+        }
+
         // 创建内容
         const created = await createContent({
           source: normalizeSource(item.source), // 规范化 source
@@ -89,7 +94,8 @@ export async function POST(request: NextRequest) {
           summary: item.summary,
           content: item.content,
           score: item.score,
-          analyzedBy: item.analyzedBy
+          analyzedBy: item.analyzedBy,
+          sourceTime: typeof item.sourceTime === 'number' ? item.sourceTime : undefined
         })
 
         result.success++

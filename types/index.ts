@@ -24,7 +24,9 @@ export interface BaseContent {
 /**
  * 技术内容类型
  */
-export interface Content extends BaseContent {}
+export interface Content extends BaseContent {
+  sourceTime?: Date | null
+}
 
 /**
  * 成人内容类型
