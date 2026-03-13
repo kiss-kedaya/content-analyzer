@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Calendar, Hash, User } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
 import { ConfirmDialog } from './ConfirmDialog'
+import { getAuthorLink } from '@/lib/author-link'
 
 interface MobileContentCardProps {
   id: string
@@ -14,6 +15,7 @@ interface MobileContentCardProps {
   summary: string
   score: number
   analyzedAt: Date
+  analyzedBy?: string | null
   mediaUrls?: string[]
   onDelete?: (id: string) => void
   detailPath: string
@@ -27,6 +29,7 @@ export function MobileContentCard({
   summary,
   score,
   analyzedAt,
+  analyzedBy,
   mediaUrls,
   onDelete,
   detailPath
@@ -86,6 +89,7 @@ export function MobileContentCard({
   }, [isX, mediaUrls, url])
 
   const hasMedia = Boolean(mediaUrl)
+  const author = getAuthorLink(source, analyzedBy)
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'bg-green-100 text-green-700 border-green-200'
@@ -161,7 +165,7 @@ export function MobileContentCard({
       </div>
 
       {/* 元信息 */}
-      <div className="flex items-center gap-3 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {new Date(analyzedAt).toLocaleDateString('zh-CN')}
@@ -170,6 +174,23 @@ export function MobileContentCard({
           <Hash className="w-3 h-3" />
           {id.slice(0, 8)}
         </span>
+        {author && (
+          <a
+            href={author.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 hover:text-black transition-colors"
+          >
+            <User className="w-3 h-3" />
+            {author.label}
+          </a>
+        )}
+        {!author && analyzedBy && (
+          <span className="flex items-center gap-1">
+            <User className="w-3 h-3" />
+            {analyzedBy}
+          </span>
+        )}
       </div>
 
       {/* 操作按钮 */}

@@ -5,6 +5,7 @@ import BackToListButton from '@/components/BackToListButton'
 import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceContentViewer from '@/components/SourceContentViewer'
 import DetailMediaGallery from '@/components/DetailMediaGallery'
+import { getAuthorLink } from '@/lib/author-link'
 
 export default async function ContentDetailPage({
   params
@@ -35,6 +36,8 @@ export default async function ContentDetailPage({
     return 'text-red-600'
   }
 
+  const author = getAuthorLink(content.source, content.analyzedBy)
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 md:space-y-10">
       {/* 返回按钮 */}
@@ -59,11 +62,23 @@ export default async function ContentDetailPage({
                   <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {new Date(content.analyzedAt).toLocaleString('zh-CN')}
                 </span>
-                {content.analyzedBy && (
-                  <span className="flex items-center gap-1.5">
+                {author ? (
+                  <a
+                    href={author.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 hover:text-black transition-colors"
+                  >
                     <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    {content.analyzedBy}
-                  </span>
+                    {author.label}
+                  </a>
+                ) : (
+                  content.analyzedBy && (
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      {content.analyzedBy}
+                    </span>
+                  )
                 )}
               </div>
             </div>
