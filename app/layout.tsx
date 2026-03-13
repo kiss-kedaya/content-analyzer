@@ -66,6 +66,9 @@ export default function RootLayout({
                 <Link href="/api-docs" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
                   API 文档
                 </Link>
+                <Link href="/agent-skills" className="text-xs md:text-sm text-gray-600 hover:text-black transition-colors">
+                  Agent Skills
+                </Link>
                 <LogoutButton />
               </nav>
             </div>
