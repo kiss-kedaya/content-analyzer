@@ -289,7 +289,7 @@ export default function ContentList({
 
       fetchTabData()
     }
-  }, [state.activeTab, state.techContents.length, state.adultContents.length, state.loading, dateFilter, state.orderBy, actions])
+  }, [state.activeTab, state.techContents, state.adultContents, state.loading, dateFilter, state.orderBy, actions])
 
   const loadMore = useCallback(async () => {
     if (state.loading) return
@@ -417,7 +417,7 @@ export default function ContentList({
     if (state.orderBy !== initialOrderBy || dateFilter !== (initialDate ?? null)) {
       fetchSortedData()
     }
-  }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy])
+  }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy, actions])
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>

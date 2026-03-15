@@ -107,7 +107,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
       isMounted = false
       observer.disconnect()
     }
-  }, [url, fetchMedia])
+  }, [url, fetchMedia, persist?.id, persist?.kind])
 
   const handleClick = () => {
     onPreview?.()
