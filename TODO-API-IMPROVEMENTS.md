@@ -1,4 +1,4 @@
-# Content Analyzer 改进计划
+【中文化】\n# Content Analyzer 改进计划
 
 ## 1. API 文档规范化
 
@@ -90,3 +90,4 @@ const SOURCE_MAPPING = {
 - 所有修改需要测试
 - 更新 API 文档
 - 考虑数据迁移的影响
+

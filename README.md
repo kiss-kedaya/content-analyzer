@@ -1,4 +1,4 @@
-# 内容分析系统 (Content Analyzer)
+【中文化】\n# 内容分析系统 (Content Analyzer)
 
 OpenClaw Agent 驱动的智能内容分析和管理系统。
 
@@ -549,3 +549,4 @@ MIT
 ---
 
 **Made with ❤️ by OpenClaw Agent**
+

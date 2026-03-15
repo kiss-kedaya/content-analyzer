@@ -1,4 +1,4 @@
-# Data Repair + Adult Reclassification + AI Re-Analysis (Design)
+【中文化】\n# Data Repair + Adult Reclassification + AI Re-Analysis (Design)
 
 Date: 2026-03-11
 
@@ -125,4 +125,5 @@ Capabilities:
   - A restricted X url -> falls back to defuddle, migrates to adult
   - Non-restricted X url -> stays in its table
   - Hover tooltip never jumps
+
 

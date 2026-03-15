@@ -1,4 +1,4 @@
-
+【中文化】\n
 ## [2026-03-10 11:33:55] Audit kickoff
 - Note: audit-code references/audit-framework.md missing in skill directory; proceeding with assumptions.
 
@@ -80,4 +80,5 @@
 - File: components\\ContentTable.tsx | Risk: P2 | Issue: preview hover auto-play in HoverVideoPreview uses muted + playsInline but no controls; on mobile this could fail silently; open modal required for controls. | Fix: indicate "点击预览" and disable hover on touch devices.
 - File: components\\ContentTable.tsx | Risk: P3 | Issue: preview button and hover use same URL; if URL is not from x.com, preview API rejects; UI shows no explanation. | Fix: detect unsupported hosts and show tooltip.
 - File: UI runtime | Risk: P2 | Issue: Garbled text observed in tech tab rows indicates encoding mismatch or wrong decode path, likely from data ingestion. | Fix: enforce UTF-8 decode on ingestion; sanitize storage encoding and add heuristic re-encode if invalid.
+
 

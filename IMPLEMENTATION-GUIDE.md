@@ -1,4 +1,4 @@
-# API 改进实施指南
+【中文化】\n# API 改进实施指南
 
 ## 已完成 ✓
 
@@ -212,3 +212,4 @@ export async function POST(request: NextRequest) {
 2. **数据一致性**：所有新创建的内容都会使用规范化的 source
 3. **文档同步**：确保 API 文档与实际行为一致
 4. **错误处理**：规范化失败时应该有合理的 fallback
+

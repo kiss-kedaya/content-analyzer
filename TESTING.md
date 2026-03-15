@@ -1,4 +1,4 @@
-# Content Analyzer 测试指南
+【中文化】\n# Content Analyzer 测试指南
 
 ## Source 规范化测试
 
@@ -156,3 +156,4 @@ const testCases = [
 - [API 文档](https://ca.kedaya.xyz/api-docs)
 - [Source 规范化工具](lib/normalize-source.ts)
 - [实施指南](IMPLEMENTATION-GUIDE.md)
+

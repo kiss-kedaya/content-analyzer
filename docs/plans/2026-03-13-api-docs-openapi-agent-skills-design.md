@@ -1,4 +1,4 @@
-# API Docs + OpenAPI Export + Agent Skills Implementation Design
+【中文化】\n# API Docs + OpenAPI Export + Agent Skills Implementation Design
 
 **Date:** 2026-03-13
 
@@ -95,3 +95,4 @@ OpenAPI document characteristics:
 4. Create reusable copy button for code blocks/curl snippets.
 5. Refactor `/api-docs` to be compact + use spec.
 6. Add `/agent-skills` page.
+

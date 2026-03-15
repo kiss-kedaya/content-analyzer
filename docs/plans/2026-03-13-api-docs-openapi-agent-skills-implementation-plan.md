@@ -1,4 +1,4 @@
-# API Docs + OpenAPI Export + Agent Skills Implementation Plan
+【中文化】\n# API Docs + OpenAPI Export + Agent Skills Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -176,4 +176,5 @@ Manual checks (browser):
 - Visit `/api-docs` and verify copy buttons work
 - Visit `/agent-skills` and verify copy kit works
 - Visit `/api/openapi.json` and verify it downloads
+
 

@@ -1,4 +1,4 @@
-# Content Analyzer P2 体验优化设计
+【中文化】\n# Content Analyzer P2 体验优化设计
 
 日期：2026-03-10
 
@@ -17,3 +17,4 @@
 - 详情返回后不跳顶部，滚动位置恢复。
 - 刷新后 tab/orderBy/page 参数保留。
 - 预览面板键盘和手势切换可用。
+

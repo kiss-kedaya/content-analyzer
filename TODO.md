@@ -1,4 +1,4 @@
-# Content Analyzer 开发 TODO
+【中文化】\n# Content Analyzer 开发 TODO
 
 ## 当前进度
 
@@ -244,3 +244,4 @@
 10. 添加批量操作
 11. 代码分割优化
 12. 性能测试和优化
+

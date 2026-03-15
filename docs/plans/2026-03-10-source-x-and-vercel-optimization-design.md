@@ -1,4 +1,4 @@
-# Content Analyzer 来源统一与 Vercel 优化设计
+【中文化】\n# Content Analyzer 来源统一与 Vercel 优化设计
 
 日期：2026-03-10
 
@@ -18,3 +18,4 @@
 - 首页统计卡片显示 `X` 且计数正确。
 - 新上传 twitter 内容入库后 source 为 `X`。
 - `npm run build` 通过。
+
