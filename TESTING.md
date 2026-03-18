@@ -1,4 +1,4 @@
-【中文化】\n# Content Analyzer 测试指南
+# Content Analyzer 测试指南
 
 ## Source 规范化测试
 
