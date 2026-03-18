@@ -1,4 +1,4 @@
-【中文化】\n# 内容分析系统 (Content Analyzer)
+# 内容分析系统 (Content Analyzer)
 
 OpenClaw Agent 驱动的智能内容分析和管理系统。
 
