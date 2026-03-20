@@ -263,7 +263,10 @@ export function MobileContentList({
         cancelText="取消"
         type="danger"
         onConfirm={() => {
-          if (confirmDelete) onDelete?.(confirmDelete)
+          if (confirmDelete) {
+            onDelete?.(confirmDelete)
+            setConfirmDelete(null)
+          }
         }}
         onCancel={() => setConfirmDelete(null)}
       />

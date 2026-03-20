@@ -109,39 +109,67 @@ export default function ContentList({
     }
   }
 
+  const buildListUrl = useCallback((isTech: boolean, page: number) => {
+    const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
+    const endpoint = dateFilter
+      ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
+      : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
+
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+      orderBy: state.orderBy,
+    })
+
+    if (dateFilter) {
+      params.set('date', dateFilter)
+    }
+
+    return `${endpoint}?${params.toString()}`
+  }, [dateFilter, state.orderBy])
+
+  const applyFetchedData = useCallback((isTech: boolean, data: { data: Content[] | AdultContent[]; pagination?: { hasMore?: boolean } }, page: number, mode: 'replace' | 'append' = 'replace') => {
+    const hasMore = data.pagination?.hasMore ?? false
+
+    if (isTech) {
+      if (mode === 'append') {
+        actions.appendTechContents(data.data as Content[])
+      } else {
+        actions.setTechContents(data.data as Content[])
+      }
+      actions.setTechPage(page)
+      actions.setTechHasMore(hasMore)
+      return
+    }
+
+    if (mode === 'append') {
+      actions.appendAdultContents(data.data as AdultContent[])
+    } else {
+      actions.setAdultContents(data.data as AdultContent[])
+    }
+    actions.setAdultPage(page)
+    actions.setAdultHasMore(hasMore)
+  }, [actions])
+
+  const fetchPageData = useCallback(async (isTech: boolean, page: number, mode: 'replace' | 'append' = 'replace') => {
+    const response = await fetch(buildListUrl(isTech, page))
+
+    if (!response.ok) {
+      throw new Error('数据加载失败')
+    }
+
+    const data = await response.json()
+    if (!data.success || !data.data) {
+      throw new Error(data.error?.message || '数据加载失败')
+    }
+
+    applyFetchedData(isTech, data, page, mode)
+  }, [applyFetchedData, buildListUrl])
+
   const handleRefresh = async () => {
     try {
       const isTech = state.activeTab === 'tech'
-      const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
-      const endpoint = dateFilter
-        ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
-        : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
-
-      const url = dateFilter
-        ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-        : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error('刷新失败')
-      }
-
-      const data = await response.json()
-      if (!data.success || !data.data) {
-        throw new Error(data.error?.message || '刷新失败')
-      }
-
-      if (isTech) {
-        actions.setTechContents(data.data)
-        actions.setTechPage(1)
-        actions.setTechHasMore(data.pagination?.hasMore ?? false)
-      } else {
-        actions.setAdultContents(data.data)
-        actions.setAdultPage(1)
-        actions.setAdultHasMore(data.pagination?.hasMore ?? false)
-      }
-
+      await fetchPageData(isTech, 1)
       toast.success('刷新成功')
     } catch (error) {
       toast.error('刷新失败，请重试')
@@ -251,35 +279,7 @@ export default function ContentList({
         actions.setLoading(true)
 
         try {
-          const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
-          const endpoint = dateFilter
-            ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
-            : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
-
-          const url = dateFilter
-            ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-            : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-
-          const response = await fetch(url)
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch tab data')
-          }
-
-          const data = await response.json()
-          if (!data.success || !data.data) {
-            throw new Error(data.error?.message || 'Failed to fetch tab data')
-          }
-
-          if (isTech) {
-            actions.setTechContents(data.data)
-            actions.setTechPage(1)
-            actions.setTechHasMore(data.pagination?.hasMore ?? false)
-          } else {
-            actions.setAdultContents(data.data)
-            actions.setAdultPage(1)
-            actions.setAdultHasMore(data.pagination?.hasMore ?? false)
-          }
+          await fetchPageData(isTech, 1)
         } catch (error) {
           console.error('Failed to fetch tab data:', error)
         } finally {
@@ -289,7 +289,7 @@ export default function ContentList({
 
       fetchTabData()
     }
-  }, [state.activeTab, state.techContents, state.adultContents, state.loading, dateFilter, state.orderBy, actions])
+  }, [state.activeTab, state.techContents, state.adultContents, state.loading, actions, fetchPageData])
 
   const loadMore = useCallback(async () => {
     if (state.loading) return
@@ -300,52 +300,21 @@ export default function ContentList({
     try {
       const isTech = state.activeTab === 'tech'
       const currentPage = isTech ? state.techPage : state.adultPage
-      
-      // Ensure currentPage is a valid number
+
       if (!Number.isFinite(currentPage) || currentPage < 1) {
         console.error('Invalid page number:', currentPage)
-        actions.setLoading(false)
         return
       }
-      
+
       const nextPage = currentPage + 1
-      const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
-      const endpoint = dateFilter
-        ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
-        : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
-
-      const url = dateFilter
-        ? `${endpoint}?date=${dateFilter}&page=${nextPage}&pageSize=${pageSize}&orderBy=${state.orderBy}`
-        : `${endpoint}?page=${nextPage}&pageSize=${pageSize}&orderBy=${state.orderBy}`
-
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch more contents')
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.data) {
-        if (isTech) {
-          actions.appendTechContents(data.data)
-          actions.setTechPage(nextPage)
-          actions.setTechHasMore(data.pagination?.hasMore ?? false)
-        } else {
-          actions.appendAdultContents(data.data)
-          actions.setAdultPage(nextPage)
-          actions.setAdultHasMore(data.pagination?.hasMore ?? false)
-        }
-      } else {
-        throw new Error(data.error?.message || 'Failed to fetch more contents')
-      }
+      await fetchPageData(isTech, nextPage, 'append')
     } catch (error) {
       console.error('Failed to load more:', error)
       setLoadError(error instanceof Error ? error.message : '加载失败，请重试')
     } finally {
       actions.setLoading(false)
     }
-  }, [state.loading, state.activeTab, state.techPage, state.adultPage, dateFilter, state.orderBy, actions])
+  }, [state.loading, state.activeTab, state.techPage, state.adultPage, actions, fetchPageData])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -377,36 +346,7 @@ export default function ContentList({
       actions.setLoading(true)
 
       try {
-        const isTech = state.activeTab === 'tech'
-        const pageSize = dateFilter ? DATE_PAGE_SIZE : DEFAULT_PAGE_SIZE
-        const endpoint = dateFilter
-          ? (isTech ? '/api/agent/content/by-date' : '/api/agent/adult-content/by-date')
-          : (isTech ? '/api/content/paginated' : '/api/adult-content/paginated')
-
-        const url = dateFilter
-          ? `${endpoint}?date=${dateFilter}&page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-          : `${endpoint}?page=1&pageSize=${pageSize}&orderBy=${state.orderBy}`
-
-        const response = await fetch(url)
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch sorted data')
-        }
-
-        const data = await response.json()
-        if (!data.success || !data.data) {
-          throw new Error(data.error?.message || 'Failed to fetch sorted data')
-        }
-
-        if (isTech) {
-          actions.setTechContents(data.data)
-          actions.setTechPage(1)
-          actions.setTechHasMore(data.pagination?.hasMore ?? false)
-        } else {
-          actions.setAdultContents(data.data)
-          actions.setAdultPage(1)
-          actions.setAdultHasMore(data.pagination?.hasMore ?? false)
-        }
+        await fetchPageData(state.activeTab === 'tech', 1)
       } catch (error) {
         console.error('Failed to fetch sorted data:', error)
       } finally {
@@ -417,7 +357,7 @@ export default function ContentList({
     if (state.orderBy !== initialOrderBy || dateFilter !== (initialDate ?? null)) {
       fetchSortedData()
     }
-  }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy, actions])
+  }, [state.orderBy, state.activeTab, dateFilter, initialDate, initialOrderBy, actions, fetchPageData])
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
