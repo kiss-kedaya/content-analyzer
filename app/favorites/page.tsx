@@ -1,7 +1,7 @@
 import { getFavoriteContents } from '@/lib/api'
 import { getFavoriteAdultContents } from '@/lib/adult-api'
 import Link from 'next/link'
-import { Heart, TrendingUp } from '@/components/Icon'
+import { Heart, BarChart3 } from '@/components/Icon'
 import FavoritesContent from '@/components/FavoritesContent'
 import PageHeader from '@/components/PageHeader'
 
@@ -33,7 +33,7 @@ export default async function FavoritesPage({
         title="我的收藏"
         description={`共收藏 ${stats.total} 条内容。`}
         backHref="/"
-        action={stats.total > 0 ? <Link href="/preferences" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-default bg-surface px-4 text-sm font-semibold text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"><TrendingUp className="h-4 w-4" />偏好分析</Link> : undefined}
+        action={stats.total > 0 ? <Link href="/preferences" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-default bg-surface px-4 text-sm font-semibold text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"><BarChart3 className="h-4 w-4" />收藏统计</Link> : undefined}
       />
 
       {/* 统计卡片 */}

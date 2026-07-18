@@ -33,7 +33,7 @@ const rowSelect = {
   url: true,
   source: true,
   favorited: true,
-  analyzedAt: true,
+  createdAt: true,
   mediaUrls: true,
 } as const
 
@@ -43,7 +43,7 @@ interface CleanupRow {
   url: string
   source: string
   favorited: boolean
-  analyzedAt: Date
+  createdAt: Date
   mediaUrls: string[]
   kind: CleanupContentKind
 }
@@ -66,7 +66,7 @@ async function readRows(
     const rows = await prisma.content.findMany({
       where: cleanupWhere,
       select: rowSelect,
-      orderBy: [{ analyzedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: offset,
       take: limit,
     })
@@ -77,7 +77,7 @@ async function readRows(
     const rows = await prisma.adultContent.findMany({
       where: cleanupWhere,
       select: rowSelect,
-      orderBy: [{ analyzedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: offset,
       take: limit,
     })
@@ -91,7 +91,7 @@ async function readRows(
     const contentRows = await prisma.content.findMany({
       where: cleanupWhere,
       select: rowSelect,
-      orderBy: [{ analyzedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: offset,
       take: limit,
     })
@@ -104,7 +104,7 @@ async function readRows(
     const adultRows = await prisma.adultContent.findMany({
       where: cleanupWhere,
       select: rowSelect,
-      orderBy: [{ analyzedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: adultOffset,
       take: remaining,
     })
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
             title: row.title,
             url: row.url,
             favorited: row.favorited,
-            analyzedAt: row.analyzedAt,
+            createdAt: row.createdAt,
             checks: assessment.checks,
           })),
       },

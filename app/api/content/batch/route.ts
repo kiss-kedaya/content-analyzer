@@ -6,9 +6,9 @@ interface ContentInput {
   source: string
   url: string
   title?: string
-  summary: string
   content: string
-  score: number
+  summary?: string
+  score?: number
   analyzedBy?: string
   sourceTime?: number
 }
@@ -73,13 +73,8 @@ export async function POST(request: NextRequest) {
 
       try {
         // 验证必填字段
-        if (!item.source || !item.url || !item.summary || !item.content || item.score === undefined) {
-          throw new Error('Missing required fields: source, url, summary, content, score')
-        }
-
-        // 验证评分范围
-        if (item.score < 0 || item.score > 10) {
-          throw new Error('Score must be between 0 and 10')
+        if (!item.source || !item.url || !item.content) {
+          throw new Error('Missing required fields: source, url, content')
         }
 
         if (item.sourceTime !== undefined && typeof item.sourceTime !== 'number') {
@@ -91,9 +86,7 @@ export async function POST(request: NextRequest) {
           source: normalizeSource(item.source), // 规范化 source
           url: item.url,
           title: item.title,
-          summary: item.summary,
           content: item.content,
-          score: item.score,
           analyzedBy: item.analyzedBy,
           sourceTime: typeof item.sourceTime === 'number' ? item.sourceTime : undefined
         })

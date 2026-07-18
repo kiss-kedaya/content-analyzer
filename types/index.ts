@@ -52,7 +52,7 @@ export interface MediaInfo {
 export interface PaginationParams {
   page: number
   pageSize: number
-  orderBy: 'score' | 'createdAt' | 'analyzedAt'
+  orderBy: 'createdAt'
 }
 
 export interface ContentListFilters extends PaginationParams {
@@ -93,7 +93,6 @@ export interface Stats {
   techCount: number
   adultCount: number
   totalCount: number
-  avgScore: number
   favoritedCount: number
 }
 
@@ -102,6 +101,6 @@ export interface Stats {
  */
 export interface UserPreferences {
   defaultTab: 'tech' | 'adult'
-  defaultOrderBy: 'score' | 'createdAt' | 'analyzedAt'
+  defaultOrderBy: 'createdAt'
   itemsPerPage: number
 }

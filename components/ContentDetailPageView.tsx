@@ -5,7 +5,7 @@ import CopyMarkdownButton from '@/components/CopyMarkdownButton'
 import SourceContentViewer from '@/components/SourceContentViewer'
 import DetailMediaGallery from '@/components/DetailMediaGallery'
 import { getAuthorLink } from '@/lib/author-link'
-import { getScoreTone, getSourceTone } from '@/lib/content-presentation'
+import { getSourceTone } from '@/lib/content-presentation'
 
 type DetailContent = {
   id: string
@@ -13,7 +13,6 @@ type DetailContent = {
   url: string
   title?: string | null
   summary: string
-  score: number
   analyzedAt: Date | string
   analyzedBy?: string | null
   createdAt: Date | string
@@ -42,7 +41,7 @@ export default function ContentDetailPageView({
 
       <article className="surface-card overflow-hidden rounded-2xl">
         <div className="bg-surface-subtle border-b border-default px-4 py-6 md:px-10 md:py-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-8">
+          <div>
             <div className="flex-1">
               <div className="flex items-start gap-3 mb-3 md:mb-4">
                 <h1 className="flex-1 text-2xl font-bold leading-tight text-content md:text-4xl">
@@ -78,12 +77,6 @@ export default function ContentDetailPageView({
                 )}
               </div>
             </div>
-            <div className="min-w-[110px] self-start rounded-2xl border border-default bg-surface p-4 text-center md:min-w-[140px] md:p-6">
-              <div className={`text-4xl font-bold md:text-6xl score-${getScoreTone(content.score)}`}>
-                {content.score.toFixed(1)}
-              </div>
-              <div className="mt-2 text-xs text-muted">评分 / 10</div>
-            </div>
           </div>
         </div>
 
@@ -100,7 +93,7 @@ export default function ContentDetailPageView({
             <section className="space-y-3 rounded-xl border border-default bg-surface-subtle p-5 md:p-6">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted" />
-                <h2 className="text-sm font-semibold text-content md:text-base">内容摘要</h2>
+                <h2 className="text-sm font-semibold text-content md:text-base">已保存内容</h2>
               </div>
               <p className="text-sm leading-relaxed text-muted md:text-base">
                 {content.summary}

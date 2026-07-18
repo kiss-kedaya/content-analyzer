@@ -7,26 +7,22 @@ import { MobileContentList } from './MobileContentList'
 import { PullToRefresh } from './PullToRefresh'
 import { SearchBar } from './SearchBar'
 import TabSelector from './TabSelector'
-import SortSelector from './SortSelector'
 import { useToastContext } from './ClientLayout'
 
 type Tab = 'tech' | 'adult'
-type OrderBy = 'score' | 'createdAt' | 'analyzedAt'
-
 type ContentItem = {
   id: string
   source: string
   url: string
   title?: string | null
   summary: string
-  score: number
   analyzedAt: Date | string
   analyzedBy?: string | null
   favorited: boolean
   mediaUrls?: string[]
 }
 
-type Filters = { tab: Tab; orderBy: OrderBy; date?: string; q?: string }
+type Filters = { tab: Tab; date?: string; q?: string }
 type RetryRequest = { page: number; append: boolean }
 
 type ListResponse = {
@@ -39,7 +35,6 @@ type ListResponse = {
 interface ContentListProps {
   initialContents: ContentItem[]
   initialTab: Tab
-  initialOrderBy: OrderBy
   initialPage: number
   initialDate?: string
   initialQuery?: string
@@ -50,7 +45,6 @@ interface ContentListProps {
 export default function ContentList({
   initialContents,
   initialTab,
-  initialOrderBy,
   initialPage,
   initialDate,
   initialQuery,
@@ -63,7 +57,7 @@ export default function ContentList({
   const requestRef = useRef<AbortController | null>(null)
   const requestIdRef = useRef(0)
 
-  const [filters, setFilters] = useState<Filters>({ tab: initialTab, orderBy: initialOrderBy, date: initialDate, q: initialQuery })
+  const [filters, setFilters] = useState<Filters>({ tab: initialTab, date: initialDate, q: initialQuery })
   const [items, setItems] = useState<ContentItem[]>(initialContents)
   const [page, setPage] = useState(initialPage)
   const [total, setTotal] = useState(initialTotal)
@@ -78,7 +72,6 @@ export default function ContentList({
   const syncUrl = useCallback((next: Filters, nextPage = 1) => {
     const params = new URLSearchParams()
     params.set('tab', next.tab)
-    params.set('orderBy', next.orderBy)
     if (next.date) params.set('date', next.date)
     if (next.q) params.set('q', next.q)
     if (nextPage > 1) params.set('page', String(nextPage))
@@ -96,7 +89,7 @@ export default function ContentList({
     setLoadError(null)
     setRetryRequest(null)
 
-    const params = new URLSearchParams({ page: String(nextPage), pageSize: '12', orderBy: next.orderBy })
+    const params = new URLSearchParams({ page: String(nextPage), pageSize: '12', orderBy: 'createdAt' })
     if (next.q) params.set('q', next.q)
     if (next.date) params.set('date', next.date)
     const endpoint = next.tab === 'tech' ? '/api/content/paginated' : '/api/adult-content/paginated'
@@ -158,7 +151,7 @@ export default function ContentList({
     }
   }
 
-  const filtersApplied = Boolean(filters.date || filters.q || filters.orderBy !== 'score')
+  const filtersApplied = Boolean(filters.date || filters.q)
 
   return (
     <PullToRefresh onRefresh={refresh} disabled={isLoading || isLoadingMore}>
@@ -185,14 +178,13 @@ export default function ContentList({
                   className="min-h-11 rounded-lg border border-default bg-surface px-3 text-sm text-content focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </label>
-              <SortSelector value={filters.orderBy} currentTab={filters.tab} onSortChange={(orderBy) => commitFilters({ orderBy: orderBy as OrderBy })} />
               <div className="flex min-h-11 flex-1 items-center text-sm text-muted sm:justify-end" aria-live="polite">
                 {isLoading ? '正在更新结果…' : `共 ${total} 条${filters.q ? '匹配内容' : '内容'}`}
               </div>
               {filtersApplied && (
                 <button
                   type="button"
-                  onClick={() => commitFilters({ orderBy: 'score', date: undefined, q: undefined })}
+                  onClick={() => commitFilters({ date: undefined, q: undefined })}
                   className="min-h-11 rounded-lg px-3 text-sm font-medium text-muted hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   清除筛选
@@ -213,7 +205,7 @@ export default function ContentList({
             <SearchX className="h-10 w-10 text-subtle" aria-hidden="true" />
             <h3 className="mt-4 text-lg font-semibold text-content">没有找到匹配内容</h3>
             <p className="mt-2 max-w-sm text-sm leading-6 text-muted">尝试调整搜索词、日期或内容类型，也可以清除筛选后重新浏览。</p>
-            {filtersApplied && <button type="button" onClick={() => commitFilters({ orderBy: 'score', date: undefined, q: undefined })} className="mt-5 min-h-11 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">清除筛选</button>}
+            {filtersApplied && <button type="button" onClick={() => commitFilters({ date: undefined, q: undefined })} className="mt-5 min-h-11 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">清除筛选</button>}
           </div>
         )}
 

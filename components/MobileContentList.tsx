@@ -6,7 +6,7 @@ import { ExternalLink, Eye, Trash2, Calendar, Hash, User } from '@/components/Ic
 import MediaThumbnail from './MediaThumbnail'
 import { ConfirmDialog } from './ConfirmDialog'
 import { getAuthorLink } from '@/lib/author-link'
-import { getScoreTone, getSourceTone } from '@/lib/content-presentation'
+import { getSourceTone } from '@/lib/content-presentation'
 
 interface MobileContentCardProps {
   id: string
@@ -14,7 +14,6 @@ interface MobileContentCardProps {
   url: string
   title?: string | null
   summary: string
-  score: number
   analyzedAt: Date
   analyzedBy?: string | null
   mediaUrls?: string[]
@@ -28,7 +27,6 @@ export function MobileContentCard({
   url,
   title,
   summary,
-  score,
   analyzedAt,
   analyzedBy,
   mediaUrls,
@@ -94,13 +92,9 @@ export function MobileContentCard({
 
   return (
     <article className="surface-card vercel-card flex h-full flex-col space-y-4 rounded-2xl p-4">
-      {/* 头部：来源和评分 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center">
         <span className={`badge ${getSourceTone(source)}`}>
           {source}
-        </span>
-        <span className={`score-badge score-${getScoreTone(score)}`} aria-label={`评分 ${score.toFixed(1)} / 10`}>
-          {score.toFixed(1)}
         </span>
       </div>
 
@@ -133,7 +127,7 @@ export function MobileContentCard({
         </Link>
       </div>
 
-      {/* 摘要 */}
+      {/* 已保存正文；summary 是兼容旧表结构的字段名。 */}
       <div>
         <p className={`text-sm leading-6 text-muted ${isExpanded ? '' : 'line-clamp-2'}`}>
           {summary}

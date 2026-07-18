@@ -29,6 +29,9 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# Local import payloads
+.local/
+
 # Typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -8,7 +8,6 @@ import { getShanghaiDayRange } from '@/lib/date'
 export const revalidate = 60
 
 type HomeSearchParams = {
-  orderBy?: string
   tab?: string
   page?: string
   date?: string
@@ -17,7 +16,6 @@ type HomeSearchParams = {
 
 export default async function Home({ searchParams }: { searchParams: Promise<HomeSearchParams> }) {
   const params = await searchParams
-  const orderBy = params.orderBy === 'createdAt' || params.orderBy === 'analyzedAt' ? params.orderBy : 'score'
   const tab = params.tab === 'adult' ? 'adult' : 'tech'
   const requestedPage = Number(params.page)
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
@@ -32,7 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
   })()
   const q = params.q?.trim().slice(0, 100) || undefined
   const pageSize = 12
-  const options = { orderBy, page, pageSize, date, q }
+  const options = { orderBy: 'createdAt', page, pageSize, date, q }
 
   const [pageResult, rawStats] = await Promise.all([
     tab === 'tech' ? getContentsPage(options) : getAdultContentsPage(options),
@@ -50,8 +48,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
   return (
     <div className="space-y-7 md:space-y-9">
       <section className="space-y-2 py-1 md:py-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-content md:text-3xl">内容分析系统</h1>
-        <p className="text-sm leading-6 text-muted">按来源、评分和日期查看已收录内容。</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-content md:text-3xl">内容收藏</h1>
+        <p className="text-sm leading-6 text-muted">按时间查看已保存的内容。</p>
       </section>
 
       <section aria-label="内容统计" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -64,7 +62,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
       <ContentList
         initialContents={pageResult.items}
         initialTab={tab}
-        initialOrderBy={orderBy}
         initialPage={pageResult.page}
         initialDate={date}
         initialQuery={q}

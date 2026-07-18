@@ -2,7 +2,7 @@ import prisma from './db'
 import { getShanghaiDayRange } from './date'
 import { normalizeSource } from './normalize-source'
 
-const ALLOWED_ORDER_BY = ['score', 'createdAt', 'analyzedAt'] as const
+const ALLOWED_ORDER_BY = ['createdAt'] as const
 export type OrderBy = typeof ALLOWED_ORDER_BY[number]
 
 export function validateOrderBy(value: string): OrderBy {
@@ -16,9 +16,11 @@ export interface ContentInput {
   source: string
   url: string
   title?: string
-  summary: string
   content: string
-  score: number
+  /** @deprecated The stored excerpt is now derived from content. */
+  summary?: string
+  /** @deprecated Scores are no longer used and are stored as 0. */
+  score?: number
   analyzedBy?: string
   sourceTime?: number
 }
@@ -47,7 +49,6 @@ const LIST_ITEM_SELECT = {
   url: true,
   title: true,
   summary: true,
-  score: true,
   analyzedAt: true,
   analyzedBy: true,
   favorited: true,
@@ -60,14 +61,20 @@ const FAVORITE_ITEM_SELECT = {
   createdAt: true,
 } as const
 
-function buildOrderByClause(orderBy: OrderBy) {
-  return orderBy === 'createdAt'
-    ? [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
-    : [{ [orderBy]: 'desc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }]
+function buildOrderByClause() {
+  return [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+}
+
+export function getStoredContentFields(data: Pick<ContentInput, 'content'>) {
+  return {
+    summary: data.content,
+    content: data.content,
+    score: 0,
+  } as const
 }
 
 function normalizeListOptions(options: ContentListOptions = {}) {
-  const orderBy = validateOrderBy(options.orderBy || 'score')
+  const orderBy = validateOrderBy(options.orderBy || 'createdAt')
   const page = Math.max(1, Number(options.page) || 1)
   const pageSize = Math.max(1, Math.min(100, Number(options.pageSize) || 20))
   const q = options.q?.trim().slice(0, 100) || undefined
@@ -114,7 +121,7 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     const [items, total] = await Promise.all([
       delegate.findMany({
         where,
-        orderBy: buildOrderByClause(orderBy),
+        orderBy: buildOrderByClause(),
         skip,
         take: pageSize,
         select: LIST_ITEM_SELECT,
@@ -138,9 +145,8 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
         source: normalizeSource(data.source),
         url: data.url,
         title: data.title,
-        summary: data.summary,
-        content: data.content,
-        score: data.score,
+        // Keep legacy non-null columns compatible without generating an AI summary or score.
+        ...getStoredContentFields(data),
         analyzedBy: data.analyzedBy,
         analyzedAt: new Date(),
       }
@@ -157,10 +163,10 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
 
     list,
 
-    async getAll(orderBy: string = 'score', page: number = 1, pageSize: number = 20) {
+    async getAll(orderBy: string = 'createdAt', page: number = 1, pageSize: number = 20) {
       const normalized = normalizeListOptions({ orderBy, page, pageSize })
       return delegate.findMany({
-        orderBy: buildOrderByClause(normalized.orderBy),
+        orderBy: buildOrderByClause(),
         skip: (normalized.page - 1) * normalized.pageSize,
         take: normalized.pageSize,
       })
@@ -178,12 +184,12 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
       return delegate.count({ where: buildContentWhere(options) })
     },
 
-    async getBySource(source: string, orderBy: OrderBy = 'score', page: number = 1, pageSize: number = 20) {
+    async getBySource(source: string, orderBy: OrderBy = 'createdAt', page: number = 1, pageSize: number = 20) {
       const safePage = Math.max(1, Number(page) || 1)
       const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
       return delegate.findMany({
         where: { source },
-        orderBy: buildOrderByClause(orderBy),
+        orderBy: buildOrderByClause(),
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
       })

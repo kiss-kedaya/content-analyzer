@@ -1,9 +1,17 @@
 import { describe, expect, test } from 'vitest'
-import { buildContentWhere } from '@/lib/content-api-factory'
+import { buildContentWhere, getStoredContentFields } from '@/lib/content-api-factory'
 import { getShanghaiDayRange } from '@/lib/date'
 import { ContentListQuerySchema } from '@/lib/validation'
 
 describe('content list query filters', () => {
+  test('stores original text and disables legacy score generation', () => {
+    expect(getStoredContentFields({ content: 'original post text' })).toEqual({
+      summary: 'original post text',
+      content: 'original post text',
+      score: 0,
+    })
+  })
+
   test('returns no where clause when no optional filters are active', () => {
     expect(buildContentWhere()).toBeUndefined()
   })
@@ -44,7 +52,8 @@ describe('content list query filters', () => {
   })
 
   test('normalizes blank search and rejects impossible request dates', () => {
-    expect(ContentListQuerySchema.parse({ page: '1', pageSize: '12', orderBy: 'score', q: '   ' }).q).toBeUndefined()
+    expect(ContentListQuerySchema.parse({ page: '1', pageSize: '12', orderBy: 'createdAt', q: '   ' }).q).toBeUndefined()
+    expect(ContentListQuerySchema.safeParse({ orderBy: 'score' }).success).toBe(false)
     expect(ContentListQuerySchema.safeParse({ date: '2026-02-30' }).success).toBe(false)
   })
 })

@@ -3,7 +3,7 @@ import { createContentAPI, AdultContentInput, OrderBy, validateOrderBy } from '.
 export type { AdultContentInput, OrderBy }
 export { validateOrderBy }
 
-const adultContentAPI = createContentAPI('adultContent', false)
+const adultContentAPI = createContentAPI('adultContent', true)
 
 export const createAdultContent = adultContentAPI.create
 export const getAllAdultContents = adultContentAPI.getAll

@@ -2,14 +2,13 @@ import prisma from './db'
 
 export interface Preferences {
   keywords: string[]
-  avgScore: number
   preferredSources: string[]
   contentTypes: { tech: number; adult: number }
   totalFavorites: number
   analyzedAt: string
 }
 
-type FavoriteContent = { summary: string; content: string; score: number; source: string }
+type FavoriteContent = { summary: string; content: string; source: string }
 
 const MAX_KEYWORD_CHARS_PER_FAVORITE = 6_000
 const STOP_WORDS = new Set(['的', '了', '是', '在', '和', '有', '我', '你', '他', 'the', 'a', 'an', 'and', 'or', 'but'])
@@ -19,12 +18,12 @@ export async function getPreferences(): Promise<Preferences | null> {
     prisma.content.findMany({
       where: { favorited: true },
       take: 1000,
-      select: { summary: true, content: true, score: true, source: true },
+      select: { summary: true, content: true, source: true },
     }),
     prisma.adultContent.findMany({
       where: { favorited: true },
       take: 1000,
-      select: { summary: true, content: true, score: true, source: true },
+      select: { summary: true, content: true, source: true },
     }),
   ])
   const allFavorites = [...techContents, ...adultContents]
@@ -32,7 +31,6 @@ export async function getPreferences(): Promise<Preferences | null> {
 
   return {
     keywords: extractKeywords(allFavorites),
-    avgScore: Math.round((allFavorites.reduce((sum, content) => sum + content.score, 0) / allFavorites.length) * 10) / 10,
     preferredSources: [...new Set(allFavorites.map((content) => content.source))],
     contentTypes: { tech: techContents.length, adult: adultContents.length },
     totalFavorites: allFavorites.length,

@@ -5,9 +5,7 @@ type AnyContent = {
   source: string
   url: string
   title?: string | null
-  summary: string
   content: string
-  score: number
   analyzedBy?: string | null
   analyzedAt: Date
   createdAt: Date
@@ -29,19 +27,13 @@ export function renderContentMarkdown(item: AnyContent, raw?: SourceCache | null
   lines.push('')
   lines.push(`- ID: ${item.id}`)
   lines.push(`- 来源: ${item.source}`)
-  lines.push(`- 评分: ${Number(item.score).toFixed(1)} / 10`)
-  lines.push(`- 分析时间: ${new Date(item.analyzedAt).toLocaleString('zh-CN')}`)
+  lines.push(`- 保存时间: ${new Date(item.createdAt).toLocaleString('zh-CN')}`)
   if (item.analyzedBy) lines.push(`- 用户名: ${mdEscape(item.analyzedBy)}`)
   lines.push(`- 原文链接: ${item.url}`)
   if (typeof item.favorited === 'boolean') lines.push(`- 收藏: ${item.favorited ? '是' : '否'}`)
 
   lines.push('')
-  lines.push('## 摘要')
-  lines.push('')
-  lines.push(mdEscape(item.summary || ''))
-
-  lines.push('')
-  lines.push('## 分析正文')
+  lines.push('## 已保存内容')
   lines.push('')
   lines.push(mdEscape(item.content || ''))
 
@@ -96,8 +88,7 @@ export function renderListMarkdown(
     lines.push('')
     lines.push(`- ID: ${item.id}`)
     lines.push(`- 来源: ${item.source}`)
-    lines.push(`- 评分: ${Number(item.score).toFixed(1)} / 10`)
-    lines.push(`- 分析时间: ${new Date(item.analyzedAt).toLocaleString('zh-CN')}`)
+    lines.push(`- 保存时间: ${new Date(item.createdAt).toLocaleString('zh-CN')}`)
     if (item.analyzedBy) lines.push(`- 用户名: ${mdEscape(item.analyzedBy)}`)
     lines.push(`- 原文链接: ${item.url}`)
     if (raw && raw.status === 'ok') {
@@ -106,9 +97,9 @@ export function renderListMarkdown(
       lines.push(`- 原文缓存: 否`)
     }
     lines.push('')
-    lines.push('### 摘要')
+    lines.push('### 已保存内容')
     lines.push('')
-    lines.push(mdEscape(item.summary || ''))
+    lines.push(mdEscape(item.content || ''))
     lines.push('')
     lines.push('---')
     lines.push('')

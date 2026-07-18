@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BarChart3, Hash, TrendingUp } from '@/components/Icon'
+import { BarChart3, Hash } from '@/components/Icon'
 import PageHeader from '@/components/PageHeader'
 import { getPreferences } from '@/lib/preferences'
 
@@ -10,7 +10,7 @@ export default async function PreferencesPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="用户偏好" description="根据收藏内容汇总来源和评分。" backHref="/favorites" backLabel="返回收藏夹" />
+      <PageHeader title="收藏统计" description="汇总收藏内容的来源、类型和关键词。" backHref="/favorites" backLabel="返回收藏夹" />
 
       {!preferences ? (
         <EmptyPreferences />
@@ -18,7 +18,7 @@ export default async function PreferencesPage() {
         <div className="space-y-6">
           <section className="grid gap-4 md:grid-cols-3">
             <StatCard title="总收藏数" value={preferences.totalFavorites} icon={<BarChart3 className="h-5 w-5" />} />
-            <StatCard title="平均评分" value={preferences.avgScore.toFixed(1)} icon={<TrendingUp className="h-5 w-5" />} />
+            <StatCard title="技术内容" value={preferences.contentTypes.tech} icon={<Hash className="h-5 w-5" />} />
             <StatCard title="偏好来源" value={preferences.preferredSources.length} icon={<Hash className="h-5 w-5" />} />
           </section>
 
@@ -56,7 +56,7 @@ function EmptyPreferences() {
     <section className="surface-card flex min-h-72 flex-col items-center justify-center rounded-2xl p-8 text-center">
       <BarChart3 className="h-11 w-11 text-subtle" aria-hidden="true" />
       <h2 className="mt-4 text-lg font-semibold text-content">暂时没有偏好数据</h2>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-muted">收藏一些内容后，系统会在这里呈现来源、主题和评分倾向。</p>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-muted">收藏一些内容后，系统会在这里呈现来源、类型和常用关键词。</p>
       <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">浏览内容</Link>
     </section>
   )

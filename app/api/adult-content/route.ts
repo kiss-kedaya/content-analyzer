@@ -6,7 +6,7 @@ import { normalizeSource } from '@/lib/normalize-source'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const orderBy = (searchParams.get('orderBy') as 'score' | 'createdAt' | 'analyzedAt') || 'score'
+    const orderBy = searchParams.get('orderBy') || 'createdAt'
     
     const contents = await getAllAdultContents(orderBy)
     
@@ -26,17 +26,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // 验证必填字段
-    if (!body.source || !body.url || !body.summary || !body.content || body.score === undefined) {
+    if (!body.source || !body.url || !body.content) {
       return NextResponse.json(
-        { error: 'Missing required fields: source, url, summary, content, score' },
-        { status: 400 }
-      )
-    }
-    
-    // 验证评分范围
-    if (body.score < 0 || body.score > 10) {
-      return NextResponse.json(
-        { error: 'Score must be between 0 and 10' },
+        { error: 'Missing required fields: source, url, content' },
         { status: 400 }
       )
     }
@@ -45,9 +37,7 @@ export async function POST(request: NextRequest) {
       source: normalizeSource(body.source), // 规范化 source
       url: body.url,
       title: body.title,
-      summary: body.summary,
       content: body.content,
-      score: body.score,
       analyzedBy: body.analyzedBy
     })
     

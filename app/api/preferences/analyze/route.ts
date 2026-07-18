@@ -7,7 +7,7 @@ export async function GET() {
     if (!preferences) return NextResponse.json({ message: 'No favorites found', preferences: null })
     return NextResponse.json({ success: true, preferences })
   } catch (error) {
-    console.error('Preferences analysis error:', error)
-    return NextResponse.json({ error: 'Failed to analyze preferences' }, { status: 500 })
+    console.error('Preferences summary error:', error)
+    return NextResponse.json({ error: 'Failed to summarize preferences' }, { status: 500 })
   }
 }

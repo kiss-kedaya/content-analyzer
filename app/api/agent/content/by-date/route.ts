@@ -8,7 +8,6 @@ const QuerySchema = z.object({
   page: z.string().optional(),
   pageSize: z.string().optional(),
   includeRaw: z.string().optional(),
-  orderBy: z.enum(['score', 'createdAt', 'analyzedAt']).optional(),
 })
 
 export async function GET(request: Request) {
@@ -19,7 +18,6 @@ export async function GET(request: Request) {
     page: searchParams.get('page') ?? undefined,
     pageSize: searchParams.get('pageSize') ?? undefined,
     includeRaw: searchParams.get('includeRaw') ?? undefined,
-    orderBy: (searchParams.get('orderBy') ?? undefined) as any,
   })
 
   if (!parsed.success) {
@@ -29,7 +27,6 @@ export async function GET(request: Request) {
   const page = Math.max(1, Number(parsed.data.page ?? '1') || 1)
   const pageSize = Math.min(10, Math.max(1, Number(parsed.data.pageSize ?? '10') || 10))
   const includeRaw = parsed.data.includeRaw === '1'
-  const orderBy = parsed.data.orderBy ?? 'analyzedAt'
 
   let range
   try {
@@ -56,9 +53,7 @@ export async function GET(request: Request) {
           lt: range.end,
         }
       },
-      orderBy: orderBy === 'createdAt'
-        ? [{ createdAt: 'desc' }]
-        : [{ [orderBy]: 'desc' as const }, { createdAt: 'desc' as const }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
       take: pageSize,
     })

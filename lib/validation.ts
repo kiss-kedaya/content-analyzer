@@ -11,15 +11,14 @@ export const ContentCreateSchema = z.object({
   ),
   url: z.string().url({ message: 'Invalid URL format' }),
   title: z.string().max(200, 'Title must be less than 200 characters').optional(),
-  summary: z.string()
-    .min(10, 'Summary must be at least 10 characters')
-    .max(1000, 'Summary must be less than 1000 characters'),
+  summary: z.string().max(10000).optional(),
   content: z.string()
     .min(20, 'Content must be at least 20 characters')
     .max(10000, 'Content must be less than 10000 characters'),
   score: z.number()
     .min(0, 'Score must be at least 0')
-    .max(10, 'Score must be at most 10'),
+    .max(10, 'Score must be at most 10')
+    .optional(),
   analyzedBy: z.string().max(100).optional()
 })
 
@@ -45,9 +44,7 @@ export const PaginationQuerySchema = z.object({
     .min(1, 'Page size must be at least 1')
     .max(100, 'Page size must be at most 100')
     .default(20),
-  orderBy: z.enum(['score', 'createdAt', 'analyzedAt'], {
-    message: 'OrderBy must be one of: score, createdAt, analyzedAt'
-  }).default('score')
+  orderBy: z.literal('createdAt').default('createdAt')
 })
 
 /** User-facing list query. Agent endpoints intentionally keep their own contract. */

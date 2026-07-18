@@ -81,10 +81,10 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/content',
     summary: '创建/更新技术内容（按 url upsert，接口仍返回 201）',
     authRequired: true,
-    curl: `curl -X POST ${BASE_URLS.prod}/api/content \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"source":"X","url":"https://x.com/user/status/123","summary":"...","content":"...","score":8.5}'`,
+    curl: `curl -X POST ${BASE_URLS.prod}/api/content \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"source":"X","url":"https://x.com/user/status/123","content":"原文"}'`,
     details: {
-      body: '{"source":"X","url":"...","summary":"...","content":"...","score":8.5,"title":"...","analyzedBy":"...","sourceTime":1710000000000}',
-      notes: 'source 会被 normalize（twitter/Twitter/x 等统一为 X）。sourceTime 为毫秒时间戳（可选）。',
+      body: '{"source":"X","url":"...","content":"原文","title":"...","analyzedBy":"...","sourceTime":1710000000000}',
+      notes: 'source 会被 normalize。内容不做 AI 评分或摘要；兼容传入的 summary/score 会被忽略。',
     },
   },
   {
@@ -94,9 +94,9 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/content',
     summary: '获取技术内容列表（全量，推荐 paginated）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/content?orderBy=score" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/content?orderBy=createdAt" \\\n  ${curlCookieInline()}`,
     details: {
-      query: 'orderBy=score|createdAt|analyzedAt',
+      query: 'orderBy=createdAt',
     },
   },
   {
@@ -106,7 +106,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/content/batch',
     summary: '批量创建技术内容（请求体为数组，最多 100 条）',
     authRequired: true,
-    curl: `curl -X POST ${BASE_URLS.prod}/api/content/batch \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '[{"source":"X","url":"https://x.com/user/status/123","summary":"...","content":"...","score":8.5}]'`,
+    curl: `curl -X POST ${BASE_URLS.prod}/api/content/batch \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '[{"source":"X","url":"https://x.com/user/status/123","content":"原文"}]'`,
   },
   {
     id: 'content-paginated',
@@ -115,9 +115,9 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/content/paginated',
     summary: '分页获取技术内容，支持搜索与日期筛选（ApiResponse 包装）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/content/paginated?page=1&pageSize=20&orderBy=score" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/content/paginated?page=1&pageSize=20&orderBy=createdAt" \\\n  ${curlCookieInline()}`,
     details: {
-      query: 'page=1&pageSize=20&orderBy=score|createdAt|analyzedAt&q=<标题/摘要/来源>&date=YYYY-MM-DD',
+      query: 'page=1&pageSize=20&orderBy=createdAt&q=<标题/内容/来源>&date=YYYY-MM-DD',
     },
   },
   {
@@ -164,9 +164,9 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     category: 'Adult',
     method: 'POST',
     path: '/api/adult-content',
-    summary: '创建成人内容（url 重复会 409）',
+    summary: '创建/更新成人内容（按 url upsert）',
     authRequired: true,
-    curl: `curl -X POST ${BASE_URLS.prod}/api/adult-content \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"source":"X","url":"https://x.com/user/status/123","summary":"...","content":"...","score":8.5}'`,
+    curl: `curl -X POST ${BASE_URLS.prod}/api/adult-content \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"source":"X","url":"https://x.com/user/status/123","content":"原文"}'`,
   },
   {
     id: 'adult-list',
@@ -175,7 +175,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/adult-content',
     summary: '获取成人内容列表（全量，推荐 paginated）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/adult-content?orderBy=score" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/adult-content?orderBy=createdAt" \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'adult-batch',
@@ -184,7 +184,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/adult-content/batch',
     summary: '批量创建成人内容（请求体为数组，最多 100 条）',
     authRequired: true,
-    curl: `curl -X POST ${BASE_URLS.prod}/api/adult-content/batch \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '[{"source":"X","url":"https://x.com/user/status/123","summary":"...","content":"...","score":8.5}]'`,
+    curl: `curl -X POST ${BASE_URLS.prod}/api/adult-content/batch \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '[{"source":"X","url":"https://x.com/user/status/123","content":"原文"}]'`,
   },
   {
     id: 'adult-paginated',
@@ -193,7 +193,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/adult-content/paginated',
     summary: '分页获取成人内容，支持搜索与日期筛选（ApiResponse 包装）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/adult-content/paginated?page=1&pageSize=20&orderBy=score" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/adult-content/paginated?page=1&pageSize=20&orderBy=createdAt" \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'adult-get',
@@ -258,7 +258,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/agent/content/by-date',
     summary: '按日期分页（技术，可 includeRaw）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/agent/content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/agent/content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1" \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'agent-adult-by-date',
@@ -267,7 +267,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/agent/adult-content/by-date',
     summary: '按日期分页（成人，可 includeRaw）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/agent/adult-content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1&orderBy=analyzedAt" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/agent/adult-content/by-date?date=YYYY-MM-DD&page=1&pageSize=10&includeRaw=1" \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'agent-content-by-date-md',
@@ -276,7 +276,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/agent/content/by-date/md',
     summary: '按日期聚合 Markdown（技术）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/agent/content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/agent/content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10" \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'agent-adult-by-date-md',
@@ -285,7 +285,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     path: '/api/agent/adult-content/by-date/md',
     summary: '按日期聚合 Markdown（成人）',
     authRequired: true,
-    curl: `curl "${BASE_URLS.prod}/api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10&orderBy=analyzedAt" \\\n  ${curlCookieInline()}`,
+    curl: `curl "${BASE_URLS.prod}/api/agent/adult-content/by-date/md?date=YYYY-MM-DD&page=1&pageSize=10" \\\n  ${curlCookieInline()}`,
   },
 
   // Media
@@ -373,7 +373,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     category: 'Misc',
     method: 'GET',
     path: '/api/preferences/analyze',
-    summary: '收藏偏好分析（关键词、来源、均分）',
+    summary: '收藏汇总（关键词、来源、类型）',
     authRequired: true,
     curl: `curl ${BASE_URLS.prod}/api/preferences/analyze \\\n  ${curlCookieInline()}`,
   },

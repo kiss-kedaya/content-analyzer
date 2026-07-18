@@ -10,7 +10,7 @@ interface SearchBarProps {
   className?: string
 }
 
-export function SearchBar({ value = '', onSearch, placeholder = '搜索标题、摘要或来源…', className = '' }: SearchBarProps) {
+export function SearchBar({ value = '', onSearch, placeholder = '搜索标题、内容或来源…', className = '' }: SearchBarProps) {
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasMounted = useRef(false)

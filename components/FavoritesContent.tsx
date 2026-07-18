@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Eye, Clock, Heart } from '@/components/Icon'
 import FavoriteButton from './FavoriteButton'
-import { getScoreTone, getSourceTone } from '@/lib/content-presentation'
+import { getSourceTone } from '@/lib/content-presentation'
 
 interface Content {
   id: string
@@ -12,7 +12,6 @@ interface Content {
   url: string
   title?: string | null
   summary: string
-  score: number
   favorited: boolean
   favoritedAt?: Date | null
   createdAt: Date
@@ -87,7 +86,7 @@ export default function FavoritesContent({
                 </h3>
               )}
 
-              {/* 摘要 */}
+              {/* 已保存内容 */}
               <p className="line-clamp-2 text-sm leading-6 text-muted md:text-base">
                 {content.summary}
               </p>
@@ -112,17 +111,7 @@ export default function FavoritesContent({
               </div>
             </div>
 
-            {/* 右侧：评分和操作 */}
-            <div className="flex md:flex-col items-center md:items-end gap-3 md:gap-4">
-              {/* 评分 */}
-              <div className="min-w-[80px] rounded-xl border border-default bg-surface-subtle p-3 text-center md:p-4">
-                <div className={`text-2xl font-bold md:text-3xl score-${getScoreTone(content.score)}`}>
-                  {content.score.toFixed(1)}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">/ 10</div>
-              </div>
-
-              {/* 操作按钮 */}
+            <div className="flex items-center gap-3 md:items-end">
               <div className="flex md:flex-col gap-2">
                 <FavoriteButton
                   id={content.id}

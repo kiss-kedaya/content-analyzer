@@ -1,7 +1,7 @@
 {
   "name": "content-analyzer",
   "version": "1.0.0",
-  "description": "AI-powered content analysis system with automated scraping",
+  "description": "Personal content bookmark and archive",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -10,19 +10,9 @@
     "test": "vitest run",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "fix": "node scripts/fix-missing-fields.js",
-    "fix:titles": "node scripts/fix-missing-fields.js --title-only",
-    "fix:summaries": "node scripts/fix-missing-fields.js --summary-only",
-    "fix:tech": "node scripts/fix-missing-fields.js --tech-only",
-    "fix:adult": "node scripts/fix-missing-fields.js --adult-only",
-    "fix:check": "node scripts/fix-missing-fields.js --dry-run",
     "test:source": "vitest run tests/source-normalization.test.ts",
     "test:source:e2e": "node test-source-normalization.js",
-    "reanalyze:all": "node scripts/reanalyze-and-reclassify.js",
-    "reanalyze:dry": "node scripts/reanalyze-and-reclassify.js --dry-run",
-    "reanalyze:debug": "set DEBUG=1 && node scripts/reanalyze-and-reclassify.js",
-    "reanalyze:debug-ai": "set DEBUG_AI=1 && node scripts/reanalyze-and-reclassify.js",
-    "reanalyze:sample": "set DEBUG_AI=1 && set LIMIT=3 && node scripts/reanalyze-and-reclassify.js"
+    "import:x-bookmarks": "tsx scripts/import-x-bookmarks.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
