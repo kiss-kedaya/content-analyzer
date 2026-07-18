@@ -1,14 +1,10 @@
-import { Prisma } from '@prisma/client'
 import prisma from './db'
-import { normalizeSource } from './source'
+import { getShanghaiDayRange } from './date'
+import { normalizeSource } from './normalize-source'
 
-// 允许的排序字段
 const ALLOWED_ORDER_BY = ['score', 'createdAt', 'analyzedAt'] as const
 export type OrderBy = typeof ALLOWED_ORDER_BY[number]
 
-/**
- * 验证 orderBy 参数
- */
 export function validateOrderBy(value: string): OrderBy {
   if (!ALLOWED_ORDER_BY.includes(value as OrderBy)) {
     throw new Error(`Invalid orderBy parameter: ${value}. Allowed values: ${ALLOWED_ORDER_BY.join(', ')}`)
@@ -27,36 +23,118 @@ export interface ContentInput {
   sourceTime?: number
 }
 
-/**
- * 构建排序子句
- */
-function buildOrderByClause(orderBy: OrderBy) {
-  return orderBy === 'createdAt'
-    ? [{ createdAt: 'desc' as const }]
-    : [
-        { [orderBy]: 'desc' as const },
-        { createdAt: 'desc' as const }
-      ]
+export interface ContentListOptions {
+  orderBy?: string
+  page?: number
+  pageSize?: number
+  q?: string
+  date?: string
 }
 
-/**
- * 创建内容 API 工厂函数
- * @param model - Prisma 模型名称 ('content' 或 'adultContent')
- * @param useUpsert - 是否使用 upsert（content 使用，adultContent 不使用）
- */
+export interface ContentListPage<T> {
+  items: T[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  hasMore: boolean
+}
+
+/** Fields needed by cards and list APIs. Full `content` is fetched only on detail pages. */
+const LIST_ITEM_SELECT = {
+  id: true,
+  source: true,
+  url: true,
+  title: true,
+  summary: true,
+  score: true,
+  analyzedAt: true,
+  analyzedBy: true,
+  favorited: true,
+  mediaUrls: true,
+} as const
+
+const FAVORITE_ITEM_SELECT = {
+  ...LIST_ITEM_SELECT,
+  favoritedAt: true,
+  createdAt: true,
+} as const
+
+function buildOrderByClause(orderBy: OrderBy) {
+  return orderBy === 'createdAt'
+    ? [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+    : [{ [orderBy]: 'desc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }]
+}
+
+function normalizeListOptions(options: ContentListOptions = {}) {
+  const orderBy = validateOrderBy(options.orderBy || 'score')
+  const page = Math.max(1, Number(options.page) || 1)
+  const pageSize = Math.max(1, Math.min(100, Number(options.pageSize) || 20))
+  const q = options.q?.trim().slice(0, 100) || undefined
+  const date = options.date || undefined
+  return { orderBy, page, pageSize, q, date }
+}
+
+/** Builds the same filter for item, count, statistics, SSR and client pagination. */
+export function buildContentWhere(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
+  const and: Record<string, unknown>[] = []
+  const q = options.q?.trim()
+
+  if (options.date) {
+    const range = getShanghaiDayRange(options.date)
+    and.push({ analyzedAt: { gte: range.start, lt: range.end } })
+  }
+
+  if (q) {
+    and.push({
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { summary: { contains: q, mode: 'insensitive' } },
+        { source: { contains: q, mode: 'insensitive' } },
+      ],
+    })
+  }
+
+  if (and.length === 0) return undefined
+  if (and.length === 1) return and[0]
+  return { AND: and }
+}
+
 export function createContentAPI<T extends 'content' | 'adultContent'>(
   model: T,
-  useUpsert: boolean = false
+  useUpsert: boolean = false,
 ) {
-  type ModelDelegate = typeof prisma[T]
-  const delegate = prisma[model] as ModelDelegate
+  const delegate = prisma[model] as any
+
+  async function list(options: ContentListOptions = {}): Promise<ContentListPage<any>> {
+    const { orderBy, page, pageSize, q, date } = normalizeListOptions(options)
+    const where = buildContentWhere({ q, date })
+    const skip = (page - 1) * pageSize
+
+    const [items, total] = await Promise.all([
+      delegate.findMany({
+        where,
+        orderBy: buildOrderByClause(orderBy),
+        skip,
+        take: pageSize,
+        select: LIST_ITEM_SELECT,
+      }),
+      delegate.count({ where }),
+    ])
+
+    return {
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      hasMore: skip + items.length < total,
+    }
+  }
 
   return {
-    /**
-     * 创建内容
-     */
     async create(data: ContentInput) {
-      const normalizedData = {
+      const normalizedData: Record<string, unknown> = {
         source: normalizeSource(data.source),
         url: data.url,
         title: data.title,
@@ -65,121 +143,76 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
         score: data.score,
         analyzedBy: data.analyzedBy,
         analyzedAt: new Date(),
-        sourceTime: data.sourceTime ? new Date(data.sourceTime) : undefined
+      }
+
+      if (model === 'content') {
+        normalizedData.sourceTime = data.sourceTime ? new Date(data.sourceTime) : undefined
       }
 
       if (useUpsert) {
-        return await (delegate as any).upsert({
-          where: { url: data.url },
-          update: normalizedData,
-          create: normalizedData
-        })
-      } else {
-        return await (delegate as any).create({
-          data: normalizedData
-        })
+        return delegate.upsert({ where: { url: data.url }, update: normalizedData, create: normalizedData })
       }
+      return delegate.create({ data: normalizedData })
     },
 
-    /**
-     * 获取所有内容（支持排序和分页）
-     */
-    async getAll(
-      orderBy: string = 'score',
-      page: number = 1,
-      pageSize: number = 20
-    ) {
-      const validatedOrderBy = validateOrderBy(orderBy)
+    list,
 
-      const safePage = Math.max(1, Number(page) || 1)
-      const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
-      const skip = (safePage - 1) * safePageSize
-
-      const orderByClause = buildOrderByClause(validatedOrderBy)
-
-      return await (delegate as any).findMany({
-        orderBy: orderByClause,
-        skip,
-        take: safePageSize
+    async getAll(orderBy: string = 'score', page: number = 1, pageSize: number = 20) {
+      const normalized = normalizeListOptions({ orderBy, page, pageSize })
+      return delegate.findMany({
+        orderBy: buildOrderByClause(normalized.orderBy),
+        skip: (normalized.page - 1) * normalized.pageSize,
+        take: normalized.pageSize,
       })
     },
 
-    /**
-     * 获取内容总数
-     */
-    async getCount() {
-      return await (delegate as any).count()
+    async getFavorites() {
+      return delegate.findMany({
+        where: { favorited: true },
+        orderBy: [{ favoritedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        select: FAVORITE_ITEM_SELECT,
+      })
     },
 
-    /**
-     * 按来源获取内容（支持分页）
-     */
-    async getBySource(
-      source: string,
-      orderBy: OrderBy = 'score',
-      page: number = 1,
-      pageSize: number = 20
-    ) {
-      const orderByClause = buildOrderByClause(orderBy)
+    async getCount(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
+      return delegate.count({ where: buildContentWhere(options) })
+    },
 
+    async getBySource(source: string, orderBy: OrderBy = 'score', page: number = 1, pageSize: number = 20) {
       const safePage = Math.max(1, Number(page) || 1)
       const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
-      const skip = (safePage - 1) * safePageSize
-
-      return await (delegate as any).findMany({
+      return delegate.findMany({
         where: { source },
-        orderBy: orderByClause,
-        skip,
-        take: safePageSize
+        orderBy: buildOrderByClause(orderBy),
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
       })
     },
 
-    /**
-     * 获取单个内容详情
-     */
     async getById(id: string) {
-      return await (delegate as any).findUnique({
-        where: { id }
-      })
+      return delegate.findUnique({ where: { id } })
     },
 
-    /**
-     * 删除内容（幂等）
-     * 
-     * Prisma delete() will throw P2025 if the record does not exist.
-     * For UX (seamless delete) we want idempotent deletes.
-     */
     async delete(id: string) {
-      const result = await (delegate as any).deleteMany({
-        where: { id }
-      })
-
-      return {
-        deleted: Number(result?.count || 0) > 0,
-        count: Number(result?.count || 0),
-      }
+      const result = await delegate.deleteMany({ where: { id } })
+      return { deleted: Number(result?.count || 0) > 0, count: Number(result?.count || 0) }
     },
 
-    /**
-     * 获取统计信息
-     */
-    async getStats() {
-      const total = await (delegate as any).count()
-      const bySource = await (delegate as any).groupBy({
-        by: ['source'],
-        _count: true
-      })
-
+    async getStats(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
+      const where = buildContentWhere(options)
+      const [total, bySource] = await Promise.all([
+        delegate.count({ where }),
+        delegate.groupBy({ by: ['source'], where, _count: true }),
+      ])
       return {
         total,
-        bySource: bySource.reduce((acc: Record<string, number>, item: any) => {
+        bySource: bySource.reduce((acc: Record<string, number>, item: { source: string; _count: number }) => {
           acc[item.source] = item._count
           return acc
-        }, {} as Record<string, number>)
+        }, {}),
       }
-    }
+    },
   }
 }
 
-// Re-export types for convenience
 export type { ContentInput as AdultContentInput }

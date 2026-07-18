@@ -23,6 +23,7 @@ export {
   Info,
   Zap,
   Eye,
+  EyeOff,
   Trash2,
   Loader2,
   ArrowUpDown,
@@ -34,5 +35,11 @@ export {
   Lock,
   LogOut,
   Copy,
-  Check
+  Check,
+  Menu,
+  Moon,
+  Sun,
+  Search,
+  SearchX,
+  RefreshCw
 } from 'lucide-react'

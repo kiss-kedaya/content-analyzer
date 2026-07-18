@@ -45,7 +45,7 @@ export default function CopyMarkdownButton({ url, label = '复制原文' }: Prop
       <button
         type="button"
         onClick={onCopy}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-60 w-32"
+        className="inline-flex min-h-11 w-32 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         disabled={loading}
       >
         {copied ? (
@@ -61,7 +61,7 @@ export default function CopyMarkdownButton({ url, label = '复制原文' }: Prop
         )}
       </button>
       {error && (
-        <div className="absolute top-full left-0 mt-1 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-600 whitespace-nowrap z-10">
+        <div className="absolute top-full left-0 z-10 mt-1 whitespace-nowrap rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-600" role="alert">
           {error}
         </div>
       )}

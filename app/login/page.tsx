@@ -1,109 +1,94 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
-import { Lock } from '@/components/Icon'
+import { FormEvent, useState } from 'react'
+import { Eye, EyeOff, Lock, Loader2 } from '@/components/Icon'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
-  const handleLogin = async (e: FormEvent) => {
-    e.preventDefault()
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleLogin = async (event: FormEvent) => {
+    event.preventDefault()
     setError('')
     setLoading(true)
-    
-    console.log('[Login] Attempting login...')
-    
+
     try {
-      const res = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
-        credentials: 'include' // 确保包含 Cookie
+        credentials: 'include',
       })
-      
-      console.log('[Login] Response status:', res.status)
-      
-      const data = await res.json()
-      console.log('[Login] Response data:', data)
-      
-      if (res.ok && data.success) {
-        console.log('[Login] Login successful, redirecting to /')
-        
-        // 使用 window.location.href 强制跳转（最可靠）
-        window.location.href = '/'
-      } else {
-        console.log('[Login] Login failed:', data.error)
-        setError(data.error || '密码错误，请重试')
-        setLoading(false)
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        window.location.assign('/')
+        return
       }
-    } catch (error) {
-      console.error('[Login] Error:', error)
-      setError('网络错误，请重试')
+      setError(data.error?.message || data.error || '密码错误，请检查后重试。')
+    } catch {
+      setError('网络连接异常，请稍后重试。')
+    } finally {
       setLoading(false)
     }
   }
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md">
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
-              <Lock className="w-8 h-8 text-white" />
-            </div>
+    <main className="grid min-h-dvh place-items-center p-4 sm:p-6">
+      <section className="surface-card w-full max-w-sm rounded-xl p-6 sm:p-8" aria-labelledby="login-title">
+        <div className="flex items-center gap-3">
+          <Lock className="h-5 w-5 text-muted" aria-hidden="true" />
+          <div>
+            <h1 id="login-title" className="text-xl font-semibold text-content">登录</h1>
+            <p className="mt-0.5 text-sm text-muted">Content Analyzer</p>
           </div>
-          
-          {/* Title */}
-          <h1 className="text-2xl md:text-3xl font-bold text-center text-black mb-2">
-            Content Analyzer
-          </h1>
-          <p className="text-center text-gray-600 mb-8">
-            请输入访问密码
-          </p>
-          
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                访问密码
-              </label>
+        </div>
+
+        <form onSubmit={handleLogin} className="mt-7 space-y-5" noValidate>
+          <div>
+            <label htmlFor="password" className="mb-2 block text-sm font-semibold text-content">访问密码</label>
+            <div className="relative">
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="请输入密码"
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                autoComplete="current-password"
+                className="min-h-12 w-full rounded-xl border border-default bg-surface px-4 pr-12 text-base text-content placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-60"
                 disabled={loading}
                 required
                 autoFocus
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'login-error' : undefined}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-1 top-1/2 inline-flex min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
             </div>
-            
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-            
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-black text-white py-3 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '登录中...' : '登录'}
-            </button>
-          </form>
-          
-          {/* Footer */}
-          <div className="mt-8 text-center text-xs text-gray-500">
-            <p>这是一个私人站点，仅限授权访问</p>
           </div>
-        </div>
-      </div>
-    </div>
+
+          {error && <p id="login-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading || !password}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {loading ? '正在登录…' : '登录'}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-xs leading-5 text-subtle">仅限授权访问。</p>
+      </section>
+    </main>
   )
 }

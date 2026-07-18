@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowLeft } from '@/components/Icon'
 import CopyButton from '@/components/CopyButton'
+import PageHeader from '@/components/PageHeader'
 import { AUTH_COOKIE_NAME, BASE_URLS, ENDPOINTS, getCurlKit } from '@/lib/api-doc-spec'
 
 const AGENT_ENDPOINT_IDS = new Set([
@@ -23,30 +22,11 @@ export default function AgentSkillsPage() {
   const kit = getCurlKit({ baseUrl: BASE_URLS.prod })
 
   return (
-    <div className="min-h-screen">
-      <div className="border-b border-gray-200 bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            返回首页
-          </Link>
+    <div className="mx-auto max-w-5xl space-y-8">
+      <PageHeader title="自动化接口" description="供脚本调用的常用接口。" backHref="/" action={<CopyButton text={kit} label="复制调用示例" />} />
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-bold text-black tracking-tight">Agent Skills</h1>
-              <p className="text-gray-600 mt-2">最短路径使用指南 + 一键复制</p>
-            </div>
-
-            <CopyButton text={kit} label="复制 Agent Curl Kit" />
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 text-sm text-gray-700">
+      <div className="space-y-8">
+        <section className="surface-card rounded-2xl p-5 text-sm text-muted">
           <div className="font-semibold text-black mb-2">Agent 快速流程</div>
           <ol className="list-decimal list-inside space-y-1">
             <li>登录获取 Cookie：{AUTH_COOKIE_NAME}</li>
@@ -59,7 +39,7 @@ export default function AgentSkillsPage() {
 
         <section className="space-y-3">
           <div className="text-sm font-semibold text-black">核心接口</div>
-          <div className="divide-y divide-gray-200 border border-gray-200 rounded-lg">
+          <div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-default bg-surface">
             {endpoints.map((item) => (
               <div key={item.id} className="p-4">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -82,7 +62,7 @@ export default function AgentSkillsPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 text-sm text-gray-700">
+        <section className="surface-card rounded-2xl p-5 text-sm text-muted">
           <div className="font-semibold text-black mb-2">调试提示</div>
           <ul className="list-disc list-inside space-y-1">
             <li>cookie 可保存到 cookies.txt，后续请求用 -b cookies.txt</li>

@@ -139,12 +139,16 @@ async function fetchFromDefuddle(url) {
 }
 
 // CPA 本地 AI 配置（优先使用）
-const CPA_BASE_URL = 'http://localhost:8317';
-const CPA_API_KEY = 'sk-codex-proxy-key-1';
-const CPA_MODEL = 'gpt-5.2';
+const CPA_BASE_URL = process.env.CPA_BASE_URL || 'http://localhost:8317';
+const CPA_API_KEY = process.env.CPA_API_KEY;
+const CPA_MODEL = process.env.CPA_MODEL || 'gpt-5.2';
 
 // 调用 CPA 本地 AI（anthropic-messages /v1/messages）
 async function callCPAAI(messages, retries = 3) {
+  if (!CPA_API_KEY) {
+    throw new Error('CPA_API_KEY is required to call the local AI proxy');
+  }
+
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(`${CPA_BASE_URL}/v1/messages`, {

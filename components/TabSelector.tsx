@@ -1,40 +1,31 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-
 interface TabSelectorProps {
   currentTab: string
   onTabChange?: (tab: string) => void
 }
 
 export default function TabSelector({ currentTab, onTabChange }: TabSelectorProps) {
-  const router = useRouter()
-  
   const tabs = [
     { id: 'tech', label: '技术内容' },
     { id: 'adult', label: '成人内容' }
   ]
 
-  const handleTabClick = (tabId: string) => {
-    if (onTabChange) {
-      // 客户端切换（不刷新页面）
-      onTabChange(tabId)
-    } else {
-      // 服务端切换（刷新页面）
-      router.push(`/?tab=${tabId}`)
-    }
-  }
+  const handleTabClick = (tabId: string) => onTabChange?.(tabId)
 
   return (
-    <div className="inline-flex items-center bg-gray-100 rounded-lg p-1 w-full md:w-auto">
+    <div className="inline-flex w-full items-center rounded-xl bg-surface-raised p-1 sm:w-auto" role="tablist" aria-label="内容类型">
       {tabs.map(tab => (
         <button
           key={tab.id}
+          type="button"
           onClick={() => handleTabClick(tab.id)}
-          className={`flex-1 md:flex-none px-4 py-2.5 md:py-2 text-sm font-medium rounded-md transition-colors ${
+          role="tab"
+          aria-selected={currentTab === tab.id}
+          className={`min-h-11 flex-1 rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:flex-none ${
             currentTab === tab.id
-              ? 'bg-white text-black shadow-sm'
-              : 'text-gray-600 hover:text-black'
+              ? 'bg-surface text-content shadow-sm'
+              : 'text-muted hover:text-content'
           }`}
         >
           {tab.label}

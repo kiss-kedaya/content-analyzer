@@ -6,6 +6,7 @@ import { ExternalLink, Eye, Trash2, Calendar, Hash, User } from '@/components/Ic
 import MediaThumbnail from './MediaThumbnail'
 import { ConfirmDialog } from './ConfirmDialog'
 import { getAuthorLink } from '@/lib/author-link'
+import { getScoreTone, getSourceTone } from '@/lib/content-presentation'
 
 interface MobileContentCardProps {
   id: string
@@ -91,31 +92,14 @@ export function MobileContentCard({
   const hasMedia = Boolean(mediaUrl)
   const author = getAuthorLink(source, analyzedBy)
 
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'bg-green-100 text-green-700 border-green-200'
-    if (score >= 6) return 'bg-blue-100 text-blue-700 border-blue-200'
-    if (score >= 4) return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-    return 'bg-red-100 text-red-700 border-red-200'
-  }
-
-  const getSourceBadge = (source: string) => {
-    const styles: Record<string, string> = {
-      'X': 'bg-black text-white',
-      'Xiaohongshu': 'bg-red-500 text-white',
-      'Linuxdo': 'bg-blue-500 text-white',
-      'GitHub': 'bg-gray-800 text-white'
-    }
-    return styles[source] || 'bg-gray-500 text-white'
-  }
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+    <article className="surface-card vercel-card flex h-full flex-col space-y-4 rounded-2xl p-4">
       {/* 头部：来源和评分 */}
       <div className="flex items-center justify-between">
-        <span className={`px-2 py-1 text-xs font-medium rounded ${getSourceBadge(source)}`}>
+        <span className={`badge ${getSourceTone(source)}`}>
           {source}
         </span>
-        <span className={`px-2 py-1 text-xs font-semibold rounded border ${getScoreColor(score)}`}>
+        <span className={`score-badge score-${getScoreTone(score)}`} aria-label={`评分 ${score.toFixed(1)} / 10`}>
           {score.toFixed(1)}
         </span>
       </div>
@@ -124,7 +108,7 @@ export function MobileContentCard({
       {hasMedia && mediaUrl && (
         <Link
           href={detailPath}
-          className="relative block w-full h-48 rounded-lg overflow-hidden bg-gray-100"
+          className="relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           aria-label="查看详情"
         >
           <MediaThumbnail
@@ -140,10 +124,10 @@ export function MobileContentCard({
       )}
 
       {/* 标题 */}
-      <div>
+      <div className="space-y-1">
         <Link
           href={detailPath}
-          className="text-sm font-medium text-black hover:text-blue-600 line-clamp-2"
+          className="line-clamp-2 text-base font-semibold leading-6 text-content hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {title || '无标题'}
         </Link>
@@ -151,13 +135,14 @@ export function MobileContentCard({
 
       {/* 摘要 */}
       <div>
-        <p className={`text-xs text-gray-600 ${isExpanded ? '' : 'line-clamp-2'}`}>
+        <p className={`text-sm leading-6 text-muted ${isExpanded ? '' : 'line-clamp-2'}`}>
           {summary}
         </p>
         {summary.length > 100 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+            className="min-h-9 text-sm font-medium text-brand hover:text-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            aria-expanded={isExpanded}
           >
             {isExpanded ? '收起' : '展开'}
           </button>
@@ -165,7 +150,7 @@ export function MobileContentCard({
       </div>
 
       {/* 元信息 */}
-      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-subtle">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {new Date(analyzedAt).toLocaleDateString('zh-CN')}
@@ -179,7 +164,7 @@ export function MobileContentCard({
             href={author.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-black transition-colors"
+            className="flex items-center gap-1 hover:text-content transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <User className="w-3 h-3" />
             {author.label}
@@ -194,10 +179,10 @@ export function MobileContentCard({
       </div>
 
       {/* 操作按钮 */}
-      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+      <div className="mt-auto flex items-center gap-2 border-t border-default pt-3">
         <Link
           href={detailPath}
-          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+          className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-surface-raised px-3 text-sm font-medium text-content transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <Eye className="w-3 h-3" />
           查看
@@ -207,7 +192,7 @@ export function MobileContentCard({
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+          className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-surface-raised px-3 text-sm font-medium text-content transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <ExternalLink className="w-3 h-3" />
           原文
@@ -216,14 +201,14 @@ export function MobileContentCard({
         {onDelete && (
           <button
             onClick={() => onDelete(id)}
-            className="flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             aria-label="删除"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         )}
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -244,7 +229,7 @@ export function MobileContentList({
 
   return (
     <>
-      <div className={isGrid ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4' : 'space-y-3'}>
+      <div className={isGrid ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}>
         {contents.map((content) => (
           <MobileContentCard
             key={content.id}

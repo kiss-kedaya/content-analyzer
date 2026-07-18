@@ -28,17 +28,17 @@ export function ConfirmDialog({
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement as HTMLElement
-      dialogRef.current?.focus()
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-      previousFocusRef.current?.focus()
-    }
+    if (!isOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const focusTimer = window.setTimeout(() => dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus(), 0)
+    document.body.style.overflow = 'hidden'
 
     return () => {
-      document.body.style.overflow = ''
+      window.clearTimeout(focusTimer)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
     }
   }, [isOpen])
 
@@ -52,6 +52,26 @@ export function ConfirmDialog({
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onCancel])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      if (!focusable?.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', trapFocus)
+    return () => window.removeEventListener('keydown', trapFocus)
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -71,19 +91,16 @@ export function ConfirmDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-      onClick={onCancel}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <button type="button" className="absolute inset-0 bg-black/50" aria-label="关闭确认对话框" onClick={onCancel} />
       <div
         ref={dialogRef}
-        role="dialog"
+        role={type === 'danger' ? 'alertdialog' : 'dialog'}
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby="dialog-description"
         tabIndex={-1}
-        className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
+        className="surface-card relative w-full max-w-md rounded-2xl p-6 shadow-2xl animate-scale-in"
       >
         <div className="flex items-start gap-4">
           <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles[type].icon}`}>
@@ -91,26 +108,26 @@ export function ConfirmDialog({
           </div>
           
           <div className="flex-1 min-w-0">
-            <h3 id="dialog-title" className="text-lg font-semibold text-black mb-2">
+            <h3 id="dialog-title" className="mb-2 text-lg font-semibold text-content">
               {title}
             </h3>
-            <p id="dialog-description" className="text-sm text-gray-600 mb-6">
+            <p id="dialog-description" className="mb-6 text-sm text-muted">
               {message}
             </p>
 
             <div className="flex items-center gap-3 justify-end">
               <button
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                data-autofocus
+                className="min-h-11 rounded-lg border border-default bg-surface px-4 text-sm font-medium text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 {cancelText}
               </button>
               <button
                 onClick={() => {
                   onConfirm()
-                  onCancel()
                 }}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${styles[type].button}`}
+                className={`min-h-11 rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${styles[type].button}`}
               >
                 {confirmText}
               </button>
@@ -119,7 +136,7 @@ export function ConfirmDialog({
 
           <button
             onClick={onCancel}
-            className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+            className="inline-flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-lg hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             aria-label="关闭"
           >
             <X className="w-5 h-5 text-gray-400" />

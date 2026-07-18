@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { getShanghaiDayRange } from './date'
 
 /**
  * 内容创建验证 Schema
@@ -49,6 +50,26 @@ export const PaginationQuerySchema = z.object({
   }).default('score')
 })
 
+/** User-facing list query. Agent endpoints intentionally keep their own contract. */
+export const ContentListQuerySchema = PaginationQuerySchema.extend({
+  q: z.string()
+    .trim()
+    .max(100, 'Search query must be at most 100 characters')
+    .optional()
+    .transform((value) => value || undefined),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD')
+    .refine((value) => {
+      try {
+        getShanghaiDayRange(value)
+        return true
+      } catch {
+        return false
+      }
+    }, 'Date must be a valid calendar date')
+    .optional(),
+})
+
 /**
  * 收藏操作验证 Schema
  */
@@ -71,5 +92,6 @@ export const LoginSchema = z.object({
 export type ContentCreateInput = z.infer<typeof ContentCreateSchema>
 export type ContentBatchCreateInput = z.infer<typeof ContentBatchCreateSchema>
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>
+export type ContentListQuery = z.infer<typeof ContentListQuerySchema>
 export type FavoriteInput = z.infer<typeof FavoriteSchema>
 export type LoginInput = z.infer<typeof LoginSchema>

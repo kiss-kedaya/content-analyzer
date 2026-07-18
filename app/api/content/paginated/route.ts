@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllContents, getContentsCount } from '@/lib/api'
-import { PaginationQuerySchema } from '@/lib/validation'
+import { getContentsPage } from '@/lib/api'
+import { ContentListQuerySchema } from '@/lib/validation'
 import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
 import { z } from 'zod'
 
@@ -11,24 +11,19 @@ export async function GET(request: NextRequest) {
   try {
     // 解析和验证查询参数
     const searchParams = Object.fromEntries(request.nextUrl.searchParams)
-    const { page, pageSize, orderBy } = PaginationQuerySchema.parse(searchParams)
+    const { page, pageSize, orderBy, q, date } = ContentListQuerySchema.parse(searchParams)
     
     // 获取数据
-    const [contents, total] = await Promise.all([
-      getAllContents(orderBy, page, pageSize),
-      getContentsCount()
-    ])
+    const result = await getContentsPage({ page, pageSize, orderBy, q, date })
     
     // 返回响应
-    return NextResponse.json(
-      successResponse(contents, {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-        hasMore: page * pageSize < total
-      })
-    )
+    return NextResponse.json(successResponse(result.items, {
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+      hasMore: result.hasMore,
+    }))
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -57,7 +57,7 @@ function ToastItem({ toast, onClose }: ToastProps) {
         ${styles[toast.type]}
         ${isExiting ? 'animate-toast-exit' : 'animate-toast-enter'}
       `}
-      role="alert"
+      role={toast.type === 'error' ? 'alert' : 'status'}
     >
       {icons[toast.type]}
       <p className="flex-1 text-sm font-medium">{toast.message}</p>

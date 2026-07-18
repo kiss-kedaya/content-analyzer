@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep local dev HMR artifacts separate from production builds. This prevents
+  // `next build` from invalidating a running `next dev` stylesheet manifest.
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
+
   // Vercel 部署，不需要 output: 'export'
   // 支持 API Routes 和 SSR
   

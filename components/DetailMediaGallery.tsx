@@ -164,7 +164,7 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="px-3 py-2 text-xs md:text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="min-h-11 rounded-lg border border-default bg-surface px-3 text-sm font-medium text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             {expanded ? '还原' : '放大'}
           </button>
@@ -173,7 +173,7 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
 
       {items.length > 0 ? (
         <div
-          className={`relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black ${expanded ? 'h-[min(92dvh,900px)]' : 'h-64 md:h-96'}`}
+          className={`relative w-full overflow-hidden rounded-2xl border border-default bg-black ${expanded ? 'h-[min(92dvh,900px)]' : 'h-64 md:h-96'}`}
         >
           {active && (
             active.type === 'video' ? (
@@ -189,14 +189,14 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
               <img
                 key={active.url}
                 src={active.url}
-                alt="media"
+                alt={`媒体预览 ${activeIndex + 1}`}
                 className="w-full h-full object-contain"
               />
             )
           )}
         </div>
       ) : (
-        <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+        <div className="w-full rounded-2xl border border-default bg-surface-subtle p-4 text-sm text-muted" role={error ? 'alert' : 'status'}>
           {loading ? '加载中...' : (error ? `媒体加载失败：${error}` : '暂无媒体')}
         </div>
       )}
@@ -208,7 +208,7 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
               key={`${it.url}-${idx}`}
               type="button"
               onClick={() => setActiveIndex(idx)}
-              className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${idx === activeIndex ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+              className={`min-h-11 rounded-lg border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${idx === activeIndex ? 'bg-brand text-white border-transparent' : 'bg-surface text-content border-default hover:bg-surface-raised'}`}
               aria-pressed={idx === activeIndex}
             >
               {it.type === 'video' ? '视频' : '图片'} {idx + 1}

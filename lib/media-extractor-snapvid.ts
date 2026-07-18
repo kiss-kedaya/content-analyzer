@@ -66,7 +66,10 @@ export interface SnapvidExtractionResult {
  * 2. POST /api/ajaxSearch 获取视频链接（HTML）
  * 3. 解析 HTML 提取视频直链
  */
-export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<SnapvidExtractionResult> {
+export async function extractWithSnapvidDetailed(
+  twitterUrl: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<SnapvidExtractionResult> {
   log.info({ urlHost: new URL(twitterUrl).hostname }, '提取媒体')
   
   // 验证 URL
@@ -83,7 +86,8 @@ export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<Sn
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      body: `url=${encodeURIComponent(twitterUrl)}`
+      body: `url=${encodeURIComponent(twitterUrl)}`,
+      signal: options.signal,
     })
     
     if (!tokenRes.ok) {
@@ -107,7 +111,8 @@ export async function extractWithSnapvidDetailed(twitterUrl: string): Promise<Sn
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      body: `q=${encodeURIComponent(twitterUrl)}&w=&v=v2&lang=zh-cn&cftoken=${token}`
+      body: `q=${encodeURIComponent(twitterUrl)}&w=&v=v2&lang=zh-cn&cftoken=${token}`,
+      signal: options.signal,
     })
     
     if (!videoRes.ok) {

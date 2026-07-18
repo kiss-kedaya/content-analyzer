@@ -17,21 +17,27 @@ export default function CopyButton({
   className = '',
 }: Props) {
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState(false)
 
   const onCopy = async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError(true)
+      setTimeout(() => setError(false), 3000)
+    }
   }
 
   return (
     <button
       type="button"
       onClick={onCopy}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:text-black hover:border-gray-300 transition-colors ${className}`}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-default bg-surface px-3 text-sm font-medium text-content transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}
     >
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-      {copied ? copiedLabel : label}
+      {error ? '复制失败' : copied ? copiedLabel : label}
     </button>
   )
 }

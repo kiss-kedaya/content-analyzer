@@ -36,15 +36,40 @@ interface CacheEntry {
 
 const mediaCache = new Map<string, CacheEntry>()
 const inFlightRequests = new Map<string, Promise<MediaData | null>>()
+const MAX_MEDIA_CACHE_ENTRIES = 100
 
 // Avoid spamming persist writes when cached media is used repeatedly.
 const persistRequests = new Map<string, number>()
+const MAX_PERSIST_REQUESTS = 200
 const PERSIST_TTL_MS = 5 * 60 * 1000
 
 const DEFAULT_FAILED_TTL_MS = 30 * 1000
 const DEFAULT_SUCCESS_TTL_MS = 5 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 10 * 1000
 const EMPTY_MEDIA_DATA: MediaData = { videos: [], images: [], media: [] }
+
+function setCachedMedia(url: string, entry: CacheEntry) {
+  // Refreshing an entry moves it to the end, making this a compact LRU cache.
+  mediaCache.delete(url)
+  mediaCache.set(url, entry)
+
+  while (mediaCache.size > MAX_MEDIA_CACHE_ENTRIES) {
+    const oldestKey = mediaCache.keys().next().value
+    if (!oldestKey) break
+    mediaCache.delete(oldestKey)
+  }
+}
+
+function rememberPersistRequest(key: string) {
+  persistRequests.delete(key)
+  persistRequests.set(key, Date.now())
+
+  while (persistRequests.size > MAX_PERSIST_REQUESTS) {
+    const oldestKey = persistRequests.keys().next().value
+    if (!oldestKey) break
+    persistRequests.delete(oldestKey)
+  }
+}
 
 function toAbsoluteUrl(input: string): string {
   return input.startsWith('//') ? `https:${input}` : input
@@ -112,6 +137,9 @@ function getCachedMedia(url: string, options: FetchOptions): MediaData | null {
   const ttl = cached.isFailed ? failedTtlMs : successTtlMs
 
   if (Date.now() - cached.timestamp < ttl) {
+    // Keep frequently used entries warm without allowing the map to grow forever.
+    mediaCache.delete(url)
+    mediaCache.set(url, cached)
     return cached.data
   }
 
@@ -138,7 +166,7 @@ export function useMediaCache() {
     if (!options.force) {
       const direct = tryBuildDirectMediaData(url)
       if (direct) {
-        mediaCache.set(url, {
+        setCachedMedia(url, {
           data: direct,
           timestamp: Date.now(),
           isFailed: direct.media.length === 0,
@@ -154,7 +182,7 @@ export function useMediaCache() {
           const persistKey = `${options.persistKind}:${options.persistId}:${url}`
           const last = persistRequests.get(persistKey) || 0
           if (Date.now() - last > PERSIST_TTL_MS) {
-            persistRequests.set(persistKey, Date.now())
+            rememberPersistRequest(persistKey)
             fetch(`/api/preview-media?${new URLSearchParams({
               url,
               persistKind: options.persistKind as string,
@@ -219,7 +247,7 @@ export function useMediaCache() {
           media,
         }
 
-        mediaCache.set(url, {
+        setCachedMedia(url, {
           data,
           timestamp: Date.now(),
           isFailed: data.media.length === 0,
@@ -228,7 +256,7 @@ export function useMediaCache() {
         return data
       } catch (error) {
         console.error('Failed to fetch media:', error)
-        mediaCache.set(url, {
+        setCachedMedia(url, {
           data: EMPTY_MEDIA_DATA,
           timestamp: Date.now(),
           isFailed: true

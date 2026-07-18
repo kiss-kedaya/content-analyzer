@@ -113,11 +113,11 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     category: 'Content',
     method: 'GET',
     path: '/api/content/paginated',
-    summary: '分页获取技术内容（ApiResponse 包装）',
+    summary: '分页获取技术内容，支持搜索与日期筛选（ApiResponse 包装）',
     authRequired: true,
     curl: `curl "${BASE_URLS.prod}/api/content/paginated?page=1&pageSize=20&orderBy=score" \\\n  ${curlCookieInline()}`,
     details: {
-      query: 'page=1&pageSize=20&orderBy=score|createdAt|analyzedAt',
+      query: 'page=1&pageSize=20&orderBy=score|createdAt|analyzedAt&q=<标题/摘要/来源>&date=YYYY-MM-DD',
     },
   },
   {
@@ -191,7 +191,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     category: 'Adult',
     method: 'GET',
     path: '/api/adult-content/paginated',
-    summary: '分页获取成人内容（ApiResponse 包装）',
+    summary: '分页获取成人内容，支持搜索与日期筛选（ApiResponse 包装）',
     authRequired: true,
     curl: `curl "${BASE_URLS.prod}/api/adult-content/paginated?page=1&pageSize=20&orderBy=score" \\\n  ${curlCookieInline()}`,
   },

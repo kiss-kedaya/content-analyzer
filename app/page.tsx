@@ -1,155 +1,98 @@
 import ContentList from '@/components/ContentList'
-import { getAllContents, getContentsCount, getStats } from '@/lib/api'
-import { getAllAdultContents, getAdultContentsCount, getAdultContentStats } from '@/lib/adult-api'
-import { getContentsByDate, getContentsCountByDate, getStatsByDate } from '@/lib/api-date'
-import { getAdultContentsByDate, getAdultContentsCountByDate, getAdultStatsByDate } from '@/lib/adult-api-date'
+import { getContentsPage, getStats } from '@/lib/api'
+import { getAdultContentStats, getAdultContentsPage } from '@/lib/adult-api'
 import Link from 'next/link'
-import { FileText, Twitter, BookOpen, Terminal } from '@/components/Icon'
+import { BookOpen, FileText, Terminal, Twitter } from '@/components/Icon'
+import { getShanghaiDayRange } from '@/lib/date'
 
-// ISR: 每 1 分钟重新生成页面（用于测试）
-export const revalidate = 60 // 1 分钟（秒）
+export const revalidate = 60
 
-export default async function Home({
-  searchParams
-}: {
-  searchParams: Promise<{ orderBy?: string; tab?: string; page?: string; date?: string }>
-}) {
+type HomeSearchParams = {
+  orderBy?: string
+  tab?: string
+  page?: string
+  date?: string
+  q?: string
+}
+
+export default async function Home({ searchParams }: { searchParams: Promise<HomeSearchParams> }) {
   const params = await searchParams
-  const orderBy = (params.orderBy as 'score' | 'createdAt' | 'analyzedAt') || 'score'
+  const orderBy = params.orderBy === 'createdAt' || params.orderBy === 'analyzedAt' ? params.orderBy : 'score'
   const tab = params.tab === 'adult' ? 'adult' : 'tech'
-  const page = Number(params.page || '1') > 0 ? Number(params.page) : 1
-  const date = params.date || null
+  const requestedPage = Number(params.page)
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+  const date = (() => {
+    if (!params.date) return undefined
+    try {
+      getShanghaiDayRange(params.date)
+      return params.date
+    } catch {
+      return undefined
+    }
+  })()
+  const q = params.q?.trim().slice(0, 100) || undefined
+  const pageSize = 12
+  const options = { orderBy, page, pageSize, date, q }
 
-  const pageSize = 10
-
-  const isTech = tab === 'tech'
-
-  const [techContents, adultContents, total, rawStats] = await Promise.all([
-    isTech
-      ? (date ? getContentsByDate(date, orderBy, page, pageSize) : getAllContents(orderBy, page, pageSize))
-      : Promise.resolve([]),
-    !isTech
-      ? (date ? getAdultContentsByDate(date, orderBy, page, pageSize) : getAllAdultContents(orderBy, page, pageSize))
-      : Promise.resolve([]),
-    isTech
-      ? (date ? getContentsCountByDate(date) : getContentsCount())
-      : (date ? getAdultContentsCountByDate(date) : getAdultContentsCount()),
-    isTech
-      ? (date ? getStatsByDate(date) : getStats())
-      : (date ? getAdultStatsByDate(date) : getAdultContentStats())
+  const [pageResult, rawStats] = await Promise.all([
+    tab === 'tech' ? getContentsPage(options) : getAdultContentsPage(options),
+    tab === 'tech' ? getStats({ date, q }) : getAdultContentStats({ date, q }),
   ])
 
   const sourceStats = rawStats.bySource
-
   const stats = {
-    total,
-    x: sourceStats['X'] || 0,
-    xiaohongshu: sourceStats['xiaohongshu'] || 0,
-    linuxdo: sourceStats['Linuxdo'] || sourceStats['linuxdo'] || 0,
+    total: rawStats.total,
+    x: sourceStats.X || sourceStats.x || 0,
+    xiaohongshu: sourceStats.Xiaohongshu || sourceStats.xiaohongshu || 0,
+    linuxdo: sourceStats.Linuxdo || sourceStats.linuxdo || 0,
   }
 
   return (
-    <div className="space-y-8 md:space-y-16">
-      {/* Hero Section */}
-      <div className="text-center space-y-3 md:space-y-4 py-6 md:py-12">
-        <h1 className="text-3xl md:text-5xl font-bold text-black tracking-tight px-4">
-          内容分析系统
-        </h1>
-        <p className="text-base md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-          OpenClaw Agent 驱动的智能内容分析和管理平台
-        </p>
-      </div>
+    <div className="space-y-7 md:space-y-9">
+      <section className="space-y-2 py-1 md:py-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-content md:text-3xl">内容分析系统</h1>
+        <p className="text-sm leading-6 text-muted">按来源、评分和日期查看已收录内容。</p>
+      </section>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-        <StatCard 
-          title="总内容数" 
-          value={stats.total} 
-          icon={<FileText className="w-5 h-5 text-gray-400" />}
-        />
-        <StatCard 
-          title="X" 
-          value={stats.x} 
-          icon={<Twitter className="w-5 h-5 text-gray-400" />}
-        />
-        <StatCard 
-          title="小红书" 
-          value={stats.xiaohongshu} 
-          icon={<BookOpen className="w-5 h-5 text-gray-400" />}
-        />
-        <StatCard 
-          title="LinuxDo" 
-          value={stats.linuxdo} 
-          icon={<Terminal className="w-5 h-5 text-gray-400" />}
-        />
-      </div>
+      <section aria-label="内容统计" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <StatCard title="当前内容" value={stats.total} icon={<FileText className="h-5 w-5" />} />
+        <StatCard title="X" value={stats.x} icon={<Twitter className="h-5 w-5" />} />
+        <StatCard title="小红书" value={stats.xiaohongshu} icon={<BookOpen className="h-5 w-5" />} />
+        <StatCard title="LinuxDo" value={stats.linuxdo} icon={<Terminal className="h-5 w-5" />} />
+      </section>
 
-      {/* 内容列表（客户端切换，无刷新） */}
       <ContentList
-        techContents={techContents}
-        adultContents={adultContents as any}
+        initialContents={pageResult.items}
         initialTab={tab}
         initialOrderBy={orderBy}
-        initialPage={page}
+        initialPage={pageResult.page}
         initialDate={date}
+        initialQuery={q}
+        initialTotal={pageResult.total}
+        initialHasMore={pageResult.hasMore}
       />
 
-      {/* API 使用说明 */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 md:p-8">
-        <h3 className="text-lg md:text-xl font-semibold text-black mb-3 md:mb-4">
-          API 使用说明
-        </h3>
-        <div className="space-y-3 md:space-y-4 text-sm text-gray-600">
-          <p>
-            <strong className="text-black">技术内容：</strong> POST /api/content
-          </p>
-          <p>
-            <strong className="text-black">成人内容：</strong> POST /api/adult-content
-          </p>
-          <pre className="bg-white border border-gray-200 p-3 md:p-4 rounded-lg overflow-x-auto text-xs font-mono">
-{`{
-  "source": "X",
-  "url": "https://...",
-  "title": "标题（可选）",
-  "summary": "摘要",
-  "content": "完整内容",
-  "score": 8.5,
-  "analyzedBy": "@username"
-}`}
-          </pre>
-          <div className="pt-2">
-            <Link 
-              href="/api-docs" 
-              className="inline-flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors vercel-button"
-            >
-              查看完整 API 文档
-              <span>→</span>
-            </Link>
+      <section className="surface-card rounded-xl p-5 md:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-content">接口</p>
+            <p className="mt-1 text-sm leading-6 text-muted">技术内容和成人内容使用独立接口写入。</p>
           </div>
+          <Link href="/api-docs" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">查看 API 文档</Link>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
 
-function StatCard({ 
-  title, 
-  value, 
-  icon
-}: { 
-  title: string
-  value: number
-  icon: React.ReactNode
-}) {
+function StatCard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 vercel-card">
-      <div className="flex items-center justify-between mb-3 md:mb-4">
-        <span className="text-xs md:text-sm font-medium text-gray-600">{title}</span>
-        {icon}
+    <div className="surface-card vercel-card rounded-xl p-4 md:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-muted">{title}</span>
+        <span className="text-brand" aria-hidden="true">{icon}</span>
       </div>
-      <div className="text-2xl md:text-4xl font-bold text-black">
-        {value}
-      </div>
+      <div className="mt-5 text-3xl font-bold tracking-tight text-content tabular-nums md:text-4xl">{value}</div>
     </div>
   )
 }

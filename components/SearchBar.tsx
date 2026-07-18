@@ -1,117 +1,74 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { X } from './Icon'
+import { useEffect, useRef, useState } from 'react'
+import { Search, X } from './Icon'
 
 interface SearchBarProps {
+  value?: string
   onSearch: (query: string) => void
   placeholder?: string
   className?: string
 }
 
-export function SearchBar({ onSearch, placeholder = '搜索...', className = '' }: SearchBarProps) {
-  const [query, setQuery] = useState('')
-  const [isFocused, setIsFocused] = useState(false)
+export function SearchBar({ value = '', onSearch, placeholder = '搜索标题、摘要或来源…', className = '' }: SearchBarProps) {
+  const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
+  const hasMounted = useRef(false)
+  const onSearchRef = useRef(onSearch)
 
-  // 快捷键支持：Ctrl/Cmd + K 聚焦搜索框
+  useEffect(() => setDraft(value), [value])
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
+    onSearchRef.current = onSearch
+  }, [onSearch])
+
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true
+      return
+    }
+    const timer = window.setTimeout(() => onSearchRef.current(draft.trim()), 250)
+    return () => window.clearTimeout(timer)
+  }, [draft])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
         inputRef.current?.focus()
       }
-      
-      // ESC 清空搜索
-      if (e.key === 'Escape' && isFocused) {
-        setQuery('')
-        onSearch('')
+      if (event.key === 'Escape' && document.activeElement === inputRef.current) {
+        setDraft('')
         inputRef.current?.blur()
       }
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFocused, onSearch])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setQuery(value)
-    onSearch(value)
-  }
-
-  const handleClear = () => {
-    setQuery('')
-    onSearch('')
-    inputRef.current?.focus()
-  }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <div className={`relative ${className}`}>
-      <div className={`relative flex items-center transition-all ${
-        isFocused ? 'ring-2 ring-black' : 'ring-1 ring-gray-200'
-      } rounded-lg bg-white`}>
-        {/* 搜索图标 */}
-        <div className="absolute left-3 pointer-events-none">
-          <svg
-            className="w-4 h-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-
-        {/* 输入框 */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={handleChange}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          className="w-full pl-10 pr-20 py-2 text-sm text-black placeholder-gray-400 bg-transparent border-none outline-none"
-        />
-
-        {/* 快捷键提示 / 清空按钮 */}
-        <div className="absolute right-3 flex items-center gap-2">
-          {query ? (
-            <button
-              onClick={handleClear}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="清空搜索"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          ) : (
-            <div className="hidden md:flex items-center gap-1 px-2 py-1 text-xs text-gray-400 bg-gray-50 rounded border border-gray-200">
-              <kbd className="font-mono">⌘</kbd>
-              <kbd className="font-mono">K</kbd>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 搜索提示 */}
-      {isFocused && !query && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-          <p className="text-xs text-gray-500">
-            搜索标题、摘要或来源
-          </p>
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-mono">⌘K</kbd>
-            <span>聚焦搜索</span>
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded border border-gray-200 font-mono">ESC</kbd>
-            <span>清空</span>
-          </div>
-        </div>
+      <label htmlFor="content-search" className="sr-only">搜索内容</label>
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
+      <input
+        id="content-search"
+        ref={inputRef}
+        type="search"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder={placeholder}
+        className="min-h-11 w-full rounded-lg border border-default bg-surface py-2 pl-10 pr-20 text-sm text-content placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand"
+      />
+      {draft ? (
+        <button
+          type="button"
+          onClick={() => setDraft('')}
+          className="absolute right-2 top-1/2 inline-flex min-h-9 min-w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          aria-label="清空搜索"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      ) : (
+        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-default bg-surface-raised px-1.5 py-0.5 text-[11px] font-medium text-subtle sm:block">Ctrl / ⌘ K</kbd>
       )}
     </div>
   )

@@ -3,7 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { LogOut } from '@/components/Icon'
 
-export default function LogoutButton() {
+interface LogoutButtonProps {
+  className?: string
+}
+
+export default function LogoutButton({ className = '' }: LogoutButtonProps) {
   const router = useRouter()
   
   const handleLogout = async () => {
@@ -19,10 +23,10 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="inline-flex items-center gap-1.5 text-xs md:text-sm text-gray-600 hover:text-black transition-colors"
+      className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}
     >
-      <LogOut className="w-3 h-3 md:w-4 md:h-4" />
-      <span className="hidden md:inline">登出</span>
+      <LogOut className="h-4 w-4" aria-hidden="true" />
+      <span>登出</span>
     </button>
   )
 }

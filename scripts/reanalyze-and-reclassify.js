@@ -218,9 +218,13 @@ function buildAiPrompt(text) {
 
 async function callCpaAi(prompt) {
   // CPA local AI endpoint (user requested)
-  const baseUrl = 'http://localhost:8317'
-  const apiKey = 'sk-codex-proxy-key-1'
-  const model = 'gpt-5.2'
+  const baseUrl = process.env.CPA_BASE_URL || 'http://localhost:8317'
+  const apiKey = process.env.CPA_API_KEY
+  const model = process.env.CPA_MODEL || 'gpt-5.2'
+
+  if (!apiKey) {
+    throw new Error('CPA_API_KEY is required to call the local AI proxy')
+  }
 
   const url = `${baseUrl}/v1/messages`
 

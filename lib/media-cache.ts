@@ -16,7 +16,12 @@ export interface CachedMediaItem {
 }
 
 export async function getMediaCache(url: string) {
-  return prisma.mediaCache.findUnique({ where: { url } })
+  // The original provider payload can be large. Preview responses only need the
+  // normalized media list, so don't hydrate rawResponse for every cache hit.
+  return prisma.mediaCache.findUnique({
+    where: { url },
+    select: { status: true, parsedMedia: true },
+  })
 }
 
 export async function saveMediaCache(url: string, rawResponse: unknown, parsedMedia: CachedMediaItem[]) {

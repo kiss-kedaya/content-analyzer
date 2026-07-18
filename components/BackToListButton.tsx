@@ -30,7 +30,7 @@ export default function BackToListButton({ fallbackHref, label = '返回列表' 
     return (
       <button
         onClick={handleBack}
-        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <ArrowLeft className="w-4 h-4" />
         {label}
@@ -41,7 +41,7 @@ export default function BackToListButton({ fallbackHref, label = '返回列表' 
   return (
     <Link
       href={fallbackHref}
-      className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-raised hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
     >
       <ArrowLeft className="w-4 h-4" />
       {label}

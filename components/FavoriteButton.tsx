@@ -78,7 +78,9 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
       <button
         onClick={toggleFavorite}
         disabled={loading}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-colors touch-manipulation ${
+        aria-pressed={favorited}
+        aria-label={favorited ? '取消收藏' : '收藏内容'}
+        className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
           favorited
             ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
             : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -92,7 +94,7 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
         {favorited ? '已收藏' : '收藏'}
       </button>
       {error && (
-        <div className="absolute top-full left-0 mt-1 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-600 whitespace-nowrap z-10">
+        <div className="absolute top-full left-0 z-10 mt-1 whitespace-nowrap rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-600" role="alert">
           {error}
         </div>
       )}

@@ -151,8 +151,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
               className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
               muted
               playsInline
-              loop
-              autoPlay
+              preload="metadata"
               onError={() => setError(true)}
             />
           ) : (

@@ -7,7 +7,7 @@
  * 3. 测试批量创建的规范化
  */
 
-const API_BASE = 'https://ca.kedaya.xyz';
+const API_BASE = process.env.API_BASE || 'https://ca.kedaya.xyz';
 const AUTH_TOKEN = process.env.AUTH_TOKEN || '';
 
 if (!AUTH_TOKEN) {

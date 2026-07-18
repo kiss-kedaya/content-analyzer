@@ -55,6 +55,12 @@ export interface PaginationParams {
   orderBy: 'score' | 'createdAt' | 'analyzedAt'
 }
 
+export interface ContentListFilters extends PaginationParams {
+  tab: 'tech' | 'adult'
+  q?: string
+  date?: string
+}
+
 /**
  * 分页响应类型
  */
