@@ -331,6 +331,32 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     authRequired: true,
     curl: `curl "${BASE_URLS.prod}/api/media-proxy?url=${encodeURIComponent('https://video.twimg.com/...')}" \\\n  ${curlCookieInline()}`,
   },
+  {
+    id: 'x-media-cleanup-scan',
+    category: 'Media',
+    method: 'POST',
+    path: '/api/maintenance/x-media-cleanup',
+    summary: '分段检查已保存的 X 视频是否返回 403/404/410',
+    authRequired: true,
+    curl: `curl -X POST ${BASE_URLS.prod}/api/maintenance/x-media-cleanup \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"kind":"all","offset":0,"limit":12}'`,
+    details: {
+      body: '{"kind":"all","offset":0,"limit":12}',
+      notes: 'kind=all|content|adultContent；不会把超时、429 或 5xx 判定为失效。',
+    },
+  },
+  {
+    id: 'x-media-cleanup-delete',
+    category: 'Media',
+    method: 'DELETE',
+    path: '/api/maintenance/x-media-cleanup',
+    summary: '复检并批量删除视频已失效的 X 内容',
+    authRequired: true,
+    curl: `curl -X DELETE ${BASE_URLS.prod}/api/maintenance/x-media-cleanup \\\n  ${curlHeaderJson()} \\\n  ${curlCookieInline()} \\\n  -d '{"confirmation":"DELETE_UNAVAILABLE_X_MEDIA","items":[{"kind":"adultContent","id":"<id>"}]}'`,
+    details: {
+      body: '{"confirmation":"DELETE_UNAVAILABLE_X_MEDIA","items":[{"kind":"adultContent","id":"<id>"}]}',
+      notes: '服务端会在删除前重新探测；复检不满足硬失败条件的记录会跳过。',
+    },
+  },
 
   // Misc
   {

@@ -10,6 +10,7 @@ import ThemeToggle from './ThemeToggle'
 const navigation = [
   { href: '/', label: '首页', exact: true },
   { href: '/favorites', label: '收藏夹' },
+  { href: '/maintenance', label: '数据清理' },
   { href: '/api-docs', label: 'API 文档' },
   { href: '/agent-skills', label: 'Agent Skills' },
 ]

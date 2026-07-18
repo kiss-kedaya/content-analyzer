@@ -59,8 +59,8 @@ function buildMinimalOperation(e: typeof ENDPOINTS[number]) {
     op.security = []
   }
 
-  // Minimal body note: only for POST
-  if (e.method === 'POST' && e.details?.body) {
+  // Minimal body note for JSON mutation endpoints.
+  if (e.method !== 'GET' && e.details?.body) {
     op.requestBody = {
       required: true,
       content: {
