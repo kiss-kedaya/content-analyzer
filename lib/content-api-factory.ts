@@ -49,7 +49,7 @@ const LIST_ITEM_SELECT = {
   url: true,
   title: true,
   summary: true,
-  analyzedAt: true,
+  createdAt: true,
   analyzedBy: true,
   favorited: true,
   mediaUrls: true,
@@ -58,7 +58,6 @@ const LIST_ITEM_SELECT = {
 const FAVORITE_ITEM_SELECT = {
   ...LIST_ITEM_SELECT,
   favoritedAt: true,
-  createdAt: true,
 } as const
 
 function buildOrderByClause() {
@@ -89,7 +88,7 @@ export function buildContentWhere(options: Pick<ContentListOptions, 'q' | 'date'
 
   if (options.date) {
     const range = getShanghaiDayRange(options.date)
-    and.push({ analyzedAt: { gte: range.start, lt: range.end } })
+    and.push({ createdAt: { gte: range.start, lt: range.end } })
   }
 
   if (q) {

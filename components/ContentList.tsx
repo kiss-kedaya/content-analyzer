@@ -16,7 +16,7 @@ type ContentItem = {
   url: string
   title?: string | null
   summary: string
-  analyzedAt: Date | string
+  createdAt: Date | string
   analyzedBy?: string | null
   favorited: boolean
   mediaUrls?: string[]

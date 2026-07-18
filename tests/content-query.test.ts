@@ -30,7 +30,7 @@ describe('content list query filters', () => {
     expect(buildContentWhere({ q: 'X', date: '2026-07-18' })).toEqual({
       AND: [
         {
-          analyzedAt: {
+          createdAt: {
             gte: new Date('2026-07-17T16:00:00.000Z'),
             lt: new Date('2026-07-18T16:00:00.000Z'),
           },

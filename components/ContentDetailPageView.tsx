@@ -13,7 +13,6 @@ type DetailContent = {
   url: string
   title?: string | null
   summary: string
-  analyzedAt: Date | string
   analyzedBy?: string | null
   createdAt: Date | string
   updatedAt: Date | string
@@ -55,7 +54,7 @@ export default function ContentDetailPageView({
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                  {new Date(content.analyzedAt).toLocaleString('zh-CN')}
+                  {new Date(content.createdAt).toLocaleString('zh-CN')}
                 </span>
                 {author ? (
                   <a

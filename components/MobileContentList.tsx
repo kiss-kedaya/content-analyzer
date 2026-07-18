@@ -14,7 +14,7 @@ interface MobileContentCardProps {
   url: string
   title?: string | null
   summary: string
-  analyzedAt: Date
+  createdAt: Date
   analyzedBy?: string | null
   mediaUrls?: string[]
   onDelete?: (id: string) => void
@@ -27,7 +27,7 @@ export function MobileContentCard({
   url,
   title,
   summary,
-  analyzedAt,
+  createdAt,
   analyzedBy,
   mediaUrls,
   onDelete,
@@ -147,7 +147,7 @@ export function MobileContentCard({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-subtle">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
-          {new Date(analyzedAt).toLocaleDateString('zh-CN')}
+          {new Date(createdAt).toLocaleDateString('zh-CN')}
         </span>
         <span className="flex items-center gap-1">
           <Hash className="w-3 h-3" />
