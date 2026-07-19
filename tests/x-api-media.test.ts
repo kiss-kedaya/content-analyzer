@@ -30,6 +30,13 @@ describe('X API media extraction', () => {
     ])
   })
 
+  test('does not attach another post media when the current post has no attachments', () => {
+    expect(parseXApiMediaPayload({
+      data: { id: 'text-only' },
+      includes: { media: [{ media_key: 'photo-1', type: 'photo', url: 'https://pbs.twimg.com/media/example.jpg' }] },
+    })).toEqual([])
+  })
+
   test('requests variants from the official API without exposing the token in the URL', async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
       data: { attachments: { media_keys: ['video-1'] } },

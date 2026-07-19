@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Content Analyzer · X 捕获",
+  "version": "1.0.0",
+  "description": "浏览 X 主页时自动捕获带媒体的帖子并批量保存到 Content Analyzer。",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://ca.kedaya.xyz/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Content Analyzer · X 捕获",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "page-capture.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content-bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

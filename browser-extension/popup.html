@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X 捕获</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>X 主页捕获</h1>
+          <p>仅保存带视频或图片的帖子</p>
+        </div>
+        <label class="switch"><input id="enabled" type="checkbox" checked><span>启用</span></label>
+      </header>
+
+      <section class="metrics" aria-label="捕获状态">
+        <div><strong id="pending">0</strong><span>待上传</span></div>
+        <div><strong id="uploaded">0</strong><span>已上传</span></div>
+        <div><strong id="captured">0</strong><span>已捕获</span></div>
+      </section>
+
+      <p id="status" class="status" role="status">正在读取状态…</p>
+
+      <label>网站地址<input id="baseUrl" type="url" value="https://ca.kedaya.xyz"></label>
+      <label>访问密码<input id="password" type="password" autocomplete="current-password" placeholder="留空表示保留已保存密码"></label>
+
+      <div class="actions">
+        <button id="save" class="primary" type="button">保存并启用</button>
+        <button id="upload" type="button">立即上传</button>
+      </div>
+      <button id="clear" class="quiet" type="button">清空待上传队列</button>
+
+      <p class="hint">打开 <strong>x.com/home</strong> 后正常滚动即可。插件读取浏览器已收到的时间线响应，不调用付费 X API。</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

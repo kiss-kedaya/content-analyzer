@@ -70,10 +70,12 @@ export function parseXApiMediaPayload(payload: XApiPostMediaPayload): CachedMedi
       .filter((item): item is XApiMediaEntity & { media_key: string } => Boolean(item.media_key))
       .map((item) => [item.media_key, item]),
   )
-  const keys = payload.data?.attachments?.media_keys || []
-  const ordered = keys.length > 0
+  const keys = payload.data?.attachments?.media_keys
+  const ordered = keys
     ? keys.map((key) => mediaByKey.get(key)).filter(Boolean) as XApiMediaEntity[]
-    : payload.includes?.media || []
+    : payload.data
+      ? []
+      : payload.includes?.media || []
 
   return ordered.flatMap((item): CachedMediaItem[] => {
     if (item.type === 'photo' && item.url) {
