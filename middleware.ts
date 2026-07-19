@@ -16,17 +16,7 @@ export async function middleware(request: NextRequest) {
   // 检查 Cookie
   const authToken = request.cookies.get('auth-token')
   
-  // 调试日志（仅开发环境）
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[Middleware]', {
-      pathname,
-      hasToken: !!authToken,
-    })
-  }
-  
   if (!authToken) {
-    console.log('[Middleware] No token')
-
     // API routes should return 401 (agents/curl should not be redirected)
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({
@@ -42,8 +32,6 @@ export async function middleware(request: NextRequest) {
   const isValid = await verifyToken(authToken.value)
   
   if (!isValid) {
-    console.log('[Middleware] Token verification failed')
-
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({
         success: false,
@@ -54,7 +42,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
   
-  console.log('[Middleware] Token verified, access granted')
   return NextResponse.next()
 }
 

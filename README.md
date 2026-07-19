@@ -35,7 +35,13 @@ Quality checks:
 npm test
 npm run lint
 npm run build
+npm audit --registry=https://registry.npmjs.org --audit-level=high
 ```
+
+Architecture and review rules:
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [100-point quality scorecard](docs/QUALITY_SCORECARD.md)
 
 ## Import X bookmarks
 

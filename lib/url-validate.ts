@@ -58,6 +58,12 @@ export function normalizeAndValidateHttpUrl(input: string): string {
   const hostname = u.hostname
   if (!hostname) throw new Error('Invalid host')
 
+  // Literal IPv6 addresses can encode loopback, link-local, private, or IPv4
+  // destinations in many equivalent forms. Source pages should use DNS names.
+  if (hostname.startsWith('[') && hostname.endsWith(']')) {
+    throw new Error('IPv6 literals are not allowed')
+  }
+
   if (isPrivateHostname(hostname)) {
     throw new Error('Private host is not allowed')
   }

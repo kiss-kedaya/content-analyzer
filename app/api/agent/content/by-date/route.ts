@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getShanghaiDayRange } from '@/lib/date'
+import type { SourceCache } from '@prisma/client'
 
 const QuerySchema = z.object({
   date: z.string().min(10),
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
     })
   ])
 
-  let rawByUrl: Map<string, any> | undefined
+  let rawByUrl: Map<string, SourceCache> | undefined
   if (includeRaw && items.length) {
     const urls = [...new Set(items.map(i => i.url))]
     const raws = await prisma.sourceCache.findMany({

@@ -33,6 +33,19 @@ export interface Content extends BaseContent {
  */
 export interface AdultContent extends BaseContent {}
 
+/** Lightweight record shared by SSR, list APIs, and client-side pagination. */
+export interface ContentListItem {
+  id: string
+  source: string
+  url: string
+  title?: string | null
+  summary: string
+  createdAt: Date | string
+  analyzedBy?: string | null
+  favorited: boolean
+  mediaUrls: string[]
+}
+
 /**
  * 媒体信息类型
  */
@@ -72,16 +85,21 @@ export interface PaginationMeta {
   hasMore: boolean
 }
 
+export interface ContentStats {
+  total: number
+  bySource: Record<string, number>
+}
+
 /**
  * API 响应类型
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: {
     message: string
     code: string
-    details?: any
+    details?: unknown
   }
   pagination?: PaginationMeta
 }

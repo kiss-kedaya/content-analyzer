@@ -1,3 +1,26 @@
+const isDevelopment = process.env.NODE_ENV === 'development'
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  `connect-src 'self' https:${isDevelopment ? ' ws: wss:' : ''}`,
+  "font-src 'self' data:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ')
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+]
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Keep local dev HMR artifacts separate from production builds. This prevents
@@ -13,14 +36,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // 为所有 API 路由添加 CORS 头
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' }, // 生产环境应该设置具体域名
-          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,DELETE,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
-        ],
+        source: '/(.*)',
+        headers: securityHeaders,
       },
     ]
   },

@@ -9,7 +9,7 @@ export interface VideoFeedItem {
   mediaUrl: string
 }
 
-interface FeedContent {
+export interface VideoFeedSource {
   id: string
   title?: string | null
   mediaUrls?: string[]
@@ -71,7 +71,7 @@ export function pickPrimaryDisplayMedia(mediaUrls: string[] = []): string | null
   return stable.find((value) => detectDisplayMediaType(value) === 'video') || stable[0] || null
 }
 
-export function buildVideoFeed(contents: FeedContent[]): VideoFeedItem[] {
+export function buildVideoFeed(contents: VideoFeedSource[]): VideoFeedItem[] {
   return contents.flatMap((content) => (content.mediaUrls || [])
     .filter((mediaUrl) => isStableDisplayMediaUrl(mediaUrl) && detectDisplayMediaType(mediaUrl) === 'video')
     .map((mediaUrl, mediaIndex) => ({

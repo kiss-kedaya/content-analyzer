@@ -89,8 +89,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
             }
 
             setExtraCount(Math.max(totalCount - 1, 0))
-          } catch (err) {
-            console.error('Failed to fetch thumbnail:', err)
+          } catch {
             if (isMounted) {
               setError(true)
             }
@@ -179,7 +178,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
 
           {extraCount > 0 && (
             <div className="absolute top-3 right-3">
-              <span className="inline-flex items-center rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-black shadow-sm">
+              <span className="inline-flex items-center rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-neutral-950 shadow-sm">
                 +{extraCount}
               </span>
             </div>

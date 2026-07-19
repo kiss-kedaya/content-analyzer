@@ -10,6 +10,12 @@ type MediaItem = {
   url: string
 }
 
+function isMediaItem(value: unknown): value is MediaItem {
+  if (!value || typeof value !== 'object') return false
+  const item = value as { type?: unknown; url?: unknown }
+  return (item.type === 'video' || item.type === 'image') && typeof item.url === 'string'
+}
+
 interface Props {
   kind: 'content' | 'adultContent'
   id: string
@@ -122,11 +128,13 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
           throw new Error('Failed to fetch media')
         }
 
-        const payload = await res.json()
-        const media = Array.isArray(payload?.media) ? payload.media : []
+        const payload: unknown = await res.json()
+        const media = payload && typeof payload === 'object' && 'media' in payload && Array.isArray(payload.media)
+          ? payload.media
+          : []
         const mapped: MediaItem[] = media
-          .filter((m: any) => m && (m.type === 'video' || m.type === 'image') && typeof m.url === 'string')
-          .map((m: any) => ({ type: m.type, url: normalizeDisplayUrl(m.url) }))
+          .filter(isMediaItem)
+          .map((item) => ({ type: item.type, url: normalizeDisplayUrl(item.url) }))
 
         if (!cancelled && mapped.length > 0) {
           setItems(mapped)

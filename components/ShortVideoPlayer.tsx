@@ -254,7 +254,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
           {error && (
             <div className="absolute left-1/2 top-1/2 w-[min(90vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-black/75 p-5 text-center backdrop-blur" role="alert">
               <p className="text-sm font-medium">{error}</p>
-              <button type="button" onClick={goNext} className="mt-4 min-h-11 rounded-full bg-white px-5 text-sm font-semibold text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black">
+              <button type="button" onClick={goNext} className="mt-4 min-h-11 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black">
                 播放下一条
               </button>
             </div>
@@ -285,7 +285,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
             </label>
 
             <div className="flex flex-nowrap items-center gap-2">
-              <button type="button" onClick={() => void togglePlayback()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black" aria-label={paused ? '播放' : '暂停'}>
+              <button type="button" onClick={() => void togglePlayback()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-neutral-950 transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black" aria-label={paused ? '播放' : '暂停'}>
                 {paused ? <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" /> : <Pause className="h-4 w-4" fill="currentColor" aria-hidden="true" />}
               </button>
               <button type="button" onClick={() => setMuted((value) => !value)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={muted ? '开启声音' : '静音'}>

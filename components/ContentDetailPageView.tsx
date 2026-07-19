@@ -6,6 +6,7 @@ import SourceContentViewer from '@/components/SourceContentViewer'
 import DetailMediaGallery from '@/components/DetailMediaGallery'
 import { getAuthorLink } from '@/lib/author-link'
 import { getSourceTone } from '@/lib/content-presentation'
+import { formatAppDateTime } from '@/lib/date-format'
 
 type DetailContent = {
   id: string
@@ -54,7 +55,7 @@ export default function ContentDetailPageView({
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                  {new Date(content.createdAt).toLocaleString('zh-CN')}
+                  {formatAppDateTime(content.createdAt)}
                 </span>
                 {author ? (
                   <a
@@ -149,7 +150,7 @@ export default function ContentDetailPageView({
               创建时间
             </dt>
             <dd className="text-xs text-content md:text-sm">
-              {new Date(content.createdAt).toLocaleString('zh-CN')}
+              {formatAppDateTime(content.createdAt)}
             </dd>
           </div>
           <div className="space-y-1">
@@ -158,7 +159,7 @@ export default function ContentDetailPageView({
               更新时间
             </dt>
             <dd className="text-xs text-content md:text-sm">
-              {new Date(content.updatedAt).toLocaleString('zh-CN')}
+              {formatAppDateTime(content.updatedAt)}
             </dd>
           </div>
         </dl>

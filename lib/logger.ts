@@ -1,5 +1,6 @@
 import pino from 'pino'
-import { env } from './env'
+
+const nodeEnv = process.env.NODE_ENV || 'development'
 
 /**
  * 全局日志实例
@@ -15,23 +16,13 @@ import { env } from './env'
  * - fatal: 致命错误
  */
 export const logger = pino({
-  level: process.env.LOG_LEVEL || (env.NODE_ENV === 'production' ? 'info' : 'debug'),
-  
-  // 开发环境使用 pretty 格式，生产环境使用 JSON 格式
-  transport: env.NODE_ENV === 'development' 
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined,
-  
+  level: process.env.LOG_LEVEL || (nodeEnv === 'production' ? 'info' : 'debug'),
+
+  // Keep logging in-process. Pretty transports spawn a worker and add avoidable
+  // memory overhead to every local Next.js process.
   // 基础字段
   base: {
-    env: env.NODE_ENV,
+    env: nodeEnv,
   },
 })
 
@@ -59,7 +50,7 @@ export function createLogger(name: string) {
 export function logApiError(
   context: string,
   error: unknown,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const log = createLogger('api')
   
@@ -80,7 +71,7 @@ export function logApiError(
 export function logDatabaseError(
   operation: string,
   error: unknown,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const log = createLogger('database')
   
@@ -101,7 +92,7 @@ export function logDatabaseError(
 export function logAuthEvent(
   event: 'login' | 'logout' | 'token_verify' | 'token_expired',
   success: boolean,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const log = createLogger('auth')
   

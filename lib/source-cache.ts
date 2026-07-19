@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { Prisma, type SourceCache } from '@prisma/client'
 import { prisma } from './db'
 import { normalizeAndValidateHttpUrl } from './url-validate'
 
@@ -12,7 +13,7 @@ type FetchResult = {
 }
 
 const FAILED_RETRY_TTL_MS = 15 * 60 * 1000
-const inflight = new Map<string, Promise<any>>()
+const inflight = new Map<string, Promise<SourceCache>>()
 
 function normalizeUrl(url: string): string {
   const trimmed = url.trim()
@@ -148,7 +149,7 @@ export async function getOrFetchSourceText(
             status: 'ok',
             title: result.title,
             text: result.text,
-            rawResponse: result.rawResponse as any,
+            rawResponse: result.rawResponse as Prisma.InputJsonValue,
             wordCount: approxWordCount(result.text),
             sha256: textSha,
             lastFetchedAt: now,
@@ -158,7 +159,7 @@ export async function getOrFetchSourceText(
             status: 'ok',
             title: result.title,
             text: result.text,
-            rawResponse: result.rawResponse as any,
+            rawResponse: result.rawResponse as Prisma.InputJsonValue,
             wordCount: approxWordCount(result.text),
             sha256: textSha,
             lastFetchedAt: now,

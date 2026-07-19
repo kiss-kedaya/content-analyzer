@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { AlertTriangle, Check, ExternalLink, Loader2, RefreshCw, Trash2, X } from '@/components/Icon'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { formatAppDateTime } from '@/lib/date-format'
 
 type CleanupKind = 'all' | 'content' | 'adultContent'
 type ItemKind = Exclude<CleanupKind, 'all'>
@@ -281,7 +282,7 @@ export default function XMediaCleanupPanel() {
                         {candidate.favorited && <span className="rounded-full border border-[var(--warning)] px-2 py-0.5 text-xs text-[var(--warning)]">已收藏</span>}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-subtle">
-                        <span>{new Date(candidate.createdAt).toLocaleString('zh-CN')}</span>
+                        <span>{formatAppDateTime(candidate.createdAt)}</span>
                         <span className="inline-flex items-center gap-1 text-[var(--danger)]">
                           <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
                           {candidate.checks.map((check) => check.status ?? check.error ?? '错误').join(' / ')}

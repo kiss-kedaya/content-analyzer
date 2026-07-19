@@ -54,7 +54,7 @@ export default function DetailMediaPreview({ title, url, mediaUrls }: Props) {
       >
         <MediaThumbnail url={thumbnailUrl} fit="contain" className="w-full h-full" />
 
-        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
+        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-neutral-950 shadow-sm backdrop-blur-sm">
           <Play className="w-3.5 h-3.5" />
           点击放大
         </span>

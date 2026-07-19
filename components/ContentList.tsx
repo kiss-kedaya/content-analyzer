@@ -1,66 +1,52 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Loader2, RefreshCw, SearchX } from './Icon'
 import { MobileContentList } from './MobileContentList'
 import { PullToRefresh } from './PullToRefresh'
 import { SearchBar } from './SearchBar'
 import TabSelector from './TabSelector'
 import { useToastContext } from './ClientLayout'
+import type { ApiResponse, ContentListItem, ContentStats, PaginationMeta } from '@/types'
 
 type Tab = 'tech' | 'adult'
-type ContentItem = {
-  id: string
-  source: string
-  url: string
-  title?: string | null
-  summary: string
-  createdAt: Date | string
-  analyzedBy?: string | null
-  favorited: boolean
-  mediaUrls?: string[]
-}
-
 type Filters = { tab: Tab; date?: string; q?: string }
 type RetryRequest = { page: number; append: boolean }
 
-type ListResponse = {
-  success: boolean
-  data?: ContentItem[]
-  error?: { message?: string }
-  pagination?: { page: number; total: number; hasMore: boolean }
-}
+type ListResponse = ApiResponse<ContentListItem[]> & { pagination?: PaginationMeta; stats?: ContentStats }
 
 interface ContentListProps {
-  initialContents: ContentItem[]
+  initialContents: ContentListItem[]
   initialTab: Tab
-  initialPage: number
   initialDate?: string
   initialQuery?: string
   initialTotal: number
   initialHasMore: boolean
+  initialStats: ContentStats
 }
 
 export default function ContentList({
   initialContents,
   initialTab,
-  initialPage,
   initialDate,
   initialQuery,
   initialTotal,
   initialHasMore,
+  initialStats,
 }: ContentListProps) {
-  const router = useRouter()
   const pathname = usePathname()
   const toast = useToastContext()
   const requestRef = useRef<AbortController | null>(null)
   const requestIdRef = useRef(0)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
   const [filters, setFilters] = useState<Filters>({ tab: initialTab, date: initialDate, q: initialQuery })
-  const [items, setItems] = useState<ContentItem[]>(initialContents)
-  const [page, setPage] = useState(initialPage)
+  const [items, setItems] = useState<ContentListItem[]>(initialContents)
+  const [itemsTab, setItemsTab] = useState<Tab>(initialTab)
+  const [page, setPage] = useState(1)
   const [total, setTotal] = useState(initialTotal)
+  const [stats, setStats] = useState(initialStats)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -69,14 +55,14 @@ export default function ContentList({
 
   useEffect(() => () => requestRef.current?.abort(), [])
 
-  const syncUrl = useCallback((next: Filters, nextPage = 1) => {
+  const syncUrl = useCallback((next: Filters) => {
     const params = new URLSearchParams()
     params.set('tab', next.tab)
     if (next.date) params.set('date', next.date)
     if (next.q) params.set('q', next.q)
-    if (nextPage > 1) params.set('page', String(nextPage))
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [pathname, router])
+    const nextUrl = `${pathname}?${params.toString()}`
+    window.history.replaceState(window.history.state, '', nextUrl)
+  }, [pathname])
 
   const fetchPage = useCallback(async (next: Filters, nextPage: number, append = false): Promise<boolean> => {
     requestRef.current?.abort()
@@ -103,8 +89,10 @@ export default function ContentList({
       if (requestId !== requestIdRef.current) return false
 
       setItems((current) => append ? [...current, ...data.data!] : data.data!)
+      if (!append) setItemsTab(next.tab)
       setPage(data.pagination.page)
       setTotal(data.pagination.total)
+      setStats((current) => data.stats ?? { ...current, total: data.pagination!.total })
       setHasMore(data.pagination.hasMore)
       setRetryRequest(null)
       return true
@@ -130,14 +118,41 @@ export default function ContentList({
     void fetchPage(next, 1)
   }, [fetchPage, filters, syncUrl])
 
+  const loadNextPage = useCallback(() => {
+    if (!hasMore || isLoading || isLoadingMore || loadError) return
+    void fetchPage(filters, page + 1, true)
+  }, [fetchPage, filters, hasMore, isLoading, isLoadingMore, loadError, page])
+
+  useEffect(() => {
+    const target = loadMoreRef.current
+    if (!target || !hasMore || loadError) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadNextPage()
+    }, { rootMargin: '700px 0px', threshold: 0 })
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [hasMore, loadError, loadNextPage])
+
   const handleDelete = async (id: string) => {
-    const endpoint = filters.tab === 'tech' ? `/api/content/${id}` : `/api/adult-content/${id}`
+    const endpoint = itemsTab === 'tech' ? `/api/content/${id}` : `/api/adult-content/${id}`
+    const removed = items.find((item) => item.id === id)
     try {
       const response = await fetch(endpoint, { method: 'DELETE' })
       const data = await response.json()
       if (!response.ok || !data.success) throw new Error(data.error?.message || '删除失败，请重试')
       setItems((current) => current.filter((item) => item.id !== id))
       setTotal((current) => Math.max(0, current - 1))
+      if (removed) {
+        setStats((current) => ({
+          total: Math.max(0, current.total - 1),
+          bySource: {
+            ...current.bySource,
+            [removed.source]: Math.max(0, (current.bySource[removed.source] || 0) - 1),
+          },
+        }))
+      }
       toast.success('内容已删除')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '删除失败，请重试')
@@ -152,10 +167,19 @@ export default function ContentList({
   }
 
   const filtersApplied = Boolean(filters.date || filters.q)
+  const sourceCount = (name: string) => stats.bySource[name] || stats.bySource[name.toLowerCase()] || 0
 
   return (
     <PullToRefresh onRefresh={refresh} disabled={isLoading || isLoadingMore}>
-      <section className="space-y-5" aria-labelledby="content-list-heading">
+      <div className="space-y-7">
+        <section aria-label="内容统计" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <StatCard title="当前内容" value={stats.total} />
+          <StatCard title="X" value={sourceCount('X')} />
+          <StatCard title="小红书" value={sourceCount('Xiaohongshu')} />
+          <StatCard title="LinuxDo" value={sourceCount('Linuxdo')} />
+        </section>
+
+        <section className="space-y-5" aria-labelledby="content-list-heading">
         <div className="surface-card rounded-2xl p-4 md:p-5">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -199,7 +223,7 @@ export default function ContentList({
             <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" /> 正在加载内容…
           </div>
         ) : items.length > 0 ? (
-          <MobileContentList contents={items} onDelete={handleDelete} detailPathPrefix={filters.tab === 'tech' ? '/content' : '/adult-content'} />
+          <MobileContentList key={itemsTab} contents={items} onDelete={handleDelete} detailPathPrefix={itemsTab === 'tech' ? '/content' : '/adult-content'} />
         ) : (
           <div className="surface-card flex min-h-64 flex-col items-center justify-center rounded-2xl p-8 text-center">
             <SearchX className="h-10 w-10 text-subtle" aria-hidden="true" />
@@ -209,7 +233,7 @@ export default function ContentList({
           </div>
         )}
 
-        <div className="flex min-h-16 flex-col items-center justify-center gap-3" aria-live="polite">
+        <div ref={loadMoreRef} className="flex min-h-16 flex-col items-center justify-center gap-3" aria-live="polite" aria-busy={isLoadingMore}>
           {loadError && (
             <div className="flex flex-col items-center gap-3 text-center">
               <p className="text-sm text-red-600">{loadError}</p>
@@ -225,10 +249,7 @@ export default function ContentList({
           {!loadError && hasMore && (
             <button
               type="button"
-              onClick={() => {
-                syncUrl(filters, page + 1)
-                void fetchPage(filters, page + 1, true)
-              }}
+              onClick={loadNextPage}
               disabled={isLoadingMore || isLoading}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-default bg-surface px-4 text-sm font-semibold text-content transition-colors hover:bg-surface-raised disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
@@ -238,7 +259,17 @@ export default function ContentList({
           )}
           {!loadError && !hasMore && items.length > 0 && <p className="text-sm text-subtle">已显示全部内容</p>}
         </div>
-      </section>
+        </section>
+      </div>
     </PullToRefresh>
+  )
+}
+
+function StatCard({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="surface-card vercel-card rounded-xl p-4 md:p-5">
+      <span className="text-sm font-medium text-muted">{title}</span>
+      <div className="mt-5 text-3xl font-bold tracking-tight text-content tabular-nums md:text-4xl">{value}</div>
+    </div>
   )
 }

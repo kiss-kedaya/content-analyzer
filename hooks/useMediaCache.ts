@@ -254,8 +254,7 @@ export function useMediaCache() {
         })
 
         return data
-      } catch (error) {
-        console.error('Failed to fetch media:', error)
+      } catch {
         setCachedMedia(url, {
           data: EMPTY_MEDIA_DATA,
           timestamp: Date.now(),

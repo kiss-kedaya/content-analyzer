@@ -1,13 +1,13 @@
 /**
  * 统一的 API 响应格式
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: {
     message: string
     code: string
-    details?: any
+    details?: unknown
   }
   pagination?: {
     page: number
@@ -35,16 +35,21 @@ export function successResponse<T>(data: T, pagination?: ApiResponse['pagination
 export function errorResponse(
   message: string,
   code: string,
-  details?: any
+  details?: unknown
 ): ApiResponse {
-  return {
+  const response: ApiResponse = {
     success: false,
     error: {
       message,
       code,
-      ...(process.env.NODE_ENV === 'development' && details && { details })
     }
   }
+
+  if (process.env.NODE_ENV === 'development' && details !== undefined && response.error) {
+    response.error.details = details
+  }
+
+  return response
 }
 
 /**
@@ -78,6 +83,6 @@ import { logApiError } from './logger'
 /**
  * 日志记录辅助函数
  */
-export function logError(context: string, error: unknown, metadata?: Record<string, any>) {
+export function logError(context: string, error: unknown, metadata?: Record<string, unknown>) {
   logApiError(context, error, metadata)
 }

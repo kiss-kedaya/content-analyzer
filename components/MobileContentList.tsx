@@ -1,14 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash, User, Play } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Calendar, Hash, User, Play, Loader2 } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
 import ShortVideoPlayer from './ShortVideoPlayer'
 import { ConfirmDialog } from './ConfirmDialog'
 import { getAuthorLink } from '@/lib/author-link'
 import { getSourceTone } from '@/lib/content-presentation'
-import { buildVideoFeed, detectDisplayMediaType, isStableDisplayMediaUrl, pickPrimaryDisplayMedia, toAbsoluteMediaUrl } from '@/lib/media-display'
+import { buildVideoFeed, detectDisplayMediaType, isStableDisplayMediaUrl, pickPrimaryDisplayMedia, toAbsoluteMediaUrl, type VideoFeedItem } from '@/lib/media-display'
+import type { ApiResponse, ContentListItem } from '@/types'
+import { formatAppDate } from '@/lib/date-format'
 
 interface MobileContentCardProps {
   id: string
@@ -16,11 +18,12 @@ interface MobileContentCardProps {
   url: string
   title?: string | null
   summary: string
-  createdAt: Date
+  createdAt: Date | string
   analyzedBy?: string | null
   mediaUrls?: string[]
   onDelete?: (id: string) => void
   onPlayVideo?: (mediaUrl: string) => void
+  isVideoLoading?: boolean
   detailPath: string
 }
 
@@ -35,6 +38,7 @@ export function MobileContentCard({
   mediaUrls,
   onDelete,
   onPlayVideo,
+  isVideoLoading = false,
   detailPath
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -85,29 +89,29 @@ export function MobileContentCard({
           type="button"
           onClick={() => onPlayVideo(mediaUrl)}
           className="group relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          aria-label={`播放视频：${title || '无标题'}`}
         >
+          <span className="sr-only">播放视频：{title || '无标题'}</span>
           <MediaThumbnail
             url={mediaUrl}
             className="h-full w-full"
             persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
           <span className="absolute left-1/2 top-1/2 z-10 inline-flex min-h-14 min-w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur transition-colors group-hover:bg-black/75" aria-hidden="true">
-            <Play className="ml-0.5 h-6 w-6" fill="currentColor" />
+            {isVideoLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Play className="ml-0.5 h-6 w-6" fill="currentColor" />}
           </span>
         </button>
       ) : (
         <Link
           href={detailPath}
+          prefetch={false}
           className="relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          aria-label="查看媒体详情"
         >
           <MediaThumbnail
             url={mediaUrl}
             className="h-full w-full"
             persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
-          <span className="absolute bottom-3 left-3 z-10 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
+          <span className="absolute bottom-3 left-3 z-10 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-neutral-950 shadow-sm backdrop-blur-sm">
             查看详情
           </span>
         </Link>
@@ -117,9 +121,10 @@ export function MobileContentCard({
       <div className="space-y-1">
         <Link
           href={detailPath}
-          className="line-clamp-2 text-base font-semibold leading-6 text-content hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          prefetch={false}
+          className="flex min-h-11 items-center rounded-md text-base font-semibold leading-6 text-content hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          {title || '无标题'}
+          <span className="line-clamp-2">{title || '无标题'}</span>
         </Link>
       </div>
 
@@ -131,7 +136,7 @@ export function MobileContentCard({
         {summary.length > 100 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="min-h-9 text-sm font-medium text-brand hover:text-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="min-h-11 min-w-11 rounded-md px-2 text-sm font-medium text-brand hover:text-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             aria-expanded={isExpanded}
           >
             {isExpanded ? '收起' : '展开'}
@@ -143,7 +148,7 @@ export function MobileContentCard({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-subtle">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
-          {new Date(createdAt).toLocaleDateString('zh-CN')}
+          {formatAppDate(createdAt)}
         </span>
         <span className="flex items-center gap-1">
           <Hash className="w-3 h-3" />
@@ -154,7 +159,7 @@ export function MobileContentCard({
             href={author.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-content transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex min-h-11 items-center gap-1 rounded-md transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <User className="w-3 h-3" />
             {author.label}
@@ -172,6 +177,7 @@ export function MobileContentCard({
       <div className="mt-auto flex items-center gap-2 border-t border-default pt-3">
         <Link
           href={detailPath}
+          prefetch={false}
           className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-surface-raised px-3 text-sm font-medium text-content transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <Eye className="w-3 h-3" />
@@ -203,7 +209,7 @@ export function MobileContentCard({
 }
 
 interface MobileContentListProps {
-  contents: any[]
+  contents: ContentListItem[]
   onDelete?: (id: string) => void
   detailPathPrefix: string
 }
@@ -215,7 +221,54 @@ export function MobileContentList({
 }: MobileContentListProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null)
-  const videoFeed = useMemo(() => buildVideoFeed(contents), [contents])
+  const [fullVideoFeed, setFullVideoFeed] = useState<VideoFeedItem[] | null>(null)
+  const [openingVideoKey, setOpeningVideoKey] = useState<string | null>(null)
+  const videoFeedRequestRef = useRef<Promise<VideoFeedItem[]> | null>(null)
+  const loadedVideoFeed = useMemo(() => buildVideoFeed(contents), [contents])
+  const videoFeed = fullVideoFeed ?? loadedVideoFeed
+  const videoEndpoint = detailPathPrefix === '/adult-content' ? '/api/adult-content/videos' : '/api/content/videos'
+
+  const loadFullVideoFeed = useCallback((): Promise<VideoFeedItem[]> => {
+    if (fullVideoFeed) return Promise.resolve(fullVideoFeed)
+    if (videoFeedRequestRef.current) return videoFeedRequestRef.current
+
+    const request = fetch(videoEndpoint, { cache: 'no-store' })
+      .then(async (response) => {
+        const result = await response.json() as ApiResponse<VideoFeedItem[]>
+        if (!response.ok || !result.success || !result.data) {
+          throw new Error(result.error?.message || '视频目录加载失败')
+        }
+        setFullVideoFeed(result.data)
+        return result.data
+      })
+      .finally(() => { videoFeedRequestRef.current = null })
+
+    videoFeedRequestRef.current = request
+    return request
+  }, [fullVideoFeed, videoEndpoint])
+
+  useEffect(() => {
+    void loadFullVideoFeed().catch(() => {
+      // Keep the already loaded page playable; clicking a preview retries the directory request.
+    })
+  }, [loadFullVideoFeed])
+
+  const openVideo = useCallback(async (contentId: string, mediaUrl: string) => {
+    const absolute = toAbsoluteMediaUrl(mediaUrl)
+    const pendingKey = `${contentId}:${absolute}`
+    setOpeningVideoKey(pendingKey)
+
+    let feed = videoFeed
+    try {
+      feed = await loadFullVideoFeed()
+    } catch {
+      // A directory failure must not prevent playback of the already loaded page.
+    }
+
+    const index = feed.findIndex((item) => item.id === contentId && item.mediaUrl === absolute)
+    if (index >= 0) setActiveVideoIndex(index)
+    setOpeningVideoKey(null)
+  }, [loadFullVideoFeed, videoFeed])
 
   const isGrid = true
 
@@ -227,11 +280,8 @@ export function MobileContentList({
             key={content.id}
             {...content}
             onDelete={onDelete ? () => setConfirmDelete(content.id) : undefined}
-            onPlayVideo={(mediaUrl) => {
-              const absolute = toAbsoluteMediaUrl(mediaUrl)
-              const index = videoFeed.findIndex((item) => item.id === content.id && item.mediaUrl === absolute)
-              if (index >= 0) setActiveVideoIndex(index)
-            }}
+            onPlayVideo={(mediaUrl) => { void openVideo(content.id, mediaUrl) }}
+            isVideoLoading={openingVideoKey?.startsWith(`${content.id}:`) ?? false}
             detailPath={`${detailPathPrefix}/${content.id}`}
           />
         ))}

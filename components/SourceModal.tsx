@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { X, Loader2, Copy } from '@/components/Icon'
+import { formatAppDateTime } from '@/lib/date-format'
 
 type Props = {
   url: string
@@ -98,7 +99,7 @@ export default function SourceModal({ url, open, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-200">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-black">原文</div>
+            <div className="text-sm font-semibold text-content">原文</div>
             <div className="text-xs text-gray-500 truncate">{url}</div>
           </div>
           <div className="flex items-center gap-2">
@@ -141,11 +142,11 @@ export default function SourceModal({ url, open, onClose }: Props) {
             <div className="space-y-3">
               <div className="text-xs text-gray-500">
                 <span className="mr-3">抓取源: {data.provider}</span>
-                {data.lastFetchedAt && <span>抓取时间: {new Date(data.lastFetchedAt).toLocaleString('zh-CN')}</span>}
+                {data.lastFetchedAt && <span>抓取时间: {formatAppDateTime(data.lastFetchedAt)}</span>}
               </div>
 
               {data.title && (
-                <div className="text-sm font-medium text-black">{data.title}</div>
+                <div className="text-sm font-medium text-content">{data.title}</div>
               )}
 
               <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800 bg-gray-50 border border-gray-200 rounded-lg p-4">

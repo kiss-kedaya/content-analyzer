@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BarChart3, Hash } from '@/components/Icon'
 import PageHeader from '@/components/PageHeader'
 import { getPreferences } from '@/lib/preferences'
+import { formatAppDateTime } from '@/lib/date-format'
 
 export const revalidate = 0
 
@@ -44,7 +45,7 @@ export default async function PreferencesPage() {
             </div>
           </section>
 
-          <p className="text-center text-sm text-subtle">分析时间：{new Date(preferences.analyzedAt).toLocaleString('zh-CN')}</p>
+          <p className="text-center text-sm text-subtle">分析时间：{formatAppDateTime(preferences.analyzedAt)}</p>
         </div>
       )}
     </div>

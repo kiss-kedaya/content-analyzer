@@ -1,48 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getContentsPage } from '@/lib/api'
-import { ContentListQuerySchema } from '@/lib/validation'
-import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
-import { z } from 'zod'
+import { getContentsPage, getStats } from '@/lib/api'
+import { createPaginatedRouteHandler } from '@/lib/content-route-handlers'
 
-// 使用 Node.js runtime（Prisma 需要）
 export const runtime = 'nodejs'
-
-export async function GET(request: NextRequest) {
-  try {
-    // 解析和验证查询参数
-    const searchParams = Object.fromEntries(request.nextUrl.searchParams)
-    const { page, pageSize, orderBy, q, date } = ContentListQuerySchema.parse(searchParams)
-    
-    // 获取数据
-    const result = await getContentsPage({ page, pageSize, orderBy, q, date })
-    
-    // 返回响应
-    return NextResponse.json(successResponse(result.items, {
-      page: result.page,
-      pageSize: result.pageSize,
-      total: result.total,
-      totalPages: result.totalPages,
-      hasMore: result.hasMore,
-    }))
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        errorResponse(
-          error.issues[0].message,
-          ErrorCodes.VALIDATION_ERROR,
-          error.issues
-        ),
-        { status: 400 }
-      )
-    }
-    
-    logError('GET /api/content/paginated', error, {
-      searchParams: Object.fromEntries(request.nextUrl.searchParams)
-    })
-    
-    return NextResponse.json(
-      errorResponse('Failed to fetch contents', ErrorCodes.DATABASE_ERROR),
-      { status: 500 }
-    )
-  }
-}
+export const GET = createPaginatedRouteHandler({
+  context: '/api/content/paginated',
+  loadPage: getContentsPage,
+  loadStats: getStats,
+})

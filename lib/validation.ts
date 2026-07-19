@@ -5,21 +5,20 @@ import { getShanghaiDayRange } from './date'
  * 内容创建验证 Schema
  */
 export const ContentCreateSchema = z.object({
-  source: z.string().refine(
-    (value) => ['twitter', 'Twitter', 'x', 'X', 'xiaohongshu', 'linuxdo', 'Linuxdo'].includes(value),
-    { message: 'Source must be one of: X, twitter, xiaohongshu, linuxdo, Linuxdo' }
-  ),
+  source: z.string().trim().min(1, 'Source is required').max(50, 'Source is too long'),
   url: z.string().url({ message: 'Invalid URL format' }),
-  title: z.string().max(200, 'Title must be less than 200 characters').optional(),
+  title: z.string().max(500, 'Title must be less than 500 characters').optional(),
   summary: z.string().max(10000).optional(),
   content: z.string()
-    .min(20, 'Content must be at least 20 characters')
-    .max(10000, 'Content must be less than 10000 characters'),
+    .min(1, 'Content is required')
+    .max(100000, 'Content must be less than 100000 characters'),
   score: z.number()
     .min(0, 'Score must be at least 0')
     .max(10, 'Score must be at most 10')
     .optional(),
-  analyzedBy: z.string().max(100).optional()
+  analyzedBy: z.string().max(100).optional(),
+  sourceTime: z.number().int().nonnegative().optional(),
+  mediaUrls: z.array(z.string().trim().min(1).max(4096)).max(20).optional(),
 })
 
 /**

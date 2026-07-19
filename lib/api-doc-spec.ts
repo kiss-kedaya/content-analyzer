@@ -121,6 +121,15 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     },
   },
   {
+    id: 'content-videos',
+    category: 'Content',
+    method: 'GET',
+    path: '/api/content/videos',
+    summary: '获取全部技术内容视频目录（轻量、按保存时间排序）',
+    authRequired: true,
+    curl: `curl ${BASE_URLS.prod}/api/content/videos \\\n  ${curlCookieInline()}`,
+  },
+  {
     id: 'content-get',
     category: 'Content',
     method: 'GET',
@@ -194,6 +203,15 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     summary: '分页获取成人内容，支持搜索与日期筛选（ApiResponse 包装）',
     authRequired: true,
     curl: `curl "${BASE_URLS.prod}/api/adult-content/paginated?page=1&pageSize=20&orderBy=createdAt" \\\n  ${curlCookieInline()}`,
+  },
+  {
+    id: 'adult-videos',
+    category: 'Adult',
+    method: 'GET',
+    path: '/api/adult-content/videos',
+    summary: '获取全部成人内容视频目录（轻量、按保存时间排序）',
+    authRequired: true,
+    curl: `curl ${BASE_URLS.prod}/api/adult-content/videos \\\n  ${curlCookieInline()}`,
   },
   {
     id: 'adult-get',

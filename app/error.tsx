@@ -1,70 +1,32 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
+import { AlertTriangle, RefreshCw } from '@/components/Icon'
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // 记录错误到控制台
     console.error('Application error:', error)
   }, [error])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center">
-        <div className="mb-4">
-          <svg
-            className="w-16 h-16 text-red-500 mx-auto"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-        </div>
-        
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          出错了
-        </h2>
-        
-        <p className="text-gray-600 mb-6">
-          应用程序遇到了一个错误。请尝试刷新页面或稍后再试。
-        </p>
-        
+    <section className="flex min-h-[60vh] items-center justify-center py-10" aria-labelledby="error-heading">
+      <div className="surface-card w-full max-w-md rounded-2xl p-6 text-center md:p-8" role="alert">
+        <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-[var(--danger)]" aria-hidden="true">
+          <AlertTriangle className="h-7 w-7" />
+        </span>
+        <h1 id="error-heading" className="mt-5 text-2xl font-semibold tracking-tight text-content">页面暂时无法显示</h1>
+        <p className="mt-2 text-sm leading-6 text-muted">请求没有正常完成。你可以立即重试，或返回内容列表稍后再看。</p>
         {process.env.NODE_ENV === 'development' && (
-          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded text-left">
-            <p className="text-sm font-mono text-gray-700 break-all">
-              {error.message}
-            </p>
-          </div>
+          <pre className="mt-5 max-h-32 overflow-auto rounded-xl border border-default bg-surface-subtle p-3 text-left text-xs text-muted">{error.message}</pre>
         )}
-        
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={reset}
-            className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            重试
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <button type="button" onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-sm font-semibold text-[var(--brand-contrast)] hover:bg-[var(--brand-strong)] focus-ring">
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />重试
           </button>
-          
-          <button
-            onClick={() => window.location.href = '/'}
-            className="px-6 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            返回首页
-          </button>
+          <Link href="/" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-default bg-surface px-5 text-sm font-semibold text-content hover:bg-surface-raised focus-ring">返回内容列表</Link>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

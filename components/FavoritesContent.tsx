@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ExternalLink, Eye, Clock, Heart } from '@/components/Icon'
 import FavoriteButton from './FavoriteButton'
 import { getSourceTone } from '@/lib/content-presentation'
+import { formatAppDate } from '@/lib/date-format'
 
 interface Content {
   id: string
@@ -96,7 +97,7 @@ export default function FavoritesContent({
                 {content.favoritedAt && (
                   <span className="flex items-center gap-1.5">
                     <Clock className="w-3 h-3 md:w-4 md:h-4" />
-                    收藏于 {new Date(content.favoritedAt).toLocaleDateString('zh-CN')}
+                    收藏于 {formatAppDate(content.favoritedAt)}
                   </span>
                 )}
                 <a

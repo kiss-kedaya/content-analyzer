@@ -261,7 +261,7 @@ export default function VideoPreview({ url, onClose }: VideoPreviewProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 shrink-0">
-          <h2 className="text-lg md:text-xl font-semibold text-black">媒体预览</h2>
+          <h2 className="text-lg font-semibold text-content md:text-xl">媒体预览</h2>
           <div className="flex items-center gap-2">
             {active?.type === 'image' && (
               <button

@@ -50,7 +50,7 @@ export default function ApiDocsPage() {
 
       <div className="space-y-8">
         <div className="surface-card rounded-2xl p-5 text-sm text-muted">
-          <div className="font-semibold text-black mb-2">鉴权说明</div>
+          <div className="mb-2 font-semibold text-content">鉴权说明</div>
           <ul className="list-disc list-inside space-y-1">
             <li>除 /login 与 /api/auth/login 外，所有接口需要 Cookie：{AUTH_COOKIE_NAME}</li>
             <li>未授权访问 /api/* 返回 401 JSON</li>
@@ -60,7 +60,7 @@ export default function ApiDocsPage() {
 
         {CATEGORIES.map((cat) => (
           <section key={cat.id} className="space-y-3">
-            <div className="text-sm font-semibold text-black">{cat.label}</div>
+            <div className="text-sm font-semibold text-content">{cat.label}</div>
             <div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-default bg-surface">
               {grouped[cat.id].map((item) => (
                 <div key={item.id} className="p-4">
@@ -68,9 +68,9 @@ export default function ApiDocsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm">
                         <span className={methodBadge(item.method)}>{item.method}</span>
-                        <code className="font-mono text-gray-800">{item.path}</code>
+                        <code className="font-mono text-content">{item.path}</code>
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">{item.summary}</div>
+                      <div className="mt-1 text-sm text-muted">{item.summary}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <CopyButton text={item.curl} label="复制 curl" />
@@ -88,16 +88,16 @@ export default function ApiDocsPage() {
                   </div>
 
                   {openIds[item.id] && (
-                    <div className="mt-3 space-y-2 text-xs text-gray-600">
+                    <div className="mt-3 space-y-2 text-xs text-muted">
                       {item.details?.query && (
                         <div>
-                          <span className="font-semibold text-gray-800">Query：</span>
+                          <span className="font-semibold text-content">Query：</span>
                           <code className="font-mono">{item.details.query}</code>
                         </div>
                       )}
                       {item.details?.body && (
                         <div>
-                          <span className="font-semibold text-gray-800">Body：</span>
+                          <span className="font-semibold text-content">Body：</span>
                           <code className="font-mono">{item.details.body}</code>
                         </div>
                       )}
@@ -120,9 +120,9 @@ export default function ApiDocsPage() {
 }
 
 function methodBadge(method: string) {
-  const base = 'px-2 py-0.5 rounded text-[10px] font-semibold'
+  const base = 'rounded-md px-2 py-0.5 text-xs font-semibold'
   if (method === 'GET') return `${base} bg-blue-100 text-blue-700`
   if (method === 'POST') return `${base} bg-green-100 text-green-700`
   if (method === 'DELETE') return `${base} bg-red-100 text-red-700`
-  return `${base} bg-gray-100 text-gray-700`
+  return `${base} bg-surface-raised text-muted`
 }

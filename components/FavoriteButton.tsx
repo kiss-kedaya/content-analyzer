@@ -58,7 +58,6 @@ export default function FavoriteButton({ id, initialFavorited, type }: FavoriteB
       if (error instanceof Error && error.name === 'AbortError') {
         return
       }
-      console.error('Favorite error:', error)
       if (isMountedRef.current) {
         setError('操作失败，请重试')
         setTimeout(() => {

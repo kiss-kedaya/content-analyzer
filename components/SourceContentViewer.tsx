@@ -75,7 +75,7 @@ export default function SourceContentViewer({ url }: SourceContentViewerProps) {
       <button
         onClick={fetchContent}
         disabled={loading}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center justify-center gap-2 rounded-lg border border-default px-4 py-2 text-sm font-medium text-content transition-colors hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? (
           <>

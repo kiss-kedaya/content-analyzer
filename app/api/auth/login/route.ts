@@ -1,65 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { generateToken } from '@/lib/auth'
-import { LoginSchema } from '@/lib/validation'
-import { successResponse, errorResponse, ErrorCodes, logError } from '@/lib/api-response'
-import { env } from '@/lib/env'
 import { z } from 'zod'
+import { generateToken } from '@/lib/auth'
+import { ErrorCodes, errorResponse, logError, successResponse } from '@/lib/api-response'
+import { env } from '@/lib/env'
+import { clearLoginFailures, constantTimeEqual, getLoginRateLimit, recordLoginFailure } from '@/lib/login-security'
+import { LoginSchema } from '@/lib/validation'
 
-export async function POST(req: NextRequest) {
+export const runtime = 'nodejs'
+
+function clientKey(request: NextRequest) {
+  return request.headers.get('cf-connecting-ip')
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown'
+}
+
+export async function POST(request: NextRequest) {
+  const key = clientKey(request)
+  const limit = getLoginRateLimit(key)
+  if (!limit.allowed) {
+    return NextResponse.json(
+      errorResponse('Too many login attempts. Try again later.', ErrorCodes.RATE_LIMIT_EXCEEDED),
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds), 'Cache-Control': 'no-store' } },
+    )
+  }
+
   try {
-    // 验证请求体
-    const body = await req.json()
-    const { password } = LoginSchema.parse(body)
-    
-    // 验证密码
-    if (password !== env.ACCESS_PASSWORD) {
+    const { password } = LoginSchema.parse(await request.json())
+    if (!constantTimeEqual(password, env.ACCESS_PASSWORD)) {
+      const nextLimit = recordLoginFailure(key)
       return NextResponse.json(
         errorResponse('Invalid password', ErrorCodes.INVALID_CREDENTIALS),
-        { status: 401 }
+        {
+          status: 401,
+          headers: {
+            'Cache-Control': 'no-store',
+            ...(nextLimit.allowed ? {} : { 'Retry-After': String(nextLimit.retryAfterSeconds) }),
+          },
+        },
       )
     }
-    
-    // 生成 JWT token
+
+    clearLoginFailures(key)
     const token = await generateToken()
-    
-    // 设置 Cookie
-    const cookieStore = await cookies()
-    cookieStore.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 天
-      path: '/'
+    const response = NextResponse.json(successResponse({ authenticated: true }), {
+      headers: { 'Cache-Control': 'no-store' },
     })
-    
-    // 创建响应
-    const response = NextResponse.json(successResponse({ authenticated: true }))
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
-      path: '/'
+      path: '/',
     })
-    
     return response
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z.ZodError || error instanceof SyntaxError) {
+      const message = error instanceof z.ZodError ? error.issues[0].message : 'Request body must be valid JSON'
       return NextResponse.json(
-        errorResponse(
-          error.issues[0].message,
-          ErrorCodes.VALIDATION_ERROR,
-          error.issues
-        ),
-        { status: 400 }
+        errorResponse(message, ErrorCodes.VALIDATION_ERROR, error instanceof z.ZodError ? error.issues : undefined),
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
       )
     }
-    
-    logError('Login', error)
+
+    logError('POST /api/auth/login', error)
     return NextResponse.json(
       errorResponse('Login failed', ErrorCodes.INTERNAL_ERROR),
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
     )
   }
 }

@@ -2,6 +2,7 @@ import prisma from './db'
 import { getShanghaiDayRange } from './date'
 import { normalizeSource } from './normalize-source'
 import { normalizePersistentMediaUrls } from './persistent-media'
+import type { VideoFeedSource } from './media-display'
 
 const ALLOWED_ORDER_BY = ['createdAt'] as const
 export type OrderBy = typeof ALLOWED_ORDER_BY[number]
@@ -60,6 +61,12 @@ const LIST_ITEM_SELECT = {
 const FAVORITE_ITEM_SELECT = {
   ...LIST_ITEM_SELECT,
   favoritedAt: true,
+} as const
+
+const VIDEO_FEED_SELECT = {
+  id: true,
+  title: true,
+  mediaUrls: true,
 } as const
 
 function buildOrderByClause() {
@@ -188,6 +195,14 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
       })
     },
 
+    async getVideoFeedSources(): Promise<VideoFeedSource[]> {
+      return delegate.findMany({
+        where: { mediaUrls: { isEmpty: false } },
+        orderBy: buildOrderByClause(),
+        select: VIDEO_FEED_SELECT,
+      })
+    },
+
     async getCount(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
       return delegate.count({ where: buildContentWhere(options) })
     },
@@ -210,6 +225,14 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     async delete(id: string) {
       const result = await delegate.deleteMany({ where: { id } })
       return { deleted: Number(result?.count || 0) > 0, count: Number(result?.count || 0) }
+    },
+
+    async setFavorite(id: string, favorited: boolean) {
+      const result = await delegate.updateMany({
+        where: { id },
+        data: { favorited, favoritedAt: favorited ? new Date() : null },
+      })
+      return Number(result?.count || 0) > 0
     },
 
     async getStats(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
