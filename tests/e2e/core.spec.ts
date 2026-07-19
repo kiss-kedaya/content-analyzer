@@ -21,8 +21,12 @@ async function loginAndSeed(page: Page) {
   await page.getByLabel('访问密码').fill(ACCESS_PASSWORD)
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
+  const cookieHeader = (await page.context().cookies())
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join('; ')
 
   const techResponse = await page.request.post('/api/content/batch', {
+    headers: { cookie: cookieHeader },
     data: buildContentFixtures(30, 'tech'),
   })
   if (!techResponse.ok()) {
@@ -31,6 +35,7 @@ async function loginAndSeed(page: Page) {
   }
 
   const adultResponse = await page.request.post('/api/adult-content/batch', {
+    headers: { cookie: cookieHeader },
     data: buildContentFixtures(15, 'adult'),
   })
   if (!adultResponse.ok()) {
