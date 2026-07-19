@@ -1,8 +1,10 @@
 import prisma from './db'
+import type { AdultContent as AdultContentRecord, Content as ContentRecord } from '@prisma/client'
 import { getShanghaiDayRange } from './date'
 import { normalizeSource } from './normalize-source'
 import { normalizePersistentMediaUrls } from './persistent-media'
 import type { VideoFeedSource } from './media-display'
+import type { ContentListItem } from '@/types'
 
 const ALLOWED_ORDER_BY = ['createdAt'] as const
 export type OrderBy = typeof ALLOWED_ORDER_BY[number]
@@ -69,6 +71,28 @@ const VIDEO_FEED_SELECT = {
   mediaUrls: true,
 } as const
 
+type ModelRecord<T extends 'content' | 'adultContent'> = T extends 'content'
+  ? ContentRecord
+  : AdultContentRecord
+
+type FavoriteListItem = Omit<ContentListItem, 'createdAt'> & { createdAt: Date; favoritedAt: Date | null }
+
+/**
+ * Prisma generates distinct delegate overloads for structurally identical models.
+ * This narrow adapter keeps the shared factory typed without leaking `any`; each
+ * result is cast once to the select shape defined immediately above.
+ */
+type SharedContentDelegate = {
+  findMany(args: unknown): Promise<unknown[]>
+  count(args?: unknown): Promise<number>
+  groupBy(args: unknown): Promise<unknown[]>
+  findUnique(args: unknown): Promise<unknown | null>
+  create(args: unknown): Promise<unknown>
+  upsert(args: unknown): Promise<unknown>
+  deleteMany(args: unknown): Promise<{ count: number }>
+  updateMany(args: unknown): Promise<{ count: number }>
+}
+
 function buildOrderByClause() {
   return [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
 }
@@ -119,14 +143,14 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
   model: T,
   useUpsert: boolean = false,
 ) {
-  const delegate = prisma[model] as any
+  const delegate = prisma[model] as unknown as SharedContentDelegate
 
-  async function list(options: ContentListOptions = {}): Promise<ContentListPage<any>> {
+  async function list(options: ContentListOptions = {}): Promise<ContentListPage<ContentListItem>> {
     const { orderBy, page, pageSize, q, date } = normalizeListOptions(options)
     const where = buildContentWhere({ q, date })
     const skip = (page - 1) * pageSize
 
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       delegate.findMany({
         where,
         orderBy: buildOrderByClause(),
@@ -136,6 +160,7 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
       }),
       delegate.count({ where }),
     ])
+    const items = rawItems as ContentListItem[]
 
     return {
       items,
@@ -171,36 +196,41 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
       }
 
       if (useUpsert) {
-        return delegate.upsert({ where: { url: data.url }, update: normalizedData, create: normalizedData })
+        const result = await delegate.upsert({ where: { url: data.url }, update: normalizedData, create: normalizedData })
+        return result as ModelRecord<T>
       }
-      return delegate.create({ data: normalizedData })
+      const result = await delegate.create({ data: normalizedData })
+      return result as ModelRecord<T>
     },
 
     list,
 
     async getAll(orderBy: string = 'createdAt', page: number = 1, pageSize: number = 20) {
       const normalized = normalizeListOptions({ orderBy, page, pageSize })
-      return delegate.findMany({
+      const rows = await delegate.findMany({
         orderBy: buildOrderByClause(),
         skip: (normalized.page - 1) * normalized.pageSize,
         take: normalized.pageSize,
       })
+      return rows as ModelRecord<T>[]
     },
 
     async getFavorites() {
-      return delegate.findMany({
+      const rows = await delegate.findMany({
         where: { favorited: true },
         orderBy: [{ favoritedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         select: FAVORITE_ITEM_SELECT,
       })
+      return rows as FavoriteListItem[]
     },
 
     async getVideoFeedSources(): Promise<VideoFeedSource[]> {
-      return delegate.findMany({
+      const rows = await delegate.findMany({
         where: { mediaUrls: { isEmpty: false } },
         orderBy: buildOrderByClause(),
         select: VIDEO_FEED_SELECT,
       })
+      return rows as VideoFeedSource[]
     },
 
     async getCount(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
@@ -210,16 +240,18 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
     async getBySource(source: string, orderBy: OrderBy = 'createdAt', page: number = 1, pageSize: number = 20) {
       const safePage = Math.max(1, Number(page) || 1)
       const safePageSize = Math.max(1, Math.min(100, Number(pageSize) || 20))
-      return delegate.findMany({
+      const rows = await delegate.findMany({
         where: { source },
         orderBy: buildOrderByClause(),
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
       })
+      return rows as ModelRecord<T>[]
     },
 
     async getById(id: string) {
-      return delegate.findUnique({ where: { id } })
+      const row = await delegate.findUnique({ where: { id } })
+      return row as ModelRecord<T> | null
     },
 
     async delete(id: string) {
@@ -237,10 +269,11 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
 
     async getStats(options: Pick<ContentListOptions, 'q' | 'date'> = {}) {
       const where = buildContentWhere(options)
-      const [total, bySource] = await Promise.all([
+      const [total, rawBySource] = await Promise.all([
         delegate.count({ where }),
         delegate.groupBy({ by: ['source'], where, _count: true }),
       ])
+      const bySource = rawBySource as Array<{ source: string; _count: number }>
       return {
         total,
         bySource: bySource.reduce((acc: Record<string, number>, item: { source: string; _count: number }) => {

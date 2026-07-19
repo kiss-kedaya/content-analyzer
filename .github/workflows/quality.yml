@@ -11,7 +11,21 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: content_analyzer
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d content_analyzer"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       SKIP_ENV_VALIDATION: '1'
       DATABASE_URL: postgresql://user:password@localhost:5432/content_analyzer
@@ -28,3 +42,6 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm audit --registry=https://registry.npmjs.org --audit-level=high
+      - run: npx prisma db push --skip-generate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Image as ImageIcon, Play } from '@/components/Icon'
 import MediaThumbnail from '@/components/MediaThumbnail'
-import { VideoPreview } from '@/components/DynamicMedia'
+import VideoPreview from '@/components/VideoPreview'
 
 interface Props {
   title?: string

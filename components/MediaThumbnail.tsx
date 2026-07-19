@@ -126,7 +126,13 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
       ) : (
         <ImageIcon className="mb-2 h-8 w-8 text-subtle" />
       )}
-      <span className="text-xs text-subtle">{loading || (primaryMediaType === 'video' && !videoFrameReady) ? '加载预览…' : '媒体预览'}</span>
+      <span className="text-xs text-subtle">
+        {loading || (primaryMediaType === 'video' && !videoFrameReady)
+          ? '加载预览…'
+          : error
+            ? '媒体不可用'
+            : '媒体预览'}
+      </span>
     </div>
   )
 

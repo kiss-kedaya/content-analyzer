@@ -2,12 +2,14 @@ import prisma from '@/lib/db'
 import { normalizeSource } from '@/lib/normalize-source'
 import { extractWithSnapvidDetailed } from '@/lib/media-extractor-snapvid'
 import { extractWithXApiDetailed, hasXApiMediaToken } from '@/lib/media-extractor-x-api'
-import { getMediaCache, normalizeCachedMedia, saveMediaCache } from '@/lib/media-cache'
-import { logApiError } from '@/lib/logger'
+import { getMediaCache, normalizeCachedMedia, saveMediaCache, saveMediaFailure } from '@/lib/media-cache'
+import { createLogger, logApiError } from '@/lib/logger'
 import { normalizePersistentMediaUrl, parsePersistentMediaItems } from '@/lib/persistent-media'
 import { normalizeAndValidateHttpUrl } from '@/lib/url-validate'
 
 const ALLOWED_MEDIA_HOSTS = ['twitter.com', 'x.com']
+const FAILURE_CACHE_TTL_MS = 6 * 60 * 60 * 1000
+const previewLogger = createLogger('preview-media')
 
 export type PreviewMediaItem = ReturnType<typeof normalizeCachedMedia>[number]
 
@@ -224,6 +226,14 @@ async function persistMediaUrls(params: {
   })
 }
 
+export function buildPreviewMediaFailureResult(url: string, message: string): PreviewMediaResult {
+  return {
+    ...buildPreviewMediaResult(url, []),
+    extractError: message,
+    warning: 'Media extraction failed',
+  }
+}
+
 async function getPersistedMedia(params: {
   persistKind: 'content' | 'adultContent'
   persistId: string
@@ -273,6 +283,14 @@ export async function previewMedia(params: PreviewMediaParams): Promise<PreviewM
     }
   }
 
+  if (
+    !force
+    && cached?.status === 'failed'
+    && Date.now() - cached.lastFetchedAt.getTime() < FAILURE_CACHE_TTL_MS
+  ) {
+    return buildPreviewMediaFailureResult(normalizedUrl, 'No media was available during the recent extraction attempt')
+  }
+
   if (!force && wantPersist && persistKind && persistId) {
     const persisted = await getPersistedMedia({ persistKind, persistId, normalizedUrl })
     if (persisted.length > 0) {
@@ -308,22 +326,31 @@ export async function previewMedia(params: PreviewMediaParams): Promise<PreviewM
 
     const media = extraction.media || []
 
-    if (media.length > 0) {
-      await saveMediaCache(normalizedUrl, extraction.rawResponse, media)
+    if (media.length === 0) {
+      await saveMediaFailure(normalizedUrl, 'No media found')
+      return buildPreviewMediaFailureResult(normalizedUrl, 'No media found')
+    }
 
-      if (wantPersist && persistKind && persistId) {
-        await persistMediaUrls({
-          persistKind,
-          persistId,
-          normalizedUrl,
-          media: normalizeCachedMedia(media),
-        })
-      }
+    await saveMediaCache(normalizedUrl, extraction.rawResponse, media)
+
+    if (wantPersist && persistKind && persistId) {
+      await persistMediaUrls({
+        persistKind,
+        persistId,
+        normalizedUrl,
+        media: normalizeCachedMedia(media),
+      })
     }
 
     return buildPreviewMediaResult(normalizedUrl, media)
   } catch (extractError) {
-    logApiError('preview-media-extract', extractError, { url: normalizedUrl })
-    throw new Error(extractError instanceof Error ? extractError.message : 'Media extraction failed')
+    const message = extractError instanceof Error ? extractError.message : 'Media extraction failed'
+    previewLogger.warn({ url: normalizedUrl, message }, 'Media extraction unavailable')
+    try {
+      await saveMediaFailure(normalizedUrl, message)
+    } catch (cacheError) {
+      logApiError('preview-media-failure-cache', cacheError, { url: normalizedUrl })
+    }
+    return buildPreviewMediaFailureResult(normalizedUrl, message)
   }
 }

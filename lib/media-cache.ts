@@ -20,7 +20,7 @@ export async function getMediaCache(url: string) {
   // normalized media list, so don't hydrate rawResponse for every cache hit.
   return prisma.mediaCache.findUnique({
     where: { url },
-    select: { status: true, parsedMedia: true },
+    select: { status: true, parsedMedia: true, lastFetchedAt: true },
   })
 }
 
@@ -40,6 +40,26 @@ export async function saveMediaCache(url: string, rawResponse: unknown, parsedMe
       parsedMedia: parsedMedia as object,
       lastFetchedAt: new Date(),
     }
+  })
+}
+
+export async function saveMediaFailure(url: string, message: string) {
+  const rawResponse = { error: message }
+  return prisma.mediaCache.upsert({
+    where: { url },
+    update: {
+      status: 'failed',
+      rawResponse,
+      parsedMedia: [],
+      lastFetchedAt: new Date(),
+    },
+    create: {
+      url,
+      status: 'failed',
+      rawResponse,
+      parsedMedia: [],
+      lastFetchedAt: new Date(),
+    },
   })
 }
 

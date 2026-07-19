@@ -8,7 +8,8 @@ export async function middleware(request: NextRequest) {
   // 允许访问登录页面和登录 API
   if (
     pathname === '/login' ||
-    pathname.startsWith('/api/auth/login')
+    pathname.startsWith('/api/auth/login') ||
+    pathname === '/api/health'
   ) {
     return NextResponse.next()
   }

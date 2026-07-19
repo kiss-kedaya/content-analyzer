@@ -25,7 +25,7 @@ function tryDecodeSnapcdnTokenUrl(url: string): { sourceUrl?: string; expiresAt?
     if (parts.length !== 3) return {}
 
     const payloadJson = base64UrlToUtf8(parts[1])
-    const payload = JSON.parse(payloadJson) as any
+    const payload = JSON.parse(payloadJson) as Record<string, unknown>
 
     const sourceUrl = typeof payload.url === 'string' ? payload.url : undefined
     const expiresAt = typeof payload.exp === 'number' ? payload.exp : undefined
@@ -94,13 +94,13 @@ export async function extractWithSnapvidDetailed(
       throw new Error(`Token request failed: ${tokenRes.status}`)
     }
     
-    const tokenData = await tokenRes.json()
+    const tokenData = await tokenRes.json() as Record<string, unknown>
     
     if (!tokenData.success || !tokenData.token) {
       throw new Error('Failed to get token')
     }
     
-    const token = tokenData.token
+    const token = String(tokenData.token)
     log.debug('Token 获取成功')
     
     // 步骤 2: 获取视频链接
@@ -119,7 +119,7 @@ export async function extractWithSnapvidDetailed(
       throw new Error(`Video request failed: ${videoRes.status}`)
     }
     
-    const videoData = await videoRes.json()
+    const videoData = await videoRes.json() as Record<string, unknown>
     
     log.debug({ status: videoData?.status, statusCode: videoData?.statusCode }, '视频数据响应(摘要)')
     
@@ -129,7 +129,7 @@ export async function extractWithSnapvidDetailed(
       return { media: [], rawResponse: videoData } // 返回空数组，表示没有媒体
     }
     
-    if (videoData.status !== 'ok' || !videoData.data) {
+    if (videoData.status !== 'ok' || typeof videoData.data !== 'string') {
       log.warn({ hasData: !!videoData?.data, status: videoData?.status }, '视频数据格式错误')
       throw new Error(`Failed to get video data: status=${videoData.status}, hasData=${!!videoData.data}`)
     }

@@ -378,6 +378,19 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
 
   // Misc
   {
+    id: 'health',
+    category: 'Misc',
+    method: 'GET',
+    path: '/api/health',
+    summary: '服务与数据库健康检查',
+    authRequired: false,
+    curl: `curl ${BASE_URLS.prod}/api/health`,
+    responseExample: '{"status":"ok"}',
+    details: {
+      notes: '数据库不可用时返回 503 和 {"status":"degraded"}。',
+    },
+  },
+  {
     id: 'stats',
     category: 'Misc',
     method: 'GET',

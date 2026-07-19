@@ -118,14 +118,21 @@ export async function extractTwitterMedia(twitterUrl: string): Promise<MediaInfo
     // 处理图片（从 entries 或 thumbnails 中提取）
     if (info.thumbnails && Array.isArray(info.thumbnails)) {
       // Twitter 图片通常在 thumbnails 中
-      const images = info.thumbnails
-        .filter((thumb: any) => thumb.url && thumb.url.includes('pbs.twimg.com'))
-        .map((thumb: any) => ({
-          type: 'image' as const,
-          url: thumb.url,
-          width: thumb.width,
-          height: thumb.height
-        }))
+      const images = (info.thumbnails as unknown[])
+        .map((thumb) => {
+          if (!thumb || typeof thumb !== 'object') return null
+          const record = thumb as Record<string, unknown>
+          const url = typeof record.url === 'string' ? record.url : ''
+          if (!url.includes('pbs.twimg.com')) return null
+
+          return {
+            type: 'image' as const,
+            url,
+            width: typeof record.width === 'number' ? record.width : undefined,
+            height: typeof record.height === 'number' ? record.height : undefined,
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
       
       mediaList.push(...images)
     }

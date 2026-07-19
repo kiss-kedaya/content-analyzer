@@ -1,5 +1,35 @@
 import { AUTH_COOKIE_NAME, BASE_URLS, ENDPOINTS, HttpMethod } from './api-doc-spec'
 
+type OpenApiResponse = {
+  description: string
+  content?: Record<string, {
+    schema: { type: string }
+    example?: unknown
+  }>
+}
+
+type OpenApiOperation = {
+  summary: string
+  description?: string
+  responses: Record<string, OpenApiResponse>
+  security?: []
+  requestBody?: {
+    required: boolean
+    content: Record<string, {
+      schema: { type: string }
+      example?: unknown
+    }>
+  }
+  parameters?: Array<{
+    name: string
+    in: 'path'
+    required: boolean
+    schema: { type: string }
+  }>
+}
+
+type OpenApiPath = Partial<Record<Lowercase<HttpMethod>, OpenApiOperation>>
+
 type OpenApi = {
   openapi: string
   info: {
@@ -18,7 +48,7 @@ type OpenApi = {
       }
     }
   }
-  paths: Record<string, any>
+  paths: Record<string, OpenApiPath>
 }
 
 function toOpenApiPath(path: string) {
@@ -29,12 +59,12 @@ function toOpenApiPath(path: string) {
     .replace('<id>', '{id}')
 }
 
-function methodLower(method: HttpMethod) {
-  return method.toLowerCase()
+function methodLower(method: HttpMethod): Lowercase<HttpMethod> {
+  return method.toLowerCase() as Lowercase<HttpMethod>
 }
 
-function buildMinimalOperation(e: typeof ENDPOINTS[number]) {
-  const op: any = {
+function buildMinimalOperation(e: typeof ENDPOINTS[number]): OpenApiOperation {
+  const op: OpenApiOperation = {
     summary: e.summary,
     responses: {
       '200': {
@@ -116,7 +146,7 @@ function tryParseJsonExample(candidate: string) {
 }
 
 export function buildOpenApiSpec(): OpenApi {
-  const paths: Record<string, any> = {}
+  const paths: Record<string, OpenApiPath> = {}
 
   for (const e of ENDPOINTS) {
     const p = toOpenApiPath(e.path)
