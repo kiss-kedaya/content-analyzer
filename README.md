@@ -25,6 +25,8 @@ Required environment variables:
 DATABASE_URL="postgresql://..."
 ACCESS_PASSWORD="your-password"
 JWT_SECRET="at-least-32-characters"
+# Optional: enables official X API media variant lookup on cache misses
+X_API_BEARER_TOKEN="your-x-api-app-bearer-token"
 ```
 
 Quality checks:
@@ -51,6 +53,8 @@ The importer:
 - sends legacy `summary` and `score` compatibility values without AI;
 - uploads at most 100 records per request;
 - authenticates with `CONTENT_ANALYZER_PASSWORD` or `ACCESS_PASSWORD`.
+- persists X media URLs when the input response includes
+  `attachments.media_keys` and `media.fields=media_key,type,url,preview_image_url,variants,width,height`.
 
 Local payloads under `.local/` are ignored by Git.
 

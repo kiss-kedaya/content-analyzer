@@ -1,3 +1,6 @@
+import { parseXApiMediaPayload, type XApiMediaEntity } from './media-extractor-x-api'
+import { normalizePersistentMediaUrls } from './persistent-media'
+
 export interface XBookmarkPost {
   id: string
   text?: string
@@ -5,6 +8,7 @@ export interface XBookmarkPost {
   author_id?: string
   created_at?: string
   possibly_sensitive?: boolean
+  attachments?: { media_keys?: string[] }
 }
 
 export interface XBookmarkUser {
@@ -15,7 +19,7 @@ export interface XBookmarkUser {
 
 export interface XBookmarksPayload {
   data?: XBookmarkPost[]
-  includes?: { users?: XBookmarkUser[] }
+  includes?: { users?: XBookmarkUser[]; media?: XApiMediaEntity[] }
 }
 
 export interface BookmarkImportItem {
@@ -29,6 +33,7 @@ export interface BookmarkImportItem {
   score: 0
   analyzedBy?: string
   sourceTime?: number
+  mediaUrls?: string[]
 }
 
 export interface TransformedBookmarks {
@@ -67,6 +72,13 @@ export function transformXBookmarks(payload: XBookmarksPayload): TransformedBook
       : username
         ? `@${username}`
         : 'X 书签'
+    const extractedMedia = parseXApiMediaPayload({
+      data: { id: post.id, attachments: post.attachments },
+      includes: { media: payload.includes?.media },
+    })
+    const mediaUrls = normalizePersistentMediaUrls(
+      extractedMedia.map((media) => media.sourceUrl || media.url),
+    )
 
     const item: BookmarkImportItem = {
       source: 'X',
@@ -77,6 +89,7 @@ export function transformXBookmarks(payload: XBookmarksPayload): TransformedBook
       score: 0,
       analyzedBy: username,
       sourceTime: Number.isFinite(sourceTime) ? sourceTime : undefined,
+      mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
     }
 
     if (post.possibly_sensitive === true) adult.push(item)

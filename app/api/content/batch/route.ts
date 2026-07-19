@@ -11,6 +11,7 @@ interface ContentInput {
   score?: number
   analyzedBy?: string
   sourceTime?: number
+  mediaUrls?: string[]
 }
 
 interface BatchResult {
@@ -88,7 +89,8 @@ export async function POST(request: NextRequest) {
           title: item.title,
           content: item.content,
           analyzedBy: item.analyzedBy,
-          sourceTime: typeof item.sourceTime === 'number' ? item.sourceTime : undefined
+          sourceTime: typeof item.sourceTime === 'number' ? item.sourceTime : undefined,
+          mediaUrls: Array.isArray(item.mediaUrls) ? item.mediaUrls : undefined,
         })
 
         result.success++

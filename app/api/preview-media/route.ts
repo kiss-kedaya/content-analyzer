@@ -3,6 +3,9 @@ import { logApiError } from '@/lib/logger'
 import { previewMedia, validatePreviewMediaUrl } from '@/lib/preview-media-service'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const NO_STORE_HEADERS = { 'Cache-Control': 'private, no-store, max-age=0' }
 
 // GET /api/preview-media?url=https://x.com/user/status/123
 export async function GET(request: NextRequest) {
@@ -35,18 +38,20 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(result, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400',
-      },
+      headers: NO_STORE_HEADERS,
     })
   } catch (error) {
     logApiError('preview-media', error, { url: normalizedUrl })
     return NextResponse.json(
       {
-        error: 'Failed to preview media',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        success: false,
+        url: normalizedUrl,
+        error: {
+          code: 'MEDIA_EXTRACTION_FAILED',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
-      { status: 500 },
+      { status: 502, headers: NO_STORE_HEADERS },
     )
   }
 }

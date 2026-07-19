@@ -1,6 +1,7 @@
 import prisma from './db'
 import { getShanghaiDayRange } from './date'
 import { normalizeSource } from './normalize-source'
+import { normalizePersistentMediaUrls } from './persistent-media'
 
 const ALLOWED_ORDER_BY = ['createdAt'] as const
 export type OrderBy = typeof ALLOWED_ORDER_BY[number]
@@ -23,6 +24,7 @@ export interface ContentInput {
   score?: number
   analyzedBy?: string
   sourceTime?: number
+  mediaUrls?: string[]
 }
 
 export interface ContentListOptions {
@@ -152,6 +154,13 @@ export function createContentAPI<T extends 'content' | 'adultContent'>(
 
       if (model === 'content') {
         normalizedData.sourceTime = data.sourceTime ? new Date(data.sourceTime) : undefined
+      }
+
+      if (data.mediaUrls) {
+        const mediaUrls = normalizePersistentMediaUrls(data.mediaUrls)
+        normalizedData.mediaUrls = mediaUrls
+        normalizedData.mediaFetchedAt = mediaUrls.length > 0 ? new Date() : undefined
+        normalizedData.mediaSourceUrl = mediaUrls.length > 0 ? data.url : undefined
       }
 
       if (useUpsert) {

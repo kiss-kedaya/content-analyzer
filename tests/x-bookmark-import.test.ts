@@ -5,12 +5,19 @@ describe('X bookmark import', () => {
   test('uses deterministic fields, sensitive routing, deduplication, and oldest-first writes', () => {
     const result = transformXBookmarks({
       data: [
-        { id: '3', author_id: 'u1', text: 'new sensitive', url: 'https://x.com/alice/status/3', created_at: '2026-07-03T00:00:00Z', possibly_sensitive: true },
+        { id: '3', author_id: 'u1', text: 'new sensitive', url: 'https://x.com/alice/status/3', created_at: '2026-07-03T00:00:00Z', possibly_sensitive: true, attachments: { media_keys: ['m1'] } },
         { id: '2', author_id: 'u1', text: 'new regular', url: 'https://x.com/alice/status/2', created_at: '2026-07-02T00:00:00Z' },
         { id: '1', author_id: 'u1', text: 'old regular', url: 'https://x.com/alice/status/1', created_at: '2026-07-01T00:00:00Z' },
         { id: '2-copy', author_id: 'u1', text: 'duplicate', url: 'https://x.com/alice/status/2' },
       ],
-      includes: { users: [{ id: 'u1', name: 'Alice', username: 'alice' }] },
+      includes: {
+        users: [{ id: 'u1', name: 'Alice', username: 'alice' }],
+        media: [{
+          media_key: 'm1',
+          type: 'video',
+          variants: [{ bit_rate: 2_000_000, content_type: 'video/mp4', url: 'https://video.twimg.com/a/vid/avc1/720x1280/video.mp4' }],
+        }],
+      },
     })
 
     expect(result.content.map((item) => item.url)).toEqual([
@@ -18,6 +25,7 @@ describe('X bookmark import', () => {
       'https://x.com/alice/status/2',
     ])
     expect(result.adultContent).toHaveLength(1)
+    expect(result.adultContent[0].mediaUrls?.[0]).toContain('//media.kedaya.xyz/?url=')
     expect(result.content[0]).toMatchObject({
       title: 'Alice (@alice)',
       content: 'old regular',

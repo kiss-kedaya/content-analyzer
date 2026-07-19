@@ -1,12 +1,13 @@
 import prisma from '@/lib/db'
 import { normalizeSource } from '@/lib/normalize-source'
 import { extractWithSnapvidDetailed } from '@/lib/media-extractor-snapvid'
+import { extractWithXApiDetailed, hasXApiMediaToken } from '@/lib/media-extractor-x-api'
 import { getMediaCache, normalizeCachedMedia, saveMediaCache } from '@/lib/media-cache'
 import { logApiError } from '@/lib/logger'
+import { normalizePersistentMediaUrl, parsePersistentMediaItems } from '@/lib/persistent-media'
 import { normalizeAndValidateHttpUrl } from '@/lib/url-validate'
 
 const ALLOWED_MEDIA_HOSTS = ['twitter.com', 'x.com']
-const MEDIA_PROXY_BASE_PROTOCOL_RELATIVE = '//media.kedaya.xyz'
 
 export type PreviewMediaItem = ReturnType<typeof normalizeCachedMedia>[number]
 
@@ -48,16 +49,6 @@ export interface PreviewMediaParams {
 function isAllowedMediaHost(hostname: string): boolean {
   const lower = hostname.toLowerCase()
   return ALLOWED_MEDIA_HOSTS.some((host) => lower === host || lower.endsWith(`.${host}`))
-}
-
-function toProtocolRelativeMediaProxyUrl(rawUrl: string): string {
-  return `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=${encodeURIComponent(rawUrl)}`
-}
-
-function isAlreadyProxied(candidate: string): boolean {
-  return candidate.startsWith(`${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
-    || candidate.startsWith('https://media.kedaya.xyz/?url=')
-    || candidate.startsWith('http://media.kedaya.xyz/?url=')
 }
 
 function decodeSnapcdnSourceUrl(candidate: string): string | null {
@@ -156,37 +147,16 @@ function pickPersistentMediaUrls(media: ReturnType<typeof normalizeCachedMedia>)
   const pushIfAllowed = (candidate?: string) => {
     if (!candidate) return
 
-    if (isAlreadyProxied(candidate)) {
-      const normalized = candidate
-        .replace(/^https:\/\/media\.kedaya\.xyz\/?\?url=/, `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
-        .replace(/^http:\/\/media\.kedaya\.xyz\/?\?url=/, `${MEDIA_PROXY_BASE_PROTOCOL_RELATIVE}/?url=`)
-
-      if (!seen.has(normalized)) {
-        seen.add(normalized)
-        out.push(normalized)
-      }
-      return
-    }
-
     const decoded = decodeSnapcdnSourceUrl(candidate)
     if (decoded) {
       pushIfAllowed(decoded)
       return
     }
 
-    try {
-      const u = new URL(candidate)
-      const host = u.hostname.toLowerCase()
-      const allowed = host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')
-      if (!allowed) return
-
-      const proxied = toProtocolRelativeMediaProxyUrl(candidate)
-      if (!seen.has(proxied)) {
-        seen.add(proxied)
-        out.push(proxied)
-      }
-    } catch {
-      // ignore
+    const normalized = normalizePersistentMediaUrl(candidate)
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized)
+      out.push(normalized)
     }
   }
 
@@ -254,6 +224,20 @@ async function persistMediaUrls(params: {
   })
 }
 
+async function getPersistedMedia(params: {
+  persistKind: 'content' | 'adultContent'
+  persistId: string
+  normalizedUrl: string
+}) {
+  const select = { url: true, source: true, mediaUrls: true } as const
+  const row = params.persistKind === 'content'
+    ? await prisma.content.findUnique({ where: { id: params.persistId }, select })
+    : await prisma.adultContent.findUnique({ where: { id: params.persistId }, select })
+
+  if (!row || normalizeSource(row.source) !== 'X' || row.url !== params.normalizedUrl) return []
+  return parsePersistentMediaItems(row.mediaUrls)
+}
+
 export function validatePreviewMediaUrl(url: string): string {
   const normalizedUrl = normalizeAndValidateHttpUrl(url)
   const hostname = new URL(normalizedUrl).hostname
@@ -289,13 +273,35 @@ export async function previewMedia(params: PreviewMediaParams): Promise<PreviewM
     }
   }
 
+  if (!force && wantPersist && persistKind && persistId) {
+    const persisted = await getPersistedMedia({ persistKind, persistId, normalizedUrl })
+    if (persisted.length > 0) {
+      return buildPreviewMediaResult(normalizedUrl, normalizeCachedMedia(persisted))
+    }
+  }
+
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
     let extraction: Awaited<ReturnType<typeof extractWithSnapvidDetailed>>
+    const useXApi = hasXApiMediaToken()
 
     try {
-      extraction = await extractWithSnapvidDetailed(normalizedUrl, { signal: controller.signal })
+      if (useXApi) {
+        extraction = await extractWithXApiDetailed(normalizedUrl, { signal: controller.signal })
+      } else {
+        extraction = await extractWithSnapvidDetailed(normalizedUrl, { signal: controller.signal })
+      }
+    } catch (primaryError) {
+      if (!useXApi) throw primaryError
+      logApiError('preview-media-x-api', primaryError, { url: normalizedUrl })
+      try {
+        extraction = await extractWithSnapvidDetailed(normalizedUrl, { signal: controller.signal })
+      } catch (fallbackError) {
+        const officialMessage = primaryError instanceof Error ? primaryError.message : String(primaryError)
+        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        throw new Error(`X API failed: ${officialMessage}; Snapvid failed: ${fallbackMessage}`)
+      }
     } finally {
       clearTimeout(timeoutId)
     }
@@ -318,16 +324,6 @@ export async function previewMedia(params: PreviewMediaParams): Promise<PreviewM
     return buildPreviewMediaResult(normalizedUrl, media)
   } catch (extractError) {
     logApiError('preview-media-extract', extractError, { url: normalizedUrl })
-
-    return {
-      success: true,
-      url: normalizedUrl,
-      media: [],
-      videos: [],
-      images: [],
-      count: { videos: 0, images: 0, total: 0 },
-      extractError: extractError instanceof Error ? extractError.message : 'Extract failed',
-      warning: 'Media extraction failed'
-    }
+    throw new Error(extractError instanceof Error ? extractError.message : 'Media extraction failed')
   }
 }

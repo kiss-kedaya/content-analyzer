@@ -10,6 +10,7 @@ interface AdultContentInput {
   summary?: string
   score?: number
   analyzedBy?: string
+  mediaUrls?: string[]
 }
 
 interface BatchResult {
@@ -82,7 +83,8 @@ export async function POST(request: NextRequest) {
           url: item.url,
           title: item.title,
           content: item.content,
-          analyzedBy: item.analyzedBy
+          analyzedBy: item.analyzedBy,
+          mediaUrls: Array.isArray(item.mediaUrls) ? item.mediaUrls : undefined,
         })
 
         result.success++
