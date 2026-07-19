@@ -1,7 +1,6 @@
 import ContentList from '@/components/ContentList'
-import { getContentsPage, getStats } from '@/lib/api'
-import { getAdultContentStats, getAdultContentsPage } from '@/lib/adult-api'
-import Link from 'next/link'
+import { getContentsPage } from '@/lib/api'
+import { getAdultContentsPage } from '@/lib/adult-api'
 import { getShanghaiDayRange } from '@/lib/date'
 
 export const revalidate = 60
@@ -28,10 +27,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
   const pageSize = 12
   const options = { orderBy: 'createdAt', page: 1, pageSize, date, q }
 
-  const [pageResult, rawStats] = await Promise.all([
-    tab === 'tech' ? getContentsPage(options) : getAdultContentsPage(options),
-    tab === 'tech' ? getStats({ date, q }) : getAdultContentStats({ date, q }),
-  ])
+  const pageResult = tab === 'tech' ? await getContentsPage(options) : await getAdultContentsPage(options)
 
   return (
     <div className="space-y-7 md:space-y-9">
@@ -47,18 +43,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
         initialQuery={q}
         initialTotal={pageResult.total}
         initialHasMore={pageResult.hasMore}
-        initialStats={rawStats}
       />
-
-      <section className="surface-card rounded-xl p-5 md:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-content">接口</p>
-            <p className="mt-1 text-sm leading-6 text-muted">技术内容和成人内容使用独立接口写入。</p>
-          </div>
-          <Link href="/api-docs" prefetch={false} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">查看 API 文档</Link>
-        </div>
-      </section>
     </div>
   )
 }

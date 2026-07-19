@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import { usePathname } from 'next/navigation'
 import { Loader2, RefreshCw, SearchX } from './Icon'
 import { MobileContentList } from './MobileContentList'
@@ -8,13 +8,21 @@ import { PullToRefresh } from './PullToRefresh'
 import { SearchBar } from './SearchBar'
 import TabSelector from './TabSelector'
 import { useToastContext } from './ClientLayout'
-import type { ApiResponse, ContentListItem, ContentStats, PaginationMeta } from '@/types'
+import type { ApiResponse, ContentListItem, PaginationMeta } from '@/types'
+import {
+  CONTENT_LIST_HISTORY_FIELD,
+  CONTENT_LIST_SNAPSHOT_STORAGE_KEY,
+  createContentListKey,
+  parseContentListSnapshot,
+  type ContentListFilters,
+  type ContentListSnapshot,
+} from '@/lib/content-list-snapshot'
 
-type Tab = 'tech' | 'adult'
-type Filters = { tab: Tab; date?: string; q?: string }
+type Tab = ContentListFilters['tab']
+type Filters = ContentListFilters
 type RetryRequest = { page: number; append: boolean }
 
-type ListResponse = ApiResponse<ContentListItem[]> & { pagination?: PaginationMeta; stats?: ContentStats }
+type ListResponse = ApiResponse<ContentListItem[]> & { pagination?: PaginationMeta }
 
 interface ContentListProps {
   initialContents: ContentListItem[]
@@ -23,7 +31,6 @@ interface ContentListProps {
   initialQuery?: string
   initialTotal: number
   initialHasMore: boolean
-  initialStats: ContentStats
 }
 
 export default function ContentList({
@@ -33,25 +40,127 @@ export default function ContentList({
   initialQuery,
   initialTotal,
   initialHasMore,
-  initialStats,
 }: ContentListProps) {
   const pathname = usePathname()
   const toast = useToastContext()
   const requestRef = useRef<AbortController | null>(null)
   const requestIdRef = useRef(0)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const restoreTargetRef = useRef<{ scrollY: number; itemCount: number } | null>(null)
+  const initialContentsRef = useRef(initialContents)
+  const initialFiltersRef = useRef<Filters>({ tab: initialTab, date: initialDate, q: initialQuery })
+  const latestStateRef = useRef<{
+    filters: Filters
+    items: ContentListItem[]
+    itemsTab: Tab
+    page: number
+    total: number
+    hasMore: boolean
+    isLoading: boolean
+  } | null>(null)
 
   const [filters, setFilters] = useState<Filters>({ tab: initialTab, date: initialDate, q: initialQuery })
   const [items, setItems] = useState<ContentListItem[]>(initialContents)
   const [itemsTab, setItemsTab] = useState<Tab>(initialTab)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(initialTotal)
-  const [stats, setStats] = useState(initialStats)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [retryRequest, setRetryRequest] = useState<RetryRequest | null>(null)
+
+  latestStateRef.current = { filters, items, itemsTab, page, total, hasMore, isLoading }
+
+  const persistReturnSnapshot = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const current = latestStateRef.current
+    if (!current || current.items.length === 0 || current.itemsTab !== current.filters.tab || current.isLoading) return
+
+    const snapshot: ContentListSnapshot = {
+      version: 1,
+      pending: true,
+      key: createContentListKey(current.filters),
+      savedAt: Date.now(),
+      filters: current.filters,
+      items: current.items,
+      itemsTab: current.itemsTab,
+      page: current.page,
+      total: current.total,
+      hasMore: current.hasMore,
+      scrollY: window.scrollY,
+    }
+
+    try {
+      window.sessionStorage.setItem(CONTENT_LIST_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot))
+    } catch {
+      // A large post can exceed sessionStorage quota; normal navigation still works.
+    }
+  }, [])
+
+  const captureDetailNavigation = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!(event.target instanceof Element)) return
+    const anchor = event.target.closest('a[href]')
+    if (!anchor) return
+
+    try {
+      const target = new URL(anchor.getAttribute('href') || '', window.location.href)
+      if (target.origin !== window.location.origin || !/^\/(?:content|adult-content)\//.test(target.pathname)) return
+      persistReturnSnapshot()
+    } catch {
+      // Ignore malformed or external links.
+    }
+  }, [persistReturnSnapshot])
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const initialFilters = initialFiltersRef.current
+    const key = createContentListKey(initialFilters)
+    const historyState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
+    window.history.replaceState({ ...historyState, [CONTENT_LIST_HISTORY_FIELD]: key }, '', window.location.href)
+
+    let snapshot: ContentListSnapshot | null = null
+    try {
+      snapshot = parseContentListSnapshot(window.sessionStorage.getItem(CONTENT_LIST_SNAPSHOT_STORAGE_KEY), key)
+      if (snapshot) window.sessionStorage.removeItem(CONTENT_LIST_SNAPSHOT_STORAGE_KEY)
+    } catch {
+      snapshot = null
+    }
+
+    const initialFirstId = initialContentsRef.current[0]?.id
+    if (
+      historyState[CONTENT_LIST_HISTORY_FIELD] !== key
+      || !snapshot
+      || (initialFirstId && snapshot.items[0]?.id !== initialFirstId)
+    ) return
+
+    restoreTargetRef.current = { scrollY: snapshot.scrollY, itemCount: snapshot.items.length }
+    setItems(snapshot.items)
+    setItemsTab(snapshot.itemsTab)
+    setPage(snapshot.page)
+    setTotal(snapshot.total)
+    setHasMore(snapshot.hasMore)
+  }, [])
+
+  useLayoutEffect(() => {
+    const target = restoreTargetRef.current
+    if (!target || items.length < target.itemCount || typeof window === 'undefined') return
+
+    let secondFrame: number | undefined
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        window.scrollTo({ top: target.scrollY, behavior: 'auto' })
+        restoreTargetRef.current = null
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame)
+      if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame)
+    }
+  }, [items.length])
 
   useEffect(() => () => requestRef.current?.abort(), [])
 
@@ -61,7 +170,8 @@ export default function ContentList({
     if (next.date) params.set('date', next.date)
     if (next.q) params.set('q', next.q)
     const nextUrl = `${pathname}?${params.toString()}`
-    window.history.replaceState(window.history.state, '', nextUrl)
+    const historyState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
+    window.history.replaceState({ ...historyState, [CONTENT_LIST_HISTORY_FIELD]: createContentListKey(next) }, '', nextUrl)
   }, [pathname])
 
   const fetchPage = useCallback(async (next: Filters, nextPage: number, append = false): Promise<boolean> => {
@@ -92,7 +202,6 @@ export default function ContentList({
       if (!append) setItemsTab(next.tab)
       setPage(data.pagination.page)
       setTotal(data.pagination.total)
-      setStats((current) => data.stats ?? { ...current, total: data.pagination!.total })
       setHasMore(data.pagination.hasMore)
       setRetryRequest(null)
       return true
@@ -137,22 +246,12 @@ export default function ContentList({
 
   const handleDelete = async (id: string) => {
     const endpoint = itemsTab === 'tech' ? `/api/content/${id}` : `/api/adult-content/${id}`
-    const removed = items.find((item) => item.id === id)
     try {
       const response = await fetch(endpoint, { method: 'DELETE' })
       const data = await response.json()
       if (!response.ok || !data.success) throw new Error(data.error?.message || '删除失败，请重试')
       setItems((current) => current.filter((item) => item.id !== id))
       setTotal((current) => Math.max(0, current - 1))
-      if (removed) {
-        setStats((current) => ({
-          total: Math.max(0, current.total - 1),
-          bySource: {
-            ...current.bySource,
-            [removed.source]: Math.max(0, (current.bySource[removed.source] || 0) - 1),
-          },
-        }))
-      }
       toast.success('内容已删除')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '删除失败，请重试')
@@ -167,18 +266,10 @@ export default function ContentList({
   }
 
   const filtersApplied = Boolean(filters.date || filters.q)
-  const sourceCount = (name: string) => stats.bySource[name] || stats.bySource[name.toLowerCase()] || 0
 
   return (
     <PullToRefresh onRefresh={refresh} disabled={isLoading || isLoadingMore}>
-      <div className="space-y-7">
-        <section aria-label="内容统计" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-          <StatCard title="当前内容" value={stats.total} />
-          <StatCard title="X" value={sourceCount('X')} />
-          <StatCard title="小红书" value={sourceCount('Xiaohongshu')} />
-          <StatCard title="LinuxDo" value={sourceCount('Linuxdo')} />
-        </section>
-
+      <div className="space-y-7" onClickCapture={captureDetailNavigation}>
         <section className="space-y-5" aria-labelledby="content-list-heading">
         <div className="surface-card rounded-2xl p-4 md:p-5">
           <div className="flex flex-col gap-5">
@@ -264,14 +355,5 @@ export default function ContentList({
         </section>
       </div>
     </PullToRefresh>
-  )
-}
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="surface-card vercel-card rounded-xl p-4 md:p-5">
-      <span className="text-sm font-medium text-muted">{title}</span>
-      <div className="mt-5 text-3xl font-bold tracking-tight text-content tabular-nums md:text-4xl">{value}</div>
-    </div>
   )
 }

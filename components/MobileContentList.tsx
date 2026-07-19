@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash, User, Play, Loader2 } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Calendar, User, Play, Loader2 } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
 import ShortVideoPlayer from './ShortVideoPlayer'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -149,10 +149,6 @@ export function MobileContentCard({
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {formatAppDate(createdAt)}
-        </span>
-        <span className="flex items-center gap-1">
-          <Hash className="w-3 h-3" />
-          {id.slice(0, 8)}
         </span>
         {author && (
           <a

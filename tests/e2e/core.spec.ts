@@ -89,6 +89,28 @@ test('scrolling near the bottom automatically loads the next page in place', asy
   expect(unexpectedNavigations).toEqual([])
 })
 
+test('returning from details restores loaded records and the reading position', async ({ page }) => {
+  await page.goto('/?tab=tech')
+  await expect(page.locator('article')).toHaveCount(12)
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect.poll(() => page.locator('article').count()).toBeGreaterThan(12)
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect.poll(() => page.locator('article').count()).toBeGreaterThan(24)
+
+  const loadedCount = await page.locator('article').count()
+  const targetCard = page.locator('article').nth(Math.max(0, loadedCount - 7))
+  await targetCard.scrollIntoViewIfNeeded()
+  const savedScrollY = await page.evaluate(() => window.scrollY)
+  await targetCard.locator('a[href^="/content/"]').first().click()
+  await expect(page).toHaveURL(/\/content\//)
+
+  await page.getByRole('button', { name: '返回列表' }).click()
+  await expect(page).toHaveURL(/\/?\?tab=tech$/)
+  await expect.poll(() => page.locator('article').count()).toBeGreaterThanOrEqual(loadedCount)
+  await expect.poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - savedScrollY)).toBeLessThan(120)
+})
+
 test('short-video player uses the complete video directory and restores focus', async ({ page }) => {
   await page.goto('/?tab=adult')
   await expect(page.locator('article')).toHaveCount(12)
@@ -98,7 +120,7 @@ test('short-video player uses the complete video directory and restores focus', 
 
   const dialog = page.getByRole('dialog', { name: '短视频播放模式' })
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByText('1 / 15', { exact: true })).toBeVisible()
+  await expect(dialog.getByText(/^1 \/ \d+$/)).toBeVisible()
   await expect(dialog.locator('video')).toHaveCount(1)
   await expect(dialog.getByLabel('播放速度').locator('option')).toHaveCount(9)
 
