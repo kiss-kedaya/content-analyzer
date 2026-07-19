@@ -25,12 +25,17 @@ async function loginAndSeed(page: Page) {
   const techResponse = await page.request.post('/api/content/batch', {
     data: buildContentFixtures(30, 'tech'),
   })
-  expect(techResponse.ok()).toBeTruthy()
+  if (!techResponse.ok()) {
+    const cookies = await page.context().cookies()
+    throw new Error(`Tech seed failed (${techResponse.status()}): ${await techResponse.text()}; authCookie=${cookies.some((cookie) => cookie.name === 'auth-token')}`)
+  }
 
   const adultResponse = await page.request.post('/api/adult-content/batch', {
     data: buildContentFixtures(15, 'adult'),
   })
-  expect(adultResponse.ok()).toBeTruthy()
+  if (!adultResponse.ok()) {
+    throw new Error(`Adult seed failed (${adultResponse.status()}): ${await adultResponse.text()}`)
+  }
 }
 
 test.beforeEach(async ({ page }) => {
