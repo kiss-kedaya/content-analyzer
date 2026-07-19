@@ -77,3 +77,26 @@ Browser verification must cover 375px mobile and 1440px desktop, light and dark 
 ## Baseline
 
 An independent read-only review scored production commit `c30e3d3` at 72/100. The decisive gaps were duplicate RSC/API pagination requests, no automatic pagination, page-limited video count, incomplete touch targets, inconsistent API validation/error handling, missing CI, permissive CORS, missing security headers, and no login throttling.
+
+## Independent review — 2026-07-19
+
+The same reviewer re-scored implementation commit `282857b`, deployed as Vercel deployment `E9LJWgFciw6DtRzsc61TsUDzzQw4`, without using a repository scoring script.
+
+| Category | Baseline | Current | Review evidence |
+| --- | ---: | ---: | --- |
+| UI and visual consistency | 16 | 17 | Light/dark tokens and 375/768/1440 layouts are consistent; recoverable media failures can still create console noise. |
+| UX, accessibility, and continuity | 14 | 18 | Click and intersection loading append in place, live totals update without RSC navigation, the video player uses the full feed, and visible controls meet the touch/accessibility checks. |
+| Backend, API, and security | 14 | 17 | Shared validated handlers, bounded batch work, constant-time login checks, throttling, security headers, and corrected CORS are in place. |
+| Structure, typing, and readability | 15 | 17 | Duplicate routes and stale state/components were removed, shared services were extracted, and architecture documentation was added. |
+| Testing, performance, and operations | 13 | 16 | 47 tests, lint, production build, dependency audit, browser verification, and CI gates pass; automated browser E2E is still missing. |
+| **Total** | **72** | **85** | **Passes the 80-point target and every mandatory gate.** |
+
+Final browser evidence on `https://ca.kedaya.xyz`:
+
+- 375px dark mode over Fast 4G rendered 12 initial cards without horizontal overflow or unnamed visible controls;
+- scrolling to the bottom appended cards from 12 to 24 without a document/RSC request, URL mutation, or lost scroll position;
+- the full adult video directory returned 51 items and the player displayed `1 / 51` while mounting one video;
+- replacing the undersized streaming fallback with a layout-matched skeleton reduced observed initial CLS from `0.119` to `0`;
+- Lighthouse snapshot scores were Accessibility 100, Best Practices 100, and Agentic Browsing 100.
+
+Remaining improvement space: add automated browser E2E coverage, move login throttling to shared storage if this becomes a multi-user deployment, tighten CSP beyond `unsafe-inline`, and split the remaining large legacy media/parser modules.
