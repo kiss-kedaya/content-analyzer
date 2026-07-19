@@ -35,4 +35,29 @@ describe('X bookmark import', () => {
       sourceTime: Date.parse('2026-07-01T00:00:00Z'),
     })
   })
+
+  test('routes explicit reposts and the same adult source without trusting the X flag', () => {
+    const result = transformXBookmarks({
+      data: [
+        { id: '1', author_id: 'adult-source', text: '嫩萝自慰视频', url: 'https://x.com/source/status/1', possibly_sensitive: false },
+        { id: '2', author_id: 'adult-source', text: '请给一个关注', url: 'https://x.com/source/status/2', possibly_sensitive: false },
+        { id: '3', author_id: 'tech-source', text: 'Next.js API 性能优化', url: 'https://x.com/tech/status/3', possibly_sensitive: false },
+        { id: '4', author_id: 'sexy-source', text: '新视频', url: 'https://x.com/sexy/status/4', possibly_sensitive: false },
+      ],
+      includes: {
+        users: [
+          { id: 'adult-source', name: 'Creator', username: 'creator' },
+          { id: 'tech-source', name: 'Developer', username: 'developer' },
+          { id: 'sexy-source', name: 'Sexy Clip', username: 'sexy_clip' },
+        ],
+      },
+    })
+
+    expect(result.content.map((item) => item.url)).toEqual(['https://x.com/tech/status/3'])
+    expect(result.adultContent.map((item) => item.url)).toEqual([
+      'https://x.com/sexy/status/4',
+      'https://x.com/source/status/2',
+      'https://x.com/source/status/1',
+    ])
+  })
 })

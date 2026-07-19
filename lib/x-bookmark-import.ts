@@ -41,6 +41,16 @@ export interface TransformedBookmarks {
   adultContent: BookmarkImportItem[]
 }
 
+const ADULT_TEXT_PATTERN = /(?:自慰|做爱|性爱|口交|肛交|性交|内射|射精|榨精|高潮|潮喷|性瘾|约炮|炮友|阴道|阴蒂|乳交|鸡巴|肉棒|嫩穴|骚穴|骚逼|骚货|骚狗|少妇|裸舞|脱衣|避孕套|飞机杯|露出|床上功夫|福利姬|女优|无码|色情|涩涩|黄油|国产自拍|成人视频|看片)|\b(?:porn|nsfw|xxx|hentai|chudai|wataa|nudes?|naked|blowjob|handjob|cuckold|milf|pussy|cock|cumshot|fuck(?:ing|ed)?)\b/i
+const ADULT_AUTHOR_PATTERN = /(?:sexy|porn|nsfw|xxx|hentai|adult|milf)/i
+
+/** X's possibly_sensitive flag is incomplete, especially on reposts. */
+export function hasAdultXSignals(post: XBookmarkPost, user?: XBookmarkUser): boolean {
+  const text = post.text || ''
+  const author = `${user?.name || ''} ${user?.username || ''}`
+  return ADULT_TEXT_PATTERN.test(text) || ADULT_AUTHOR_PATTERN.test(author)
+}
+
 function usernameFromUrl(value?: string): string | undefined {
   if (!value) return undefined
   try {
@@ -53,6 +63,11 @@ function usernameFromUrl(value?: string): string | undefined {
 
 export function transformXBookmarks(payload: XBookmarksPayload): TransformedBookmarks {
   const users = new Map((payload.includes?.users || []).map((user) => [user.id, user]))
+  const adultAuthorIds = new Set(
+    (payload.data || [])
+      .filter((post) => post.author_id && hasAdultXSignals(post, users.get(post.author_id)))
+      .map((post) => post.author_id as string),
+  )
   const regular: BookmarkImportItem[] = []
   const adult: BookmarkImportItem[] = []
   const seen = new Set<string>()
@@ -92,7 +107,11 @@ export function transformXBookmarks(payload: XBookmarksPayload): TransformedBook
       mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
     }
 
-    if (post.possibly_sensitive === true) adult.push(item)
+    const isAdult = post.possibly_sensitive === true
+      || hasAdultXSignals(post, user)
+      || Boolean(post.author_id && adultAuthorIds.has(post.author_id))
+
+    if (isAdult) adult.push(item)
     else regular.push(item)
   }
 
