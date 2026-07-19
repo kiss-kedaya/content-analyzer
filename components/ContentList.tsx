@@ -196,6 +196,8 @@ export default function ContentList({
               <label className="grid gap-1.5 text-sm font-medium text-muted">
                 日期
                 <input
+                  id="content-date"
+                  name="date"
                   type="date"
                   value={filters.date || ''}
                   onChange={(event) => commitFilters({ date: event.target.value || undefined })}
