@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye, Trash2, Calendar, Hash, User } from '@/components/Icon'
+import { ExternalLink, Eye, Trash2, Calendar, Hash, User, Play } from '@/components/Icon'
 import MediaThumbnail from './MediaThumbnail'
+import ShortVideoPlayer from './ShortVideoPlayer'
 import { ConfirmDialog } from './ConfirmDialog'
 import { getAuthorLink } from '@/lib/author-link'
 import { getSourceTone } from '@/lib/content-presentation'
+import { buildVideoFeed, detectDisplayMediaType, isStableDisplayMediaUrl, pickPrimaryDisplayMedia, toAbsoluteMediaUrl } from '@/lib/media-display'
 
 interface MobileContentCardProps {
   id: string
@@ -18,6 +20,7 @@ interface MobileContentCardProps {
   analyzedBy?: string | null
   mediaUrls?: string[]
   onDelete?: (id: string) => void
+  onPlayVideo?: (mediaUrl: string) => void
   detailPath: string
 }
 
@@ -31,6 +34,7 @@ export function MobileContentCard({
   analyzedBy,
   mediaUrls,
   onDelete,
+  onPlayVideo,
   detailPath
 }: MobileContentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -43,31 +47,7 @@ export function MobileContentCard({
   const mediaUrl = useMemo(() => {
     if (!isX) return null
 
-    const firstStableFromMediaUrls = (() => {
-      if (!mediaUrls || mediaUrls.length === 0) return null
-
-      for (const candidate of mediaUrls) {
-        if (!candidate || typeof candidate !== 'string') continue
-
-        const abs = candidate.startsWith('//') ? `https:${candidate}` : candidate
-        try {
-          const u = new URL(abs)
-          const host = u.hostname.toLowerCase()
-
-          // Skip snapcdn token URLs (they expire and may 401).
-          if (host === 'dl.snapcdn.app') continue
-
-          // Prefer our proxy or direct twimg.
-          if (host === 'media.kedaya.xyz' || host === 'video.twimg.com' || host === 'pbs.twimg.com' || host.endsWith('.twimg.com')) {
-            return candidate
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      return null
-    })()
+    const firstStableFromMediaUrls = pickPrimaryDisplayMedia(mediaUrls)
 
     if (firstStableFromMediaUrls) {
       return firstStableFromMediaUrls
@@ -88,6 +68,7 @@ export function MobileContentCard({
   }, [isX, mediaUrls, url])
 
   const hasMedia = Boolean(mediaUrl)
+  const isVideoPreview = Boolean(mediaUrl && isStableDisplayMediaUrl(mediaUrl) && detectDisplayMediaType(mediaUrl) === 'video')
   const author = getAuthorLink(source, analyzedBy)
 
   return (
@@ -98,24 +79,39 @@ export function MobileContentCard({
         </span>
       </div>
 
-      {/* 媒体预览（仅 X，列表不做弹窗预览，点击进入详情页） */}
-      {hasMedia && mediaUrl && (
-        <Link
-          href={detailPath}
-          className="relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          aria-label="查看详情"
+      {/* 视频直接播放；图片进入详情。 */}
+      {hasMedia && mediaUrl && (isVideoPreview && onPlayVideo ? (
+        <button
+          type="button"
+          onClick={() => onPlayVideo(mediaUrl)}
+          className="group relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          aria-label={`播放视频：${title || '无标题'}`}
         >
           <MediaThumbnail
             url={mediaUrl}
-            className="w-full h-full"
+            className="h-full w-full"
             persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
           />
-
-          <span className="absolute bottom-3 left-3 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
+          <span className="absolute left-1/2 top-1/2 z-10 inline-flex min-h-14 min-w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur transition-colors group-hover:bg-black/75" aria-hidden="true">
+            <Play className="ml-0.5 h-6 w-6" fill="currentColor" />
+          </span>
+        </button>
+      ) : (
+        <Link
+          href={detailPath}
+          className="relative block h-48 w-full overflow-hidden rounded-xl bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          aria-label="查看媒体详情"
+        >
+          <MediaThumbnail
+            url={mediaUrl}
+            className="h-full w-full"
+            persist={{ kind: detailPath.startsWith('/adult-content/') ? 'adultContent' : 'content', id }}
+          />
+          <span className="absolute bottom-3 left-3 z-10 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-black shadow-sm backdrop-blur-sm">
             查看详情
           </span>
         </Link>
-      )}
+      ))}
 
       {/* 标题 */}
       <div className="space-y-1">
@@ -218,6 +214,8 @@ export function MobileContentList({
   detailPathPrefix
 }: MobileContentListProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null)
+  const videoFeed = useMemo(() => buildVideoFeed(contents), [contents])
 
   const isGrid = true
 
@@ -229,6 +227,11 @@ export function MobileContentList({
             key={content.id}
             {...content}
             onDelete={onDelete ? () => setConfirmDelete(content.id) : undefined}
+            onPlayVideo={(mediaUrl) => {
+              const absolute = toAbsoluteMediaUrl(mediaUrl)
+              const index = videoFeed.findIndex((item) => item.id === content.id && item.mediaUrl === absolute)
+              if (index >= 0) setActiveVideoIndex(index)
+            }}
             detailPath={`${detailPathPrefix}/${content.id}`}
           />
         ))}
@@ -249,6 +252,14 @@ export function MobileContentList({
         }}
         onCancel={() => setConfirmDelete(null)}
       />
+
+      {activeVideoIndex !== null && (
+        <ShortVideoPlayer
+          items={videoFeed}
+          initialIndex={activeVideoIndex}
+          onClose={() => setActiveVideoIndex(null)}
+        />
+      )}
     </>
   )
 }

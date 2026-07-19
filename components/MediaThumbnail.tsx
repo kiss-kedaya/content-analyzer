@@ -5,6 +5,7 @@ import { Image as ImageIcon, Loader2 } from '@/components/Icon'
 import { useMediaCache } from '@/hooks/useMediaCache'
 import { LazyImage } from './LazyImage'
 import { shouldProxyMediaUrl, toMediaProxyUrl } from '@/lib/media-proxy'
+import { withVideoPreviewFrame } from '@/lib/media-display'
 
 interface MediaThumbnailProps {
   url: string
@@ -25,6 +26,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
   const [extraCount, setExtraCount] = useState(0)
   const [error, setError] = useState(false)
   const [hasRequested, setHasRequested] = useState(false)
+  const [videoFrameReady, setVideoFrameReady] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const { fetchMedia } = useMediaCache()
 
@@ -48,6 +50,7 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
           setHasRequested(true)
           setLoading(true)
           setError(false)
+          setVideoFrameReady(false)
 
           try {
             const data = await fetchMedia(url, {
@@ -118,13 +121,13 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
   // Wrapper always mounts so IntersectionObserver can attach.
   // We show placeholder until in-view fetch completes.
   const Placeholder = () => (
-    <div className={`flex flex-col items-center justify-center bg-gray-100 ${className}`}>
+    <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-surface-raised">
       {loading ? (
-        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+        <Loader2 className="h-6 w-6 animate-spin text-subtle" />
       ) : (
-        <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
+        <ImageIcon className="mb-2 h-8 w-8 text-subtle" />
       )}
-      <span className="text-xs text-gray-400">{loading ? '加载中...' : '媒体预览'}</span>
+      <span className="text-xs text-subtle">{loading || (primaryMediaType === 'video' && !videoFrameReady) ? '加载预览…' : '媒体预览'}</span>
     </div>
   )
 
@@ -142,16 +145,18 @@ export default function MediaThumbnail({ url, className = '', onPreview, fit = '
         }
       } : undefined}
     >
-      {(!hasRequested || error || !thumbnailUrl) && <Placeholder />}
+      {(!hasRequested || error || !thumbnailUrl || (primaryMediaType === 'video' && !videoFrameReady)) && <Placeholder />}
       {hasRequested && !error && thumbnailUrl && (
         <>
           {primaryMediaType === 'video' ? (
             <video
-              src={thumbnailUrl}
-              className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+              src={withVideoPreviewFrame(thumbnailUrl)}
+              className={`h-full w-full transition-opacity duration-200 motion-reduce:transition-none ${videoFrameReady ? 'opacity-100' : 'opacity-0'} ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
               muted
               playsInline
               preload="metadata"
+              onLoadedData={() => setVideoFrameReady(true)}
+              onCanPlay={() => setVideoFrameReady(true)}
               onError={() => setError(true)}
             />
           ) : (

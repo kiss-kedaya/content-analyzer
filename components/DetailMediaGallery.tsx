@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Image as ImageIcon } from '@/components/Icon'
 import { shouldProxyMediaUrl, toMediaProxyUrl } from '@/lib/media-proxy'
+import { VIDEO_PLAYBACK_RATES } from '@/lib/media-display'
 
 type MediaItem = {
   type: 'video' | 'image'
@@ -76,6 +77,8 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   const initialItems = useMemo(() => {
     const list = (mediaUrls || [])
@@ -160,15 +163,34 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
           <h2 className="text-sm md:text-base font-semibold text-gray-900">媒体预览</h2>
         </div>
 
-        {active?.type === 'image' && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="min-h-11 rounded-lg border border-default bg-surface px-3 text-sm font-medium text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            {expanded ? '还原' : '放大'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {active?.type === 'video' && (
+            <label className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-default bg-surface px-3 text-sm font-medium text-content">
+              <span>倍速</span>
+              <select
+                value={playbackRate}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  setPlaybackRate(value)
+                  if (videoRef.current) videoRef.current.playbackRate = value
+                }}
+                className="min-h-9 rounded-md bg-surface-raised px-2 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                aria-label="播放速度"
+              >
+                {VIDEO_PLAYBACK_RATES.map((rate) => <option key={rate} value={rate}>{rate}×</option>)}
+              </select>
+            </label>
+          )}
+          {active?.type === 'image' && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="min-h-11 rounded-lg border border-default bg-surface px-3 text-sm font-medium text-content hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              {expanded ? '还原' : '放大'}
+            </button>
+          )}
+        </div>
       </div>
 
       {items.length > 0 ? (
@@ -179,9 +201,12 @@ export default function DetailMediaGallery({ kind, id, source, url, mediaUrls }:
             active.type === 'video' ? (
               <video
                 key={active.url}
+                ref={videoRef}
                 src={active.url}
                 controls
                 playsInline
+                preload="metadata"
+                onLoadedMetadata={(event) => { event.currentTarget.playbackRate = playbackRate }}
                 className="w-full h-full object-contain"
               />
             ) : (
