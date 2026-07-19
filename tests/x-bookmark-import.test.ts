@@ -43,18 +43,21 @@ describe('X bookmark import', () => {
         { id: '2', author_id: 'adult-source', text: '请给一个关注', url: 'https://x.com/source/status/2', possibly_sensitive: false },
         { id: '3', author_id: 'tech-source', text: 'Next.js API 性能优化', url: 'https://x.com/tech/status/3', possibly_sensitive: false },
         { id: '4', author_id: 'sexy-source', text: '新视频', url: 'https://x.com/sexy/status/4', possibly_sensitive: false },
+        { id: '5', author_id: 'euphemism-source', text: '第一视角被操得太颠簸', url: 'https://x.com/euphemism/status/5', possibly_sensitive: false },
       ],
       includes: {
         users: [
           { id: 'adult-source', name: 'Creator', username: 'creator' },
           { id: 'tech-source', name: 'Developer', username: 'developer' },
           { id: 'sexy-source', name: 'Sexy Clip', username: 'sexy_clip' },
+          { id: 'euphemism-source', name: 'Creator', username: 'creator_two' },
         ],
       },
     })
 
     expect(result.content.map((item) => item.url)).toEqual(['https://x.com/tech/status/3'])
     expect(result.adultContent.map((item) => item.url)).toEqual([
+      'https://x.com/euphemism/status/5',
       'https://x.com/sexy/status/4',
       'https://x.com/source/status/2',
       'https://x.com/source/status/1',

@@ -41,7 +41,7 @@ export interface TransformedBookmarks {
   adultContent: BookmarkImportItem[]
 }
 
-const ADULT_TEXT_PATTERN = /(?:自慰|做爱|性爱|口交|肛交|性交|内射|射精|榨精|高潮|潮喷|性瘾|约炮|炮友|阴道|阴蒂|乳交|鸡巴|肉棒|嫩穴|骚穴|骚逼|骚货|骚狗|少妇|裸舞|脱衣|避孕套|飞机杯|露出|床上功夫|福利姬|女优|无码|色情|涩涩|黄油|国产自拍|成人视频|看片)|\b(?:porn|nsfw|xxx|hentai|chudai|wataa|nudes?|naked|blowjob|handjob|cuckold|milf|pussy|cock|cumshot|fuck(?:ing|ed)?)\b/i
+const ADULT_TEXT_PATTERN = /(?:自慰|做爱|性爱|口交|肛交|性交|内射|射精|榨精|高潮|潮喷|性瘾|约炮|炮友|阴道|阴蒂|乳交|鸡巴|肉棒|嫩穴|骚穴|骚逼|骚货|骚狗|少妇|裸舞|脱衣|避孕套|飞机杯|露出|床上功夫|福利姬|女优|无码|色情|涩涩|黄油|国产自拍|成人视频|看片|被操得|狠狠干|疯狂玩弄|群P|后入|淫娃|百人斩)|\b(?:porn|nsfw|xxx|hentai|chudai|wataa|nudes?|naked|blowjob|handjob|cuckold|milf|pussy|cock|cumshot|fuck(?:ing|ed)?)\b/i
 const ADULT_AUTHOR_PATTERN = /(?:sexy|porn|nsfw|xxx|hentai|adult|milf)/i
 
 /** X's possibly_sensitive flag is incomplete, especially on reposts. */
