@@ -100,3 +100,26 @@ Final browser evidence on `https://ca.kedaya.xyz`:
 - Lighthouse snapshot scores were Accessibility 100, Best Practices 100, and Agentic Browsing 100.
 
 Remaining improvement space: add automated browser E2E coverage, move login throttling to shared storage if this becomes a multi-user deployment, tighten CSP beyond `unsafe-inline`, and split the remaining large legacy media/parser modules.
+
+## Independent review — 2026-07-19, 90-point phase
+
+An independent read-only reviewer applied the same 25 criteria to production commit `d6a330e` and the documentation-complete commit `f9b118d`. No repository scoring script was used.
+
+| Category | Previous | Current | Decisive new evidence |
+| --- | ---: | ---: | --- |
+| UI and visual consistency | 17 | 18 | Responsive/theme behavior remains stable, the favicon is present, and normal media failure has a deliberate unavailable state instead of browser error noise. |
+| UX, accessibility, and continuity | 18 | 19 | Playwright now protects in-place click/scroll pagination, full video counts, theme persistence, drawer focus restoration, reduced motion, and mobile touch geometry. |
+| Backend, API, and security | 17 | 18 | Media failures are negatively cached for six hours and return a compatible recoverable result; an unauthenticated no-store database health endpoint and tests were added. |
+| Structure, typing, and readability | 17 | 18.5 | Six dead modules were removed, shared Prisma/OpenAPI boundaries no longer use `any`, and health/media/E2E architecture is documented. |
+| Testing, performance, and operations | 16 | 19 | CI provisions disposable PostgreSQL, pushes the Prisma schema, and runs four real Chromium tests after lint, 50 unit/route tests, build, and audit. |
+| **Total** | **85** | **92.5** | **Exceeds the 90-point target; every mandatory gate passes.** |
+
+Authoritative evidence:
+
+- GitHub Quality run `29680522210` passed PostgreSQL 16 health/setup, lint, 50 tests, production build, zero-vulnerability high-severity audit, and four Playwright E2E cases;
+- production `/api/health` returns `200`, `{ "status": "ok" }`, and `Cache-Control: no-store`;
+- an unavailable X post returns HTTP 200 with empty `media/videos/images` plus `warning` and `extractError`, and repeated failures use the six-hour negative cache;
+- production 375px dark/Fast 4G verification recorded CLS `0`, no horizontal overflow, no unnamed form controls, no undersized visible buttons, and no console warning/error/issue;
+- Lighthouse snapshot scores remain Accessibility 100, Best Practices 100, and Agentic Browsing 100.
+
+Remaining improvement space is non-blocking: shared-storage login throttling for multi-instance deployments, CSP without `unsafe-inline`, broader database integration/axe coverage, and splitting the remaining large parser/media files.
