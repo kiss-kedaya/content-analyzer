@@ -329,6 +329,7 @@ export const ENDPOINTS: ApiDocEndpoint[] = [
     curl: `curl "${BASE_URLS.prod}/api/preview-media?url=${encodeURIComponent('https://x.com/user/status/123')}" \\\n  ${curlCookieInline()}`,
     details: {
       query: 'url=<x/tw-url>&force=1(可选)&persistKind=content|adultContent&persistId=<id>(可选)',
+      notes: '删除、隐藏或暂时无法提取的推文返回 200 与空 media，并携带 warning/extractError；失败结果缓存 6 小时，force=1 可主动重试。',
     },
   },
   {

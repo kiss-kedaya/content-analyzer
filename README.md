@@ -33,6 +33,7 @@ Quality checks:
 
 ```bash
 npm test
+npm run test:e2e
 npm run lint
 npm run build
 npm audit --registry=https://registry.npmjs.org --audit-level=high
@@ -81,3 +82,5 @@ Regular and adult batch endpoints accept arrays of up to 100 records:
 - `/api/adult-content/batch`
 
 Interactive documentation is available at `https://ca.kedaya.xyz/api-docs`.
+The unauthenticated readiness endpoint is `GET /api/health`; it reports `503`
+when the database is unavailable.

@@ -25,6 +25,7 @@ The home page server-renders the first 12 records. `ContentList` owns client fil
 - `components/ShortVideoPlayer.tsx` — one mounted video, swipe/wheel/keyboard switching, and persistent playback speed;
 - `lib/media-display.ts` — pure media URL/type/feed rules shared by server and client;
 - `lib/preview-media-service.ts` and `lib/persistent-media.ts` — media extraction and stored proxy URL reuse.
+- `tests/e2e/core.spec.ts` — isolated-browser regression coverage for in-place pagination, full video counts, theme persistence, drawer focus, and touch targets.
 
 ## API conventions
 
@@ -38,6 +39,12 @@ User-facing pagination returns `{ success, data, pagination }`. Validation and s
 - The video directory selects only `id`, `title`, and non-empty `mediaUrls`.
 - Only the active short video is mounted; card media is intersection-observed and metadata-loaded.
 - Pino logs in-process. No pretty transport worker is started by the application.
+- Failed media extraction is a recoverable empty result and is negatively cached for six hours, preventing repeated provider calls and expected 5xx browser noise.
+- `/api/health` verifies the database connection without exposing application data. CI starts an isolated PostgreSQL service before browser tests.
+
+## Quality pipeline
+
+The GitHub `Quality` workflow installs from the lockfile, runs ESLint and unit/route tests, performs a production build and dependency audit, pushes the Prisma schema to a disposable PostgreSQL service, and then runs the Playwright browser suite. E2E fixtures use only that temporary database; they never write to the production database.
 
 ## Change checklist
 
