@@ -123,6 +123,9 @@ test('short-video player uses the complete video directory and restores focus', 
   await expect(dialog.getByText(/^1 \/ \d+$/)).toBeVisible()
   await expect(dialog.locator('video')).toHaveCount(1)
   await expect(dialog.getByLabel('播放速度').locator('option')).toHaveCount(9)
+  await expect(dialog.getByRole('button', { name: '暂停' })).toHaveCount(0)
+  await expect(dialog.getByRole('region', { name: '帖子信息' })).toBeVisible()
+  await expect(dialog.getByText(/浏览器测试内容/).first()).toBeVisible()
 
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()

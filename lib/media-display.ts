@@ -6,12 +6,14 @@ export interface VideoFeedItem {
   key: string
   id: string
   title: string
+  content?: string
   mediaUrl: string
 }
 
 export interface VideoFeedSource {
   id: string
   title?: string | null
+  summary?: string | null
   mediaUrls?: string[]
 }
 
@@ -78,6 +80,7 @@ export function buildVideoFeed(contents: VideoFeedSource[]): VideoFeedItem[] {
       key: `${content.id}:${mediaIndex}:${mediaUrl}`,
       id: content.id,
       title: content.title || '无标题',
+      ...(content.summary ? { content: content.summary } : {}),
       mediaUrl: toAbsoluteMediaUrl(mediaUrl),
     })))
 }

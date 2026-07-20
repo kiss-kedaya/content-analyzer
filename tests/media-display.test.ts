@@ -20,12 +20,12 @@ describe('media display helpers', () => {
 
   test('builds an ordered video-only feed with detail links', () => {
     const feed = buildVideoFeed([
-      { id: 'one', title: 'First', mediaUrls: [image, video] },
+      { id: 'one', title: 'First', summary: 'Original post body', mediaUrls: [image, video] },
       { id: 'two', title: 'Images only', mediaUrls: [image] },
     ])
 
     expect(feed).toHaveLength(1)
-    expect(feed[0]).toMatchObject({ id: 'one', title: 'First' })
+    expect(feed[0]).toMatchObject({ id: 'one', title: 'First', content: 'Original post body' })
     expect(feed[0].mediaUrl).toMatch(/^https:\/\/media\.kedaya\.xyz/)
   })
 })

@@ -68,6 +68,7 @@ const FAVORITE_ITEM_SELECT = {
 const VIDEO_FEED_SELECT = {
   id: true,
   title: true,
+  summary: true,
   mediaUrls: true,
 } as const
 

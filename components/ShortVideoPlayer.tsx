@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type TouchEvent, type WheelEvent } from 'react'
-import { Pause, Play, Volume2, VolumeX, X } from '@/components/Icon'
+import { Play, Volume2, VolumeX, X } from '@/components/Icon'
 import { VIDEO_PLAYBACK_RATES, type VideoFeedItem } from '@/lib/media-display'
 
 interface ShortVideoPlayerProps {
@@ -31,6 +31,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
   const [paused, setPaused] = useState(false)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
+  const [isContentExpanded, setIsContentExpanded] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDivElement | null>(null)
@@ -48,6 +49,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
     setDuration(0)
     setError(null)
     setPaused(false)
+    setIsContentExpanded(false)
   }, [items.length])
 
   const goNext = useCallback(() => changeIndex(1), [changeIndex])
@@ -188,21 +190,21 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black text-white" onWheel={handleWheel}>
+    <div className="fixed inset-0 z-[1000] bg-black text-white" onWheel={handleWheel}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="短视频播放模式"
         tabIndex={-1}
-        className="relative h-full w-full overflow-hidden outline-none"
-        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', touchAction: 'none' }}
+        className="relative flex h-dvh w-full flex-col overflow-hidden outline-none"
+        style={{ touchAction: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={() => { touchStartRef.current = null; setDragY(0) }}
       >
-        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pb-12 pt-[max(1rem,env(safe-area-inset-top))] md:px-6">
+        <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black px-4 pt-[env(safe-area-inset-top)] md:px-6">
           <span className="text-sm tabular-nums text-white/80" aria-live="polite">{activeIndex + 1} / {items.length}</span>
           <button
             ref={closeButtonRef}
@@ -216,7 +218,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
         </div>
 
         <div
-          className="relative flex h-full w-full items-center justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none"
+          className="relative flex min-h-0 flex-1 items-center justify-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none"
           style={{ transform: `translateY(${dragY * 0.16}px)`, opacity: 1 - Math.min(Math.abs(dragY) / 700, 0.16) }}
         >
           <video
@@ -227,7 +229,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
             muted={muted}
             playsInline
             preload="auto"
-            className="h-full w-full bg-black object-contain"
+            className="h-full w-full cursor-pointer bg-black object-contain"
             onClick={() => void togglePlayback()}
             onLoadedMetadata={(event) => {
               event.currentTarget.playbackRate = playbackRate
@@ -241,14 +243,9 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
           />
 
           {paused && !error && (
-            <button
-              type="button"
-              onClick={() => void togglePlayback()}
-              className="absolute left-1/2 top-1/2 inline-flex min-h-16 min-w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="继续播放"
-            >
-              <Play className="ml-1 h-7 w-7" fill="currentColor" aria-hidden="true" />
-            </button>
+            <span className="pointer-events-none absolute left-1/2 top-1/2 inline-flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur" aria-hidden="true">
+              <Play className="ml-1 h-7 w-7" fill="currentColor" />
+            </span>
           )}
 
           {error && (
@@ -261,9 +258,28 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
           )}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/75 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 md:px-6">
+        <section className="max-h-[42dvh] shrink-0 overflow-y-auto border-t border-white/10 bg-black px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:px-6" aria-label="帖子信息">
           <div className="mx-auto max-w-4xl space-y-3">
-            <h2 className="line-clamp-2 text-base font-semibold leading-6 text-white md:text-lg">{active.title}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="line-clamp-2 text-base font-semibold leading-6 text-white md:text-lg">{active.title}</h2>
+                {active.content && (
+                  <p className={`mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-white/75 ${isContentExpanded ? '' : 'line-clamp-2'}`}>
+                    {active.content}
+                  </p>
+                )}
+              </div>
+              {active.content && active.content.length > 100 && (
+                <button
+                  type="button"
+                  onClick={() => setIsContentExpanded((value) => !value)}
+                  className="min-h-11 shrink-0 rounded-lg px-2 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-expanded={isContentExpanded}
+                >
+                  {isContentExpanded ? '收起' : '展开'}
+                </button>
+              )}
+            </div>
 
             <label className="flex min-h-11 items-center gap-3 text-xs tabular-nums text-white/75">
               <span className="w-9 text-right">{formatTime(currentTime)}</span>
@@ -285,9 +301,6 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
             </label>
 
             <div className="flex flex-nowrap items-center gap-2">
-              <button type="button" onClick={() => void togglePlayback()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-neutral-950 transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black" aria-label={paused ? '播放' : '暂停'}>
-                {paused ? <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" /> : <Pause className="h-4 w-4" fill="currentColor" aria-hidden="true" />}
-              </button>
               <button type="button" onClick={() => setMuted((value) => !value)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={muted ? '开启声音' : '静音'}>
                 {muted ? <VolumeX className="h-5 w-5" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
               </button>
@@ -303,7 +316,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
               </label>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   )
