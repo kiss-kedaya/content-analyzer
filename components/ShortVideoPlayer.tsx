@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type TouchEvent, type WheelEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { Play, Volume2, VolumeX, X } from '@/components/Icon'
 import { VIDEO_PLAYBACK_RATES, type VideoFeedItem } from '@/lib/media-display'
 
@@ -145,6 +146,8 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
   }, [activeIndex, playbackRate])
 
   if (!active) return null
+  const detailText = active.content ? `${active.title} · ${active.content}` : active.title
+  const canExpandDetail = detailText.length > 32
 
   const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (isInteractiveTarget(event.target)) return
@@ -189,7 +192,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black text-white" onWheel={handleWheel}>
       <div
         ref={dialogRef}
@@ -204,13 +207,13 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
         onTouchEnd={handleTouchEnd}
         onTouchCancel={() => { touchStartRef.current = null; setDragY(0) }}
       >
-        <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black px-4 pt-[env(safe-area-inset-top)] md:px-6">
-          <span className="text-sm tabular-nums text-white/80" aria-live="polite">{activeIndex + 1} / {items.length}</span>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 px-3 pt-[max(.5rem,env(safe-area-inset-top))] md:px-5">
+          <span className="rounded-full bg-black/45 px-3 py-1.5 text-sm tabular-nums text-white/80 backdrop-blur" aria-live="polite">{activeIndex + 1} / {items.length}</span>
           <button
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="关闭短视频模式"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -258,18 +261,13 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
           )}
         </div>
 
-        <section className="max-h-[42dvh] shrink-0 overflow-y-auto border-t border-white/10 bg-black px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:px-6" aria-label="帖子信息">
-          <div className="mx-auto max-w-4xl space-y-3">
+        <section className="max-h-[38dvh] shrink-0 overflow-y-auto border-t border-white/10 bg-black px-3 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 md:px-5" aria-label="帖子信息">
+          <div className="mx-auto max-w-4xl space-y-1">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="line-clamp-2 text-base font-semibold leading-6 text-white md:text-lg">{active.title}</h2>
-                {active.content && (
-                  <p className={`mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-white/75 ${isContentExpanded ? '' : 'line-clamp-2'}`}>
-                    {active.content}
-                  </p>
-                )}
+              <div className={`min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-white/75 ${isContentExpanded ? '' : 'line-clamp-1'}`}>
+                {detailText}
               </div>
-              {active.content && active.content.length > 100 && (
+              {canExpandDetail && (
                 <button
                   type="button"
                   onClick={() => setIsContentExpanded((value) => !value)}
@@ -281,7 +279,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
               )}
             </div>
 
-            <label className="flex min-h-11 items-center gap-3 text-xs tabular-nums text-white/75">
+            <div className="flex min-h-11 flex-nowrap items-center gap-2 text-xs tabular-nums text-white/75">
               <span className="w-9 text-right">{formatTime(currentTime)}</span>
               <input
                 type="range"
@@ -294,13 +292,10 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
                   if (videoRef.current) videoRef.current.currentTime = value
                   setCurrentTime(value)
                 }}
-                className="h-11 min-w-0 flex-1 accent-white"
+                className="h-11 min-w-12 flex-1 accent-white"
                 aria-label="播放进度"
               />
               <span className="w-9">{formatTime(duration)}</span>
-            </label>
-
-            <div className="flex flex-nowrap items-center gap-2">
               <button type="button" onClick={() => setMuted((value) => !value)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={muted ? '开启声音' : '静音'}>
                 {muted ? <VolumeX className="h-5 w-5" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
               </button>
@@ -318,6 +313,7 @@ export default function ShortVideoPlayer({ items, initialIndex, onClose }: Short
           </div>
         </section>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

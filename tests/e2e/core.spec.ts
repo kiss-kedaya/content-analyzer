@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || 'test-password'
+type SeededRecord = { kind: 'content' | 'adult-content'; id: string }
+const seededRecords = new WeakMap<Page, SeededRecord[]>()
 
 function buildContentFixtures(count: number, kind: 'tech' | 'adult') {
   return Array.from({ length: count }, (_, index) => ({
@@ -16,6 +18,8 @@ function buildContentFixtures(count: number, kind: 'tech' | 'adult') {
 }
 
 async function loginAndSeed(page: Page) {
+  const records: SeededRecord[] = []
+  seededRecords.set(page, records)
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
   await page.goto('/login')
   await page.getByLabel('访问密码').fill(ACCESS_PASSWORD)
@@ -33,6 +37,8 @@ async function loginAndSeed(page: Page) {
     const cookies = await page.context().cookies()
     throw new Error(`Tech seed failed (${techResponse.status()}): ${await techResponse.text()}; authCookie=${cookies.some((cookie) => cookie.name === 'auth-token')}`)
   }
+  const techResult = await techResponse.json() as { created?: Array<{ id: string }> }
+  records.push(...(techResult.created || []).map(({ id }) => ({ kind: 'content' as const, id })))
 
   const adultResponse = await page.request.post('/api/adult-content/batch', {
     headers: { cookie: cookieHeader },
@@ -41,10 +47,23 @@ async function loginAndSeed(page: Page) {
   if (!adultResponse.ok()) {
     throw new Error(`Adult seed failed (${adultResponse.status()}): ${await adultResponse.text()}`)
   }
+  const adultResult = await adultResponse.json() as { created?: Array<{ id: string }> }
+  records.push(...(adultResult.created || []).map(({ id }) => ({ kind: 'adult-content' as const, id })))
 }
 
 test.beforeEach(async ({ page }) => {
   await loginAndSeed(page)
+})
+
+test.afterEach(async ({ page }) => {
+  const records = seededRecords.get(page) || []
+  const cookieHeader = (await page.context().cookies())
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join('; ')
+  await Promise.all(records.map(({ kind, id }) => page.request.delete(`/api/${kind}/${id}`, {
+    headers: { cookie: cookieHeader },
+  })))
+  seededRecords.delete(page)
 })
 
 test('load-more appends records without document or RSC navigation', async ({ page }) => {
@@ -126,6 +145,9 @@ test('short-video player uses the complete video directory and restores focus', 
   await expect(dialog.getByRole('button', { name: '暂停' })).toHaveCount(0)
   await expect(dialog.getByRole('region', { name: '帖子信息' })).toBeVisible()
   await expect(dialog.getByText(/浏览器测试内容/).first()).toBeVisible()
+  const dialogBox = await dialog.boundingBox()
+  expect(dialogBox).toMatchObject({ x: 0, y: 0 })
+  expect(dialogBox?.height).toBeGreaterThan(700)
 
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
